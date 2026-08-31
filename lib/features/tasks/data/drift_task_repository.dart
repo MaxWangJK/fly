@@ -309,8 +309,45 @@ class DriftTaskRepository implements TaskRepository {
 
   @override
   Future<void> reorderTask(String taskId, List<String> orderedTaskIds) async {
-    if (!orderedTaskIds.contains(taskId)) return;
-    await _db.transaction(() async {
+    final index = orderedTaskIds.indexOf(taskId);
+    if (index < 0) return;
+
+    final previous = index == 0
+        ? null
+        : await _record(orderedTaskIds[index - 1]);
+    final next = index == orderedTaskIds.length - 1
+        ? null
+        : await _record(orderedTaskIds[index + 1]);
+    final previousOrder = previous?.sortOrder;
+    final nextOrder = next?.sortOrder;
+
+    final int order;
+    if (previousOrder == null && nextOrder == null) {
+      order = sortGap;
+    } else if (previousOrder == null) {
+      order = nextOrder! - sortGap;
+    } else if (nextOrder == null) {
+      order = previousOrder + sortGap;
+    } else if (nextOrder - previousOrder > 1) {
+      order = previousOrder + ((nextOrder - previousOrder) ~/ 2);
+    } else {
+      await _rebalance(orderedTaskIds);
+      return;
+    }
+
+    final current = await _record(taskId);
+    await _write(
+      taskId,
+      TasksCompanion(
+        sortOrder: Value(order),
+        updatedAt: Value(DateTime.now()),
+        version: Value(current.version + 1),
+      ),
+    );
+  }
+
+  Future<void> _rebalance(List<String> orderedTaskIds) {
+    return _db.transaction(() async {
       for (var index = 0; index < orderedTaskIds.length; index++) {
         final id = orderedTaskIds[index];
         final current = await _record(id);
