@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.flyproduct" "\0"
-            VALUE "FileDescription", "fly" "\0"
+            VALUE "FileDescription", "Fly" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "fly" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.flyproduct. All rights reserved." "\0"
             VALUE "OriginalFilename", "fly.exe" "\0"
-            VALUE "ProductName", "fly" "\0"
+            VALUE "ProductName", "Fly" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
