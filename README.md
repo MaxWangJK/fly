@@ -36,18 +36,26 @@ E:\workSpace\flutter\bin\flutter.bat run -d windows
 E:\workSpace\flutter\bin\flutter.bat build windows --release
 ```
 
-Flutter plugins require Windows symbolic-link support. Enable Windows Developer Mode before Windows run/build.
+Windows Developer Mode is enabled on the verified development machine to support Flutter plugin symbolic links.
 
 ## Platform status
 
 | Platform | Status |
 |---|---|
-| Windows | Development active; analyze/tests verified; run/build blocked until Developer Mode is explicitly enabled |
+| Windows | Development active; `flutter run -d windows --release` and release build verified on 2026-08-31 |
 | Android | Not configured |
 | macOS | Not verified — requires macOS |
 | iOS | Not verified — requires macOS and Xcode |
 
 Generated platform source is not equivalent to platform verification.
+
+## Windows release
+
+```text
+E:\workSpace\fly\build\windows\x64\runner\Release\fly.exe
+```
+
+The release executable was launched through Flutter, responded normally, and exposed the expected `Fly` main-window title.
 
 ## Architecture
 
