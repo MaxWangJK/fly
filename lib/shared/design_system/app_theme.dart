@@ -19,8 +19,9 @@ abstract final class FlyTheme {
       useMaterial3: true,
       brightness: brightness,
       colorScheme: scheme,
-      scaffoldBackgroundColor:
-          isDark ? FlyColors.canvasDark : FlyColors.canvasLight,
+      scaffoldBackgroundColor: isDark
+          ? FlyColors.canvasDark
+          : FlyColors.canvasLight,
       visualDensity: VisualDensity.compact,
     );
 
@@ -55,8 +56,9 @@ abstract final class FlyTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor:
-            isDark ? FlyColors.surfaceMutedDark : FlyColors.surfaceMutedLight,
+        fillColor: isDark
+            ? FlyColors.surfaceMutedDark
+            : FlyColors.surfaceMutedLight,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(FlyRadius.md),
           borderSide: BorderSide.none,
@@ -84,7 +86,9 @@ abstract final class FlyTheme {
         ),
       ),
       dialogTheme: DialogThemeData(
-        backgroundColor: isDark ? FlyColors.surfaceDark : FlyColors.surfaceLight,
+        backgroundColor: isDark
+            ? FlyColors.surfaceDark
+            : FlyColors.surfaceLight,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(FlyRadius.lg),
         ),

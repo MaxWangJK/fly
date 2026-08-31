@@ -4,7 +4,8 @@ import 'package:drift/drift.dart';
 class TaskLists extends Table {
   TextColumn get id => text()();
   TextColumn get name => text().withLength(min: 1, max: 120)();
-  IntColumn get colorValue => integer().withDefault(const Constant(0xFF4267E8))();
+  IntColumn get colorValue =>
+      integer().withDefault(const Constant(0xFF4267E8))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
   DateTimeColumn get deletedAt => dateTime().nullable()();
@@ -27,9 +28,8 @@ class Tasks extends Table {
   DateTimeColumn get startDate => dateTime().nullable()();
   DateTimeColumn get dueDate => dateTime().nullable()();
   BoolColumn get isAllDay => boolean().withDefault(const Constant(true))();
-  TextColumn get listId => text()
-      .withDefault(const Constant('inbox'))
-      .references(TaskLists, #id)();
+  TextColumn get listId =>
+      text().withDefault(const Constant('inbox')).references(TaskLists, #id)();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
   DateTimeColumn get completedAt => dateTime().nullable()();
@@ -47,7 +47,8 @@ class Tasks extends Table {
 class Tags extends Table {
   TextColumn get id => text()();
   TextColumn get name => text().withLength(min: 1, max: 80)();
-  IntColumn get colorValue => integer().withDefault(const Constant(0xFF667085))();
+  IntColumn get colorValue =>
+      integer().withDefault(const Constant(0xFF667085))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
   DateTimeColumn get deletedAt => dateTime().nullable()();
@@ -58,8 +59,8 @@ class Tags extends Table {
 
   @override
   List<Set<Column<Object>>> get uniqueKeys => [
-        {name},
-      ];
+    {name},
+  ];
 }
 
 class TaskTags extends Table {

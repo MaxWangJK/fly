@@ -20,15 +20,11 @@ final taskRepositoryProvider = Provider<TaskRepository>(
 );
 
 final selectedTaskIdProvider = StateProvider<String?>((ref) => null);
-final selectedDateProvider = StateProvider<DateTime>(
-  (ref) => DateTime.now(),
-);
-final calendarMonthProvider = StateProvider<DateTime>(
-  (ref) {
-    final now = DateTime.now();
-    return DateTime(now.year, now.month);
-  },
-);
+final selectedDateProvider = StateProvider<DateTime>((ref) => DateTime.now());
+final calendarMonthProvider = StateProvider<DateTime>((ref) {
+  final now = DateTime.now();
+  return DateTime(now.year, now.month);
+});
 final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.system);
 
 final allTasksProvider = StreamProvider<List<FlyTask>>(
@@ -43,8 +39,10 @@ final todayTasksProvider = StreamProvider<List<FlyTask>>(
 final upcomingTasksProvider = StreamProvider<List<FlyTask>>(
   (ref) => ref.watch(taskRepositoryProvider).watchUpcomingTasks(DateTime.now()),
 );
-final listTasksProvider =
-    StreamProvider.family<List<FlyTask>, String>((ref, listId) {
+final listTasksProvider = StreamProvider.family<List<FlyTask>, String>((
+  ref,
+  listId,
+) {
   return ref.watch(taskRepositoryProvider).watchTasksForList(listId);
 });
 final taskProvider = StreamProvider.family<FlyTask?, String>((ref, taskId) {
@@ -53,21 +51,28 @@ final taskProvider = StreamProvider.family<FlyTask?, String>((ref, taskId) {
 final taskListsProvider = StreamProvider<List<FlyTaskList>>(
   (ref) => ref.watch(taskRepositoryProvider).watchLists(),
 );
-final taskTagsProvider =
-    StreamProvider.family<List<String>, String>((ref, taskId) {
+final taskTagsProvider = StreamProvider.family<List<String>, String>((
+  ref,
+  taskId,
+) {
   return ref.watch(taskRepositoryProvider).watchTags(taskId);
 });
-final checklistProvider =
-    StreamProvider.family<List<FlyChecklistItem>, String>((ref, taskId) {
-  return ref.watch(taskRepositoryProvider).watchChecklist(taskId);
-});
-final reminderProvider =
-    StreamProvider.family<FlyReminder?, String>((ref, taskId) {
+final checklistProvider = StreamProvider.family<List<FlyChecklistItem>, String>(
+  (ref, taskId) {
+    return ref.watch(taskRepositoryProvider).watchChecklist(taskId);
+  },
+);
+final reminderProvider = StreamProvider.family<FlyReminder?, String>((
+  ref,
+  taskId,
+) {
   return ref.watch(taskRepositoryProvider).watchReminder(taskId);
 });
 
-final monthTasksProvider =
-    StreamProvider.family<List<FlyTask>, DateTime>((ref, month) {
+final monthTasksProvider = StreamProvider.family<List<FlyTask>, DateTime>((
+  ref,
+  month,
+) {
   final start = DateTime(month.year, month.month);
   final end = DateTime(month.year, month.month + 1);
   return ref.watch(taskRepositoryProvider).watchTasksForRange(start, end);

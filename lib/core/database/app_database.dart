@@ -26,34 +26,34 @@ class AppDatabase extends _$AppDatabase {
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onCreate: (migrator) async {
-          await migrator.createAll();
-          await customStatement(
-            'CREATE INDEX idx_tasks_due_active '
-            'ON tasks(due_date, deleted_at, status)',
-          );
-          await customStatement(
-            'CREATE INDEX idx_tasks_list_sort_active '
-            'ON tasks(list_id, deleted_at, status, sort_order)',
-          );
-          await customStatement(
-            'CREATE INDEX idx_tasks_matrix_active '
-            'ON tasks(importance, urgency, deleted_at, status)',
-          );
-          await customStatement(
-            'CREATE INDEX idx_checklist_task_sort '
-            'ON checklist_items(task_id, deleted_at, sort_order)',
-          );
-          await customStatement(
-            'CREATE INDEX idx_reminders_task_active '
-            'ON reminders(task_id, deleted_at, remind_at)',
-          );
-        },
-        beforeOpen: (_) async {
-          await customStatement('PRAGMA foreign_keys = ON');
-          await customStatement('PRAGMA journal_mode = WAL');
-        },
+    onCreate: (migrator) async {
+      await migrator.createAll();
+      await customStatement(
+        'CREATE INDEX idx_tasks_due_active '
+        'ON tasks(due_date, deleted_at, status)',
       );
+      await customStatement(
+        'CREATE INDEX idx_tasks_list_sort_active '
+        'ON tasks(list_id, deleted_at, status, sort_order)',
+      );
+      await customStatement(
+        'CREATE INDEX idx_tasks_matrix_active '
+        'ON tasks(importance, urgency, deleted_at, status)',
+      );
+      await customStatement(
+        'CREATE INDEX idx_checklist_task_sort '
+        'ON checklist_items(task_id, deleted_at, sort_order)',
+      );
+      await customStatement(
+        'CREATE INDEX idx_reminders_task_active '
+        'ON reminders(task_id, deleted_at, remind_at)',
+      );
+    },
+    beforeOpen: (_) async {
+      await customStatement('PRAGMA foreign_keys = ON');
+      await customStatement('PRAGMA journal_mode = WAL');
+    },
+  );
 
   Future<void> ensureBuiltInData() async {
     final now = DateTime.now();

@@ -23,8 +23,8 @@ class DriftTaskRepository implements TaskRepository {
       ..where((row) => row.deletedAt.isNull() & predicate(row))
       ..orderBy([(row) => OrderingTerm(expression: row.sortOrder)]);
     return query.watch().map(
-          (rows) => rows.map(_fromRecord).toList(growable: false),
-        );
+      (rows) => rows.map(_fromRecord).toList(growable: false),
+    );
   }
 
   @override
@@ -47,8 +47,11 @@ class DriftTaskRepository implements TaskRepository {
 
   @override
   Stream<List<FlyTask>> watchUpcomingTasks(DateTime from) {
-    final start =
-        DateTime(from.year, from.month, from.day).add(const Duration(days: 1));
+    final start = DateTime(
+      from.year,
+      from.month,
+      from.day,
+    ).add(const Duration(days: 1));
     return _watchWhere((row) => row.dueDate.isBiggerOrEqualValue(start));
   }
 
@@ -69,8 +72,8 @@ class DriftTaskRepository implements TaskRepository {
     final query = _db.select(_db.tasks)
       ..where((row) => row.id.equals(id) & row.deletedAt.isNull());
     return query.watchSingleOrNull().map(
-          (row) => row == null ? null : _fromRecord(row),
-        );
+      (row) => row == null ? null : _fromRecord(row),
+    );
   }
 
   @override
@@ -79,35 +82,38 @@ class DriftTaskRepository implements TaskRepository {
       ..where((row) => row.deletedAt.isNull())
       ..orderBy([(row) => OrderingTerm(expression: row.sortOrder)]);
     return query.watch().map(
-          (rows) => rows
-              .map(
-                (row) => FlyTaskList(
-                  id: row.id,
-                  name: row.name,
-                  colorValue: row.colorValue,
-                  createdAt: row.createdAt,
-                  updatedAt: row.updatedAt,
-                  deletedAt: row.deletedAt,
-                  sortOrder: row.sortOrder,
-                  version: row.version,
-                ),
-              )
-              .toList(growable: false),
-        );
+      (rows) => rows
+          .map(
+            (row) => FlyTaskList(
+              id: row.id,
+              name: row.name,
+              colorValue: row.colorValue,
+              createdAt: row.createdAt,
+              updatedAt: row.updatedAt,
+              deletedAt: row.deletedAt,
+              sortOrder: row.sortOrder,
+              version: row.version,
+            ),
+          )
+          .toList(growable: false),
+    );
   }
 
   @override
   Stream<List<String>> watchTags(String taskId) {
-    final query = _db.select(_db.tags).join([
-      innerJoin(_db.taskTags, _db.taskTags.tagId.equalsExp(_db.tags.id)),
-    ])
-      ..where(_db.taskTags.taskId.equals(taskId) & _db.tags.deletedAt.isNull())
-      ..orderBy([OrderingTerm(expression: _db.tags.name)]);
+    final query =
+        _db.select(_db.tags).join([
+            innerJoin(_db.taskTags, _db.taskTags.tagId.equalsExp(_db.tags.id)),
+          ])
+          ..where(
+            _db.taskTags.taskId.equals(taskId) & _db.tags.deletedAt.isNull(),
+          )
+          ..orderBy([OrderingTerm(expression: _db.tags.name)]);
     return query.watch().map(
-          (rows) => rows
-              .map((row) => row.readTable(_db.tags).name)
-              .toList(growable: false),
-        );
+      (rows) => rows
+          .map((row) => row.readTable(_db.tags).name)
+          .toList(growable: false),
+    );
   }
 
   @override
@@ -116,23 +122,23 @@ class DriftTaskRepository implements TaskRepository {
       ..where((row) => row.taskId.equals(taskId) & row.deletedAt.isNull())
       ..orderBy([(row) => OrderingTerm(expression: row.sortOrder)]);
     return query.watch().map(
-          (rows) => rows
-              .map(
-                (row) => FlyChecklistItem(
-                  id: row.id,
-                  taskId: row.taskId,
-                  title: row.title,
-                  isCompleted: row.isCompleted,
-                  sortOrder: row.sortOrder,
-                  createdAt: row.createdAt,
-                  updatedAt: row.updatedAt,
-                  completedAt: row.completedAt,
-                  deletedAt: row.deletedAt,
-                  version: row.version,
-                ),
-              )
-              .toList(growable: false),
-        );
+      (rows) => rows
+          .map(
+            (row) => FlyChecklistItem(
+              id: row.id,
+              taskId: row.taskId,
+              title: row.title,
+              isCompleted: row.isCompleted,
+              sortOrder: row.sortOrder,
+              createdAt: row.createdAt,
+              updatedAt: row.updatedAt,
+              completedAt: row.completedAt,
+              deletedAt: row.deletedAt,
+              version: row.version,
+            ),
+          )
+          .toList(growable: false),
+    );
   }
 
   @override
@@ -146,15 +152,15 @@ class DriftTaskRepository implements TaskRepository {
       )
       ..limit(1);
     return query.watchSingleOrNull().map(
-          (row) => row == null
-              ? null
-              : FlyReminder(
-                  id: row.id,
-                  taskId: row.taskId,
-                  remindAt: row.remindAt,
-                  isEnabled: row.isEnabled,
-                ),
-        );
+      (row) => row == null
+          ? null
+          : FlyReminder(
+              id: row.id,
+              taskId: row.taskId,
+              remindAt: row.remindAt,
+              isEnabled: row.isEnabled,
+            ),
+    );
   }
 
   @override
@@ -171,10 +177,10 @@ class DriftTaskRepository implements TaskRepository {
       throw ArgumentError.value(title, 'title', 'Task title cannot be empty');
     }
     final maxExpression = _db.tasks.sortOrder.max();
-    final maxOrder = await (_db.selectOnly(_db.tasks)
-          ..addColumns([maxExpression]))
-        .map((row) => row.read(maxExpression))
-        .getSingle();
+    final maxOrder =
+        await (_db.selectOnly(_db.tasks)..addColumns([maxExpression]))
+            .map((row) => row.read(maxExpression))
+            .getSingle();
     final now = DateTime.now();
     final task = FlyTask(
       id: _uuid.v4(),
@@ -202,16 +208,18 @@ class DriftTaskRepository implements TaskRepository {
       updatedAt: DateTime.now(),
       version: task.version + 1,
     );
-    await (_db.update(_db.tasks)..where((row) => row.id.equals(task.id)))
-        .write(_toCompanion(next));
+    await (_db.update(
+      _db.tasks,
+    )..where((row) => row.id.equals(task.id))).write(_toCompanion(next));
   }
 
   Future<TaskRecord> _record(String id) =>
       (_db.select(_db.tasks)..where((row) => row.id.equals(id))).getSingle();
 
   Future<void> _write(String id, TasksCompanion change) async {
-    await (_db.update(_db.tasks)..where((row) => row.id.equals(id)))
-        .write(change);
+    await (_db.update(
+      _db.tasks,
+    )..where((row) => row.id.equals(id))).write(change);
   }
 
   Future<void> _touch(String id) async {
@@ -326,21 +334,24 @@ class DriftTaskRepository implements TaskRepository {
         .toSet();
     final now = DateTime.now();
     await _db.transaction(() async {
-      await (_db.delete(_db.taskTags)
-            ..where((row) => row.taskId.equals(taskId)))
-          .go();
+      await (_db.delete(
+        _db.taskTags,
+      )..where((row) => row.taskId.equals(taskId))).go();
       for (final name in values) {
-        final existing = await (_db.select(_db.tags)
-              ..where(
-                (row) =>
-                    row.name.lower().equals(name.toLowerCase()) &
-                    row.deletedAt.isNull(),
-              )
-              ..limit(1))
-            .getSingleOrNull();
+        final existing =
+            await (_db.select(_db.tags)
+                  ..where(
+                    (row) =>
+                        row.name.lower().equals(name.toLowerCase()) &
+                        row.deletedAt.isNull(),
+                  )
+                  ..limit(1))
+                .getSingleOrNull();
         final id = existing?.id ?? _uuid.v4();
         if (existing == null) {
-          await _db.into(_db.tags).insert(
+          await _db
+              .into(_db.tags)
+              .insert(
                 TagsCompanion.insert(
                   id: id,
                   name: name,
@@ -349,7 +360,9 @@ class DriftTaskRepository implements TaskRepository {
                 ),
               );
         }
-        await _db.into(_db.taskTags).insert(
+        await _db
+            .into(_db.taskTags)
+            .insert(
               TaskTagsCompanion.insert(taskId: taskId, tagId: id),
               mode: InsertMode.insertOrIgnore,
             );
@@ -363,13 +376,16 @@ class DriftTaskRepository implements TaskRepository {
     final value = title.trim();
     if (value.isEmpty) return;
     final maxExpression = _db.checklistItems.sortOrder.max();
-    final maxOrder = await (_db.selectOnly(_db.checklistItems)
-          ..addColumns([maxExpression])
-          ..where(_db.checklistItems.taskId.equals(taskId)))
-        .map((row) => row.read(maxExpression))
-        .getSingle();
+    final maxOrder =
+        await (_db.selectOnly(_db.checklistItems)
+              ..addColumns([maxExpression])
+              ..where(_db.checklistItems.taskId.equals(taskId)))
+            .map((row) => row.read(maxExpression))
+            .getSingle();
     final now = DateTime.now();
-    await _db.into(_db.checklistItems).insert(
+    await _db
+        .into(_db.checklistItems)
+        .insert(
           ChecklistItemsCompanion.insert(
             id: _uuid.v4(),
             taskId: taskId,
@@ -387,13 +403,13 @@ class DriftTaskRepository implements TaskRepository {
     String itemId, {
     required bool completed,
   }) async {
-    final item = await (_db.select(_db.checklistItems)
-          ..where((row) => row.id.equals(itemId)))
-        .getSingle();
+    final item = await (_db.select(
+      _db.checklistItems,
+    )..where((row) => row.id.equals(itemId))).getSingle();
     final now = DateTime.now();
-    await (_db.update(_db.checklistItems)
-          ..where((row) => row.id.equals(itemId)))
-        .write(
+    await (_db.update(
+      _db.checklistItems,
+    )..where((row) => row.id.equals(itemId))).write(
       ChecklistItemsCompanion(
         isCompleted: Value(completed),
         completedAt: Value(completed ? now : null),
@@ -406,13 +422,13 @@ class DriftTaskRepository implements TaskRepository {
 
   @override
   Future<void> deleteChecklistItem(String itemId) async {
-    final item = await (_db.select(_db.checklistItems)
-          ..where((row) => row.id.equals(itemId)))
-        .getSingle();
+    final item = await (_db.select(
+      _db.checklistItems,
+    )..where((row) => row.id.equals(itemId))).getSingle();
     final now = DateTime.now();
-    await (_db.update(_db.checklistItems)
-          ..where((row) => row.id.equals(itemId)))
-        .write(
+    await (_db.update(
+      _db.checklistItems,
+    )..where((row) => row.id.equals(itemId))).write(
       ChecklistItemsCompanion(
         deletedAt: Value(now),
         updatedAt: Value(now),
@@ -426,10 +442,13 @@ class DriftTaskRepository implements TaskRepository {
   Future<void> setReminder(String taskId, DateTime remindAt) async {
     final now = DateTime.now();
     await _db.transaction(() async {
-      await (_db.update(_db.reminders)
-            ..where((row) => row.taskId.equals(taskId) & row.deletedAt.isNull()))
+      await (_db.update(
+            _db.reminders,
+          )..where((row) => row.taskId.equals(taskId) & row.deletedAt.isNull()))
           .write(RemindersCompanion(deletedAt: Value(now)));
-      await _db.into(_db.reminders).insert(
+      await _db
+          .into(_db.reminders)
+          .insert(
             RemindersCompanion.insert(
               id: _uuid.v4(),
               taskId: taskId,
@@ -454,10 +473,10 @@ class DriftTaskRepository implements TaskRepository {
   @override
   Future<void> seedDevelopmentData() async {
     final countExpression = _db.tasks.id.count();
-    final count = await (_db.selectOnly(_db.tasks)
-          ..addColumns([countExpression]))
-        .map((row) => row.read(countExpression))
-        .getSingle();
+    final count =
+        await (_db.selectOnly(_db.tasks)..addColumns([countExpression]))
+            .map((row) => row.read(countExpression))
+            .getSingle();
     if (count != 0) return;
     final today = DateTime.now();
     await createTask(
@@ -480,46 +499,46 @@ class DriftTaskRepository implements TaskRepository {
   }
 
   FlyTask _fromRecord(TaskRecord row) => FlyTask(
-        id: row.id,
-        title: row.title,
-        description: row.description,
-        status: TaskStatus.values.byName(row.status),
-        priority: TaskPriority.values.byName(row.priority),
-        importance: row.importance,
-        urgency: row.urgency,
-        startDate: row.startDate,
-        dueDate: row.dueDate,
-        isAllDay: row.isAllDay,
-        listId: row.listId,
-        createdAt: row.createdAt,
-        updatedAt: row.updatedAt,
-        completedAt: row.completedAt,
-        deletedAt: row.deletedAt,
-        sortOrder: row.sortOrder,
-        version: row.version,
-        recurrenceRule: row.recurrenceRule,
-        recurrenceEndAt: row.recurrenceEndAt,
-      );
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    status: TaskStatus.values.byName(row.status),
+    priority: TaskPriority.values.byName(row.priority),
+    importance: row.importance,
+    urgency: row.urgency,
+    startDate: row.startDate,
+    dueDate: row.dueDate,
+    isAllDay: row.isAllDay,
+    listId: row.listId,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    completedAt: row.completedAt,
+    deletedAt: row.deletedAt,
+    sortOrder: row.sortOrder,
+    version: row.version,
+    recurrenceRule: row.recurrenceRule,
+    recurrenceEndAt: row.recurrenceEndAt,
+  );
 
   TasksCompanion _toCompanion(FlyTask task) => TasksCompanion(
-        id: Value(task.id),
-        title: Value(task.title),
-        description: Value(task.description),
-        status: Value(task.status.name),
-        priority: Value(task.priority.name),
-        importance: Value(task.importance),
-        urgency: Value(task.urgency),
-        startDate: Value(task.startDate),
-        dueDate: Value(task.dueDate),
-        isAllDay: Value(task.isAllDay),
-        listId: Value(task.listId),
-        createdAt: Value(task.createdAt),
-        updatedAt: Value(task.updatedAt),
-        completedAt: Value(task.completedAt),
-        deletedAt: Value(task.deletedAt),
-        sortOrder: Value(task.sortOrder),
-        version: Value(task.version),
-        recurrenceRule: Value(task.recurrenceRule),
-        recurrenceEndAt: Value(task.recurrenceEndAt),
-      );
+    id: Value(task.id),
+    title: Value(task.title),
+    description: Value(task.description),
+    status: Value(task.status.name),
+    priority: Value(task.priority.name),
+    importance: Value(task.importance),
+    urgency: Value(task.urgency),
+    startDate: Value(task.startDate),
+    dueDate: Value(task.dueDate),
+    isAllDay: Value(task.isAllDay),
+    listId: Value(task.listId),
+    createdAt: Value(task.createdAt),
+    updatedAt: Value(task.updatedAt),
+    completedAt: Value(task.completedAt),
+    deletedAt: Value(task.deletedAt),
+    sortOrder: Value(task.sortOrder),
+    version: Value(task.version),
+    recurrenceRule: Value(task.recurrenceRule),
+    recurrenceEndAt: Value(task.recurrenceEndAt),
+  );
 }

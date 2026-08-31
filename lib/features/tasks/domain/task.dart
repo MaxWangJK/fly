@@ -56,11 +56,11 @@ class FlyTask {
   bool get isDeleted => deletedAt != null;
 
   MatrixQuadrant get quadrant => switch ((importance, urgency)) {
-        (true, true) => MatrixQuadrant.importantUrgent,
-        (true, false) => MatrixQuadrant.importantNotUrgent,
-        (false, true) => MatrixQuadrant.notImportantUrgent,
-        (false, false) => MatrixQuadrant.notImportantNotUrgent,
-      };
+    (true, true) => MatrixQuadrant.importantUrgent,
+    (true, false) => MatrixQuadrant.importantNotUrgent,
+    (false, true) => MatrixQuadrant.notImportantUrgent,
+    (false, false) => MatrixQuadrant.notImportantNotUrgent,
+  };
 
   FlyTask copyWith({
     String? id,
@@ -94,8 +94,7 @@ class FlyTask {
       startDate: identical(startDate, _unset)
           ? this.startDate
           : startDate as DateTime?,
-      dueDate:
-          identical(dueDate, _unset) ? this.dueDate : dueDate as DateTime?,
+      dueDate: identical(dueDate, _unset) ? this.dueDate : dueDate as DateTime?,
       isAllDay: isAllDay ?? this.isAllDay,
       listId: listId ?? this.listId,
       createdAt: createdAt ?? this.createdAt,

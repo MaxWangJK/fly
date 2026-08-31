@@ -35,10 +35,7 @@ abstract interface class TaskRepository {
     required bool importance,
     required bool urgency,
   });
-  Future<void> reorderTask(
-    String taskId,
-    List<String> orderedTaskIds,
-  );
+  Future<void> reorderTask(String taskId, List<String> orderedTaskIds);
 
   Future<void> setTags(String taskId, Iterable<String> names);
   Future<void> addChecklistItem(String taskId, String title);
