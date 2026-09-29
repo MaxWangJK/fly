@@ -1,6 +1,7 @@
 #include "flutter_window.h"
 
 #include <optional>
+#include <flutter/method_result_functions.h>
 
 #include "flutter/generated_plugin_registrant.h"
 
@@ -25,6 +26,9 @@ bool FlutterWindow::OnCreate() {
     return false;
   }
   RegisterPlugins(flutter_controller_->engine());
+  file_transfer_ = CreateFileTransferChannel(flutter_controller_->engine()->messenger());
+  license_storage_ = CreateLicenseStorageChannel(flutter_controller_->engine()->messenger());
+  lifecycle_ = std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(flutter_controller_->engine()->messenger(), "fly/window_lifecycle", &flutter::StandardMethodCodec::GetInstance());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
@@ -40,6 +44,9 @@ bool FlutterWindow::OnCreate() {
 }
 
 void FlutterWindow::OnDestroy() {
+  license_storage_.reset();
+  lifecycle_.reset();
+  file_transfer_.reset();
   if (flutter_controller_) {
     flutter_controller_ = nullptr;
   }
@@ -51,6 +58,20 @@ LRESULT
 FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
                               WPARAM const wparam,
                               LPARAM const lparam) noexcept {
+  if (message == WM_CLOSE && lifecycle_ && !close_approved_) {
+    if (close_pending_) return 0;
+    close_pending_ = true;
+    auto finish = [this, hwnd](bool allowed) {
+      close_pending_ = false;
+      if (allowed) { close_approved_ = true; PostMessage(hwnd, WM_CLOSE, 0, 0); }
+    };
+    lifecycle_->InvokeMethod("prepareClose", nullptr,
+      std::make_unique<flutter::MethodResultFunctions<flutter::EncodableValue>>(
+        [finish](const flutter::EncodableValue* value) { const auto* allowed = value ? std::get_if<bool>(value) : nullptr; finish(allowed && *allowed); },
+        [finish](const std::string&, const std::string&, const flutter::EncodableValue*) { finish(false); },
+        [finish]() { finish(true); }));
+    return 0;
+  }
   // Give Flutter, including plugins, an opportunity to handle window messages.
   if (flutter_controller_) {
     std::optional<LRESULT> result =

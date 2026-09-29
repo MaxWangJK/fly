@@ -1,5 +1,5 @@
 name: fly
-description: "A new Flutter project."
+description: "Fly: a local-first Windows workspace for foreign trade."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 1.0.0+23
 
 environment:
   sdk: ^3.13.2
@@ -37,10 +37,20 @@ dependencies:
   drift: ^2.34.3
   drift_flutter: ^0.3.1
   path_provider: ^2.1.6
+  path: ^1.9.1
+  file_selector: ^1.1.0
+  desktop_drop: ^0.8.3
   flutter_riverpod: ^2.6.1
   go_router: ^18.0.0
   uuid: ^4.6.0
   intl: ^0.20.3
+  excel: ^4.0.6
+  archive: ^3.6.1
+  crypto: ^3.0.7
+  cryptography: ^2.9.0
+  flutter_local_notifications: ^22.3.0
+  flutter_localizations:
+    sdk: flutter
 
 dev_dependencies:
   flutter_test:
@@ -65,6 +75,11 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  assets:
+    - assets/3d/container/
+    - assets/3d/cargo/
+    - assets/3d/pallet/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

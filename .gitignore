@@ -31,7 +31,12 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+/dist/
+/artifacts/
+/docs/screenshots/
 /coverage/
+/private_symbols/
+/license_tools/private/
 
 # Symbolication related
 app.*.symbols

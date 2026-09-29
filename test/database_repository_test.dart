@@ -102,4 +102,55 @@ void main() {
       second.id,
     ]);
   });
+
+  test('custom list CRUD moves tasks back to inbox on deletion', () async {
+    final list = await repository.createList('Work');
+    final task = await repository.createTask(
+      title: 'List task',
+      listId: list.id,
+    );
+
+    await repository.renameList(list.id, 'Client work');
+    expect(
+      (await repository.watchLists().first)
+          .singleWhere((value) => value.id == list.id)
+          .name,
+      'Client work',
+    );
+
+    await repository.deleteList(list.id);
+    expect(
+      (await repository.watchLists().first).where(
+        (value) => value.id == list.id,
+      ),
+      isEmpty,
+    );
+    expect((await repository.watchInboxTasks().first).single.id, task.id);
+  });
+
+  test('completed tasks are visible and sorted after open tasks', () async {
+    final completed = await repository.createTask(title: 'Completed');
+    final open = await repository.createTask(title: 'Open');
+    await repository.setCompleted(completed.id, completed: true);
+
+    final tasks = await repository.watchAllTasks().first;
+    expect(tasks.map((task) => task.id), [open.id, completed.id]);
+    expect(tasks.last.isCompleted, isTrue);
+  });
+
+  test('trash supports reactive restore and permanent deletion', () async {
+    final task = await repository.createTask(title: 'Recoverable task');
+
+    await repository.deleteTask(task.id);
+    expect((await repository.watchDeletedTasks().first).single.id, task.id);
+    expect(await repository.watchTask(task.id).first, isNull);
+
+    await repository.restoreTask(task.id);
+    expect(await repository.watchDeletedTasks().first, isEmpty);
+    expect((await repository.watchTask(task.id).first)?.id, task.id);
+
+    await repository.deleteTask(task.id);
+    await repository.deleteTaskPermanently(task.id);
+    expect(await repository.watchDeletedTasks().first, isEmpty);
+  });
 }

@@ -1,0 +1,108 @@
+import 'dart:convert';
+
+import 'package:drift/drift.dart';
+
+import '../../../core/database/app_database.dart';
+
+class DailyReviewRepository {
+  const DailyReviewRepository(this.db);
+  final AppDatabase db;
+  static String key(DateTime date) {
+    final d = date.toLocal();
+    return '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  }
+
+  static DateTime date(String key) {
+    final parsed = DateTime.parse(key);
+    if (DailyReviewRepository.key(parsed) != key) {
+      throw ArgumentError('Invalid review day');
+    }
+    return parsed;
+  }
+
+  Future<Map<String, String>> answers(String day) async {
+    date(day);
+    final row = await (db.select(
+      db.dailyReviews,
+    )..where((r) => r.dayKey.equals(day))).getSingleOrNull();
+    if (row == null) return {};
+    return Map<String, String>.from(jsonDecode(row.answersJson) as Map);
+  }
+
+  Future<void> saveAnswer(String day, String field, String value) =>
+      db.transaction(() async {
+        date(day);
+        if (!RegExp(r'^q([1-9]|10|11)$').hasMatch(field) ||
+            value.length > 20000) {
+          throw ArgumentError('Invalid review answer');
+        }
+        final row = await (db.select(
+          db.dailyReviews,
+        )..where((r) => r.dayKey.equals(day))).getSingleOrNull();
+        final values = row == null
+            ? <String, String>{}
+            : Map<String, String>.from(jsonDecode(row.answersJson) as Map);
+        values[field] = value;
+        final now = DateTime.now();
+        await db
+            .into(db.dailyReviews)
+            .insertOnConflictUpdate(
+              DailyReviewsCompanion.insert(
+                dayKey: day,
+                answersJson: Value(jsonEncode(values)),
+                revision: Value((row?.revision ?? 0) + 1),
+                createdAt: row?.createdAt ?? now,
+                updatedAt: now,
+              ),
+            );
+      });
+
+  Stream<List<String>> watchRecordedDays() => db
+      .select(db.dailyReviews)
+      .watch()
+      .map(
+        (rows) =>
+            rows
+                .where((row) {
+                  final values = jsonDecode(row.answersJson) as Map;
+                  return values.values.any(
+                    (value) => value is String && value.trim().isNotEmpty,
+                  );
+                })
+                .map((row) => row.dayKey)
+                .toList()
+              ..sort(),
+      );
+
+  Future<Map<String, int>> summary(String day) async {
+    final start = date(day);
+    final end = DateTime(start.year, start.month, start.day + 1);
+    final s = start.millisecondsSinceEpoch ~/ 1000;
+    final e = end.millisecondsSinceEpoch ~/ 1000;
+    Future<int> count(String sql) async =>
+        (await db
+                .customSelect(sql, variables: [Variable(s), Variable(e)])
+                .getSingle())
+            .read<int>('n');
+    return {
+      'completed': await count(
+        'SELECT count(*) n FROM tasks WHERE deleted_at IS NULL AND completed_at >= ? AND completed_at < ?',
+      ),
+      'open': await count(
+        "SELECT count(*) n FROM tasks WHERE deleted_at IS NULL AND completed_at IS NULL AND status <> 'completed' AND coalesce(start_date,due_date) < ?2 AND coalesce(due_date,start_date) >= ?1",
+      ),
+      'overdue': await count(
+        "SELECT count(*) n FROM tasks WHERE deleted_at IS NULL AND completed_at IS NULL AND status <> 'completed' AND due_date < ?1 AND ?2 > ?1",
+      ),
+      'followed': await count(
+        'SELECT count(DISTINCT f.customer_id) n FROM customer_follow_ups f JOIN customers c ON c.id=f.customer_id WHERE f.deleted_at IS NULL AND c.deleted_at IS NULL AND f.followed_up_at >= ? AND f.followed_up_at < ?',
+      ),
+      'customers': await count(
+        'SELECT count(*) n FROM customers WHERE deleted_at IS NULL AND created_at >= ? AND created_at < ?',
+      ),
+      'orders': await count(
+        'SELECT count(*) n FROM orders WHERE deleted_at IS NULL AND updated_at >= ? AND updated_at < ?',
+      ),
+    };
+  }
+}

@@ -1,17 +1,30 @@
-# V1 Scope
+# Fly 1.0 产品范围
 
-## Included
+Fly 1.0 是面向外贸个人工作流的 Windows x64、本地优先桌面应用。数据存于用户选择的 FlyData，不依赖账号或云服务。隐藏导航模块不删除其数据。
 
-- Inbox, Today, Upcoming and Lists navigation
-- Task create, edit, complete/uncomplete, soft delete and reorder
-- Title, notes, list, dates, priority, importance, urgency, tags, checklist, reminder and simple recurrence fields
-- Month calendar navigation, date selection, creation, task opening and drag-to-date
-- Four-quadrant Eisenhower Matrix, creation, completion and drag-to-quadrant
-- Compact, medium and expanded navigation/layout
-- System, light and dark themes
-- Local Drift/SQLite persistence
-- Windows run and release build validation
+## 纳入 1.0 的模块
 
-## Excluded
+| 工作区 | 1.0 核心能力 |
+| --- | --- |
+| 首页 Dashboard | 工作概览与跨模块入口 |
+| 客户 CRM | 客户、状态/级别/来源、联系人、跟进记录和下次行动、标签、导入、搜索与关联订单 |
+| 订单 Orders | 订单流程、工厂/产品、成本与利润、收款、附件、客户双向跳转 |
+| 任务 | 清单、优先级、日期、提醒、重复、完成与回收站 |
+| 日历 | 月视图、日期快速建任务、任务日期调整 |
+| 四象限 | 重要/紧急投影与任务操作 |
+| 今日复盘 | 每日事实、问题、经验、明日行动、历史记录 |
+| 文件 | 文件夹树、导入/检索/标签、系统打开、回收站和客户文件聚合 |
+| 笔记 | 文件夹、块编辑、媒体与附件、搜索和收藏 |
+| 工具 | 3D 装柜模拟、分节/货物/人工摆放、方案保存与导出 |
+| 设置/通用 | 主题、导航显示、全局搜索、数据目录、自动/手动备份、恢复、离线授权 |
 
-Accounts, cloud sync, collaboration, chat, AI, CRM, plugins, email, external calendar integrations, attachments, mobile push, native reminder delivery, and full recurrence expansion.
+## 交付边界
+
+- 支持 Windows 10/11 x64。Android、iOS、macOS 不作为 1.0 已验证平台。
+- 本地单用户；不承诺云同步、团队协作、邮件/WhatsApp/Facebook API 或 AI。
+- 3D 装柜结果仅供规划；实际装载仍须核验包装变形、门尺寸、载重与现场条件。
+- 文件依赖 FlyData 原件；备份 ZIP 与其同目录下的 `.fly-file-objects` 必须一起保留和转移。
+- 首次启动默认空白工作区；演示数据只在主动勾选时创建。
+- 数据迁移必须原位保留既有客户、订单、任务、文件和笔记，不能清空数据库。
+
+发布门槛、待处理的商业决策与验证清单见 [Fly 1.0 发布计划](../release/fly_1_0_release_plan.md)。

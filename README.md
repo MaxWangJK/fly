@@ -1,71 +1,29 @@
 # Fly
 
-Fly is a Windows-first, cross-platform-ready, local-first task manager built with Flutter, Riverpod, GoRouter, Drift and SQLite.
+Fly 是面向外贸个人工作的 Windows x64、本地优先桌面工作区，基于 Flutter、Riverpod、Drift 和 SQLite。当前 1.0 范围涵盖 Dashboard、客户、订单、任务、日历、四象限、今日复盘、文件、笔记、3D 装柜、全局搜索和备份。完整边界见 [产品范围](docs/product/v1_scope.md)，发布状态见 [1.0 发布计划](docs/release/fly_1_0_release_plan.md)。
 
-One durable Task record powers Todo, Month Calendar and Eisenhower Matrix views. The application works offline and has no account or server dependency.
+## 开发
 
-## V1
-
-- Inbox, Today, Upcoming and Lists navigation
-- Task CRUD, completion, reorder and rich detail editing
-- Month calendar with date selection, quick add and drag-to-reschedule
-- Eisenhower Matrix with drag-to-reclassify
-- Compact, medium and expanded responsive layouts
-- System, light and dark themes
-- Real local SQLite persistence
-
-## Development
-
-Required SDK for the current baseline:
-
-```text
-Flutter 3.47.2 stable
-Dart 3.13.2
-Windows 10 x64
-Visual Studio Community 2026 18.9.2
-Windows SDK 10.0.26100.0
-```
-
-Run validation:
+以 `pubspec.yaml` 为应用版本唯一来源。当前 Windows 开发环境的 Flutter 位于 `D:\ProgramData\flutter`；其他机器可使用 PATH 中的 Flutter。
 
 ```powershell
-E:\workSpace\flutter\bin\flutter.bat pub get
-E:\workSpace\flutter\bin\flutter.bat analyze
-E:\workSpace\flutter\bin\flutter.bat test
-E:\workSpace\flutter\bin\flutter.bat run -d windows
-E:\workSpace\flutter\bin\flutter.bat build windows --release
+flutter pub get
+dart format lib test
+flutter analyze
+flutter test
+flutter run -d windows
 ```
 
-Windows Developer Mode is enabled on the verified development machine to support Flutter plugin symbolic links.
+正式打包入口：
 
-## Platform status
-
-| Platform | Status |
-|---|---|
-| Windows | Development active; `flutter run -d windows --release` and release build verified on 2026-08-31 |
-| Android | Not configured |
-| macOS | Not verified — requires macOS |
-| iOS | Not verified — requires macOS and Xcode |
-
-Generated platform source is not equivalent to platform verification.
-
-## Windows release
-
-```text
-E:\workSpace\fly\build\windows\x64\runner\Release\fly.exe
+```powershell
+./scripts/build_installer.ps1
 ```
 
-The release executable was launched through Flutter, responded normally, and exposed the expected `Fly` main-window title.
+脚本依次完成依赖恢复、静态检查、测试、启用离线授权的 Windows Release 构建和 Inno Setup 安装包。若任一门槛失败，不应发布旧 `dist` 文件。私有授权密钥与调试符号不得随安装包分发；公钥在 `license_tools/public_key.txt`。签名证书、商业授权政策与安装器许可由发布者自行确认。
 
-## Architecture
+## 数据安全
 
-```text
-Flutter UI
-  -> Riverpod application/query state
-  -> TaskRepository
-  -> Drift
-  -> SQLite (single source of truth)
-  -> reactive streams back to every view
-```
+首次启动请选择专用 FlyData 目录。安装或卸载 Fly 不会清空这个目录。自动备份失败时应用仍可打开，但会显示提醒；发布前应实际执行备份与恢复演练。大量文件使用增量对象仓库，移动备份时必须连同 ZIP 旁的 `.fly-file-objects` 一起复制。
 
-See [docs/README.md](docs/README.md) for product, architecture, design and reference documentation.
+只有 Windows x64 是 1.0 目标平台。生成了其他平台工程文件并不代表已通过这些平台的构建或测试。

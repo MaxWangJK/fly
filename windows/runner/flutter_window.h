@@ -7,6 +7,8 @@
 #include <memory>
 
 #include "win32_window.h"
+#include "file_transfer.h"
+#include "license_storage.h"
 
 // A window that does nothing but host a Flutter view.
 class FlutterWindow : public Win32Window {
@@ -28,6 +30,11 @@ class FlutterWindow : public Win32Window {
 
   // The Flutter instance hosted by this window.
   std::unique_ptr<flutter::FlutterViewController> flutter_controller_;
+  std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> file_transfer_;
+  std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> lifecycle_;
+  std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> license_storage_;
+  bool close_pending_ = false;
+  bool close_approved_ = false;
 };
 
 #endif  // RUNNER_FLUTTER_WINDOW_H_

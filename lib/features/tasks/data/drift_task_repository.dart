@@ -4,9 +4,11 @@ import 'package:uuid/uuid.dart';
 import '../../../core/database/app_database.dart';
 import '../domain/checklist_item.dart';
 import '../domain/task.dart';
+import '../domain/task_date_range.dart';
 import '../domain/task_list.dart';
 import '../domain/task_reminder.dart';
 import '../domain/task_repository.dart';
+import 'task_date_query.dart';
 
 class DriftTaskRepository implements TaskRepository {
   DriftTaskRepository(this._db, {this._uuid = const Uuid()});
@@ -21,7 +23,10 @@ class DriftTaskRepository implements TaskRepository {
   ) {
     final query = _db.select(_db.tasks)
       ..where((row) => row.deletedAt.isNull() & predicate(row))
-      ..orderBy([(row) => OrderingTerm(expression: row.sortOrder)]);
+      ..orderBy([
+        (row) => OrderingTerm(expression: row.status.equals('completed')),
+        (row) => OrderingTerm(expression: row.sortOrder),
+      ]);
     return query.watch().map(
       (rows) => rows.map(_fromRecord).toList(growable: false),
     );
@@ -32,17 +37,29 @@ class DriftTaskRepository implements TaskRepository {
       _watchWhere((row) => const Constant(true));
 
   @override
+  Stream<List<FlyTask>> watchCompletedTasks() =>
+      _watchWhere((row) => row.status.equals('completed'));
+
+  @override
+  Stream<List<FlyTask>> watchDeletedTasks() {
+    final query = _db.select(_db.tasks)
+      ..where((row) => row.deletedAt.isNotNull())
+      ..orderBy([
+        (row) =>
+            OrderingTerm(expression: row.deletedAt, mode: OrderingMode.desc),
+      ]);
+    return query.watch().map(
+      (rows) => rows.map(_fromRecord).toList(growable: false),
+    );
+  }
+
+  @override
   Stream<List<FlyTask>> watchInboxTasks() =>
       _watchWhere((row) => row.listId.equals('inbox'));
 
   @override
   Stream<List<FlyTask>> watchTodayTasks(DateTime day) {
-    final start = DateTime(day.year, day.month, day.day);
-    return _watchWhere(
-      (row) =>
-          row.dueDate.isBiggerOrEqualValue(start) &
-          row.dueDate.isSmallerThanValue(start.add(const Duration(days: 1))),
-    );
+    return _watchWhere((row) => taskTodayPredicate(row, day));
   }
 
   @override
@@ -63,8 +80,16 @@ class DriftTaskRepository implements TaskRepository {
   Stream<List<FlyTask>> watchTasksForRange(DateTime start, DateTime end) =>
       _watchWhere(
         (row) =>
-            row.dueDate.isBiggerOrEqualValue(start) &
-            row.dueDate.isSmallerThanValue(end),
+            (row.startDate.isNotNull() &
+                row.dueDate.isNotNull() &
+                row.startDate.isSmallerThanValue(end) &
+                row.dueDate.isBiggerOrEqualValue(start)) |
+            (row.startDate.isNull() &
+                row.dueDate.isBiggerOrEqualValue(start) &
+                row.dueDate.isSmallerThanValue(end)) |
+            (row.dueDate.isNull() &
+                row.startDate.isBiggerOrEqualValue(start) &
+                row.startDate.isSmallerThanValue(end)),
       );
 
   @override
@@ -97,6 +122,87 @@ class DriftTaskRepository implements TaskRepository {
           )
           .toList(growable: false),
     );
+  }
+
+  @override
+  Future<FlyTaskList> createList(
+    String name, {
+    int colorValue = 0xFF4D6BD8,
+  }) async {
+    final value = name.trim();
+    if (value.isEmpty) {
+      throw ArgumentError.value(name, 'name', 'List name cannot be empty');
+    }
+    final maxExpression = _db.taskLists.sortOrder.max();
+    final maxOrder =
+        await (_db.selectOnly(_db.taskLists)..addColumns([maxExpression]))
+            .map((row) => row.read(maxExpression))
+            .getSingle();
+    final now = DateTime.now();
+    final list = FlyTaskList(
+      id: _uuid.v4(),
+      name: value,
+      colorValue: colorValue,
+      createdAt: now,
+      updatedAt: now,
+      sortOrder: (maxOrder ?? 0) + sortGap,
+      version: 1,
+    );
+    await _db
+        .into(_db.taskLists)
+        .insert(
+          TaskListsCompanion.insert(
+            id: list.id,
+            name: list.name,
+            colorValue: Value(list.colorValue),
+            createdAt: list.createdAt,
+            updatedAt: list.updatedAt,
+            sortOrder: list.sortOrder,
+          ),
+        );
+    return list;
+  }
+
+  @override
+  Future<void> renameList(String listId, String name) async {
+    final value = name.trim();
+    if (listId == 'inbox' || value.isEmpty) return;
+    final current = await (_db.select(
+      _db.taskLists,
+    )..where((row) => row.id.equals(listId))).getSingle();
+    await (_db.update(
+      _db.taskLists,
+    )..where((row) => row.id.equals(listId))).write(
+      TaskListsCompanion(
+        name: Value(value),
+        updatedAt: Value(DateTime.now()),
+        version: Value(current.version + 1),
+      ),
+    );
+  }
+
+  @override
+  Future<void> deleteList(String listId) async {
+    if (listId == 'inbox') return;
+    final current = await (_db.select(
+      _db.taskLists,
+    )..where((row) => row.id.equals(listId))).getSingle();
+    final now = DateTime.now();
+    await _db.transaction(() async {
+      await (_db.update(
+            _db.tasks,
+          )..where((row) => row.listId.equals(listId) & row.deletedAt.isNull()))
+          .write(TasksCompanion(listId: const Value('inbox')));
+      await (_db.update(
+        _db.taskLists,
+      )..where((row) => row.id.equals(listId))).write(
+        TaskListsCompanion(
+          deletedAt: Value(now),
+          updatedAt: Value(now),
+          version: Value(current.version + 1),
+        ),
+      );
+    });
   }
 
   @override
@@ -263,6 +369,25 @@ class DriftTaskRepository implements TaskRepository {
   }
 
   @override
+  Future<void> restoreTask(String taskId) async {
+    final current = await _record(taskId);
+    final now = DateTime.now();
+    await _write(
+      taskId,
+      TasksCompanion(
+        deletedAt: const Value(null),
+        updatedAt: Value(now),
+        version: Value(current.version + 1),
+      ),
+    );
+  }
+
+  @override
+  Future<void> deleteTaskPermanently(String taskId) async {
+    await (_db.delete(_db.tasks)..where((row) => row.id.equals(taskId))).go();
+  }
+
+  @override
   Future<void> moveTaskToList(String taskId, String listId) async {
     final current = await _record(taskId);
     await _write(
@@ -288,6 +413,27 @@ class DriftTaskRepository implements TaskRepository {
       ),
     );
   }
+
+  @override
+  Future<void> postponeOverdueTasks(List<String> ids, DateTime today) =>
+      _db.transaction(() async {
+        for (final id in ids.toSet()) {
+          final record = await (_db.select(
+            _db.tasks,
+          )..where((r) => r.id.equals(id))).getSingleOrNull();
+          if (record != null &&
+              TaskDateRange.isOverdue(_fromRecord(record), today)) {
+            await _write(
+              id,
+              TasksCompanion(
+                dueDate: Value(TaskDateRange.day(today)),
+                updatedAt: Value(DateTime.now()),
+                version: Value(record.version + 1),
+              ),
+            );
+          }
+        }
+      });
 
   @override
   Future<void> moveTaskToQuadrant(
@@ -380,6 +526,7 @@ class DriftTaskRepository implements TaskRepository {
                   ..where(
                     (row) =>
                         row.name.lower().equals(name.toLowerCase()) &
+                        row.scope.equals('task') &
                         row.deletedAt.isNull(),
                   )
                   ..limit(1))
@@ -391,6 +538,7 @@ class DriftTaskRepository implements TaskRepository {
               .insert(
                 TagsCompanion.insert(
                   id: id,
+                  scope: const Value('task'),
                   name: name,
                   createdAt: now,
                   updatedAt: now,
@@ -508,31 +656,152 @@ class DriftTaskRepository implements TaskRepository {
   }
 
   @override
-  Future<void> seedDevelopmentData() async {
-    final countExpression = _db.tasks.id.count();
-    final count =
-        await (_db.selectOnly(_db.tasks)..addColumns([countExpression]))
-            .map((row) => row.read(countExpression))
-            .getSingle();
-    if (count != 0) return;
-    final today = DateTime.now();
-    await createTask(
-      title: 'Prepare weekly report',
-      dueDate: DateTime(today.year, today.month, today.day),
-      importance: true,
-      urgency: true,
-    );
-    await createTask(
-      title: 'Follow up client',
-      dueDate: DateTime(today.year, today.month, today.day + 1),
-      urgency: true,
-    );
-    await createTask(
-      title: 'Book flight',
-      dueDate: DateTime(today.year, today.month, today.day + 5),
-      importance: true,
-    );
-    await createTask(title: 'Learn Flutter');
+  Future<void> seedDevelopmentData({DateTime? today}) async {
+    final now = today ?? DateTime.now();
+    final lists = <(String, String, int, int)>[
+      ('welcome', '欢迎', 0xFF4D6BD8, 1024),
+      ('work', '事务推进', 0xFF4D6BD8, 2048),
+      ('personal', '生活随记', 0xFF7C5CFC, 3072),
+      ('shopping', '采购备办', 0xFFE69A37, 4096),
+      ('study', '成长积累', 0xFF3A86D8, 5120),
+      ('fitness', '活力习惯', 0xFF3A9B68, 6144),
+      ('wish', '未来愿景', 0xFFE05A67, 7168),
+    ];
+    for (final (id, name, color, order) in lists) {
+      await _db
+          .into(_db.taskLists)
+          .insert(
+            TaskListsCompanion.insert(
+              id: id,
+              name: name,
+              colorValue: Value(color),
+              createdAt: now,
+              updatedAt: now,
+              sortOrder: order,
+            ),
+            mode: InsertMode.insertOrIgnore,
+          );
+    }
+
+    final seeded =
+        await (_db.select(_db.tasks)
+              ..where((row) => row.title.equals('确认菲律宾客户首柜数量'))
+              ..limit(1))
+            .getSingleOrNull();
+    if (seeded != null) return;
+
+    final day = DateTime(now.year, now.month, now.day);
+    final samples =
+        <
+          ({
+            String title,
+            String description,
+            String listId,
+            int offset,
+            bool importance,
+            bool urgency,
+          })
+        >[
+          (
+            title: '确认菲律宾客户首柜数量',
+            description: '核对 WPC 格栅与门板的装柜比例。',
+            listId: 'work',
+            offset: 0,
+            importance: true,
+            urgency: true,
+          ),
+          (
+            title: '更新 WPC 报价单',
+            description: '更新海运费与包装费用。',
+            listId: 'work',
+            offset: 0,
+            importance: true,
+            urgency: false,
+          ),
+          (
+            title: '确认样品快递单号',
+            description: '把 DHL 单号发送给 David。',
+            listId: 'work',
+            offset: 0,
+            importance: false,
+            urgency: true,
+          ),
+          (
+            title: '准备 Ahmed 的 PI',
+            description: '确认颜色、数量和付款条款。',
+            listId: 'work',
+            offset: 1,
+            importance: true,
+            urgency: false,
+          ),
+          (
+            title: '安排越南客户视频会议',
+            description: '演示 UV Marble Sheet 新花色。',
+            listId: 'work',
+            offset: 1,
+            importance: false,
+            urgency: false,
+          ),
+          (
+            title: '跟工厂确认 WPC Door 交期',
+            description: '确认原料到厂时间和首检日期。',
+            listId: 'work',
+            offset: 3,
+            importance: false,
+            urgency: true,
+          ),
+          (
+            title: '整理 Saudi Arabia 清关资料',
+            description: '核对 CI、PL 和 CO 信息。',
+            listId: 'work',
+            offset: 5,
+            importance: true,
+            urgency: false,
+          ),
+          (
+            title: '复核 Manila 订单利润',
+            description: '补录港杂费和拖车费。',
+            listId: 'work',
+            offset: 7,
+            importance: false,
+            urgency: false,
+          ),
+          (
+            title: '准备下周开发客户名单',
+            description: '筛选 Philippines 与 Thailand 建材进口商。',
+            listId: 'work',
+            offset: 10,
+            importance: true,
+            urgency: false,
+          ),
+          (
+            title: '归档已发货订单文件',
+            description: '整理 PI、CI、PL、CO 与转账凭证。',
+            listId: 'work',
+            offset: 14,
+            importance: false,
+            urgency: false,
+          ),
+          (
+            title: '补发 Ali 的包装照片',
+            description: '该客户昨天应跟进，今天优先处理。',
+            listId: 'work',
+            offset: -1,
+            importance: true,
+            urgency: true,
+          ),
+        ];
+
+    for (final sample in samples) {
+      await createTask(
+        title: sample.title,
+        description: sample.description,
+        listId: sample.listId,
+        dueDate: day.add(Duration(days: sample.offset)),
+        importance: sample.importance,
+        urgency: sample.urgency,
+      );
+    }
   }
 
   FlyTask _fromRecord(TaskRecord row) => FlyTask(
