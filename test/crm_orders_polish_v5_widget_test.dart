@@ -208,7 +208,7 @@ void main() {
     await _pumpUi(tester);
     await tester.tap(find.byKey(const ValueKey('primary-orders')));
     await _pumpUi(tester);
-    await tester.tap(find.text(order.orderNumber));
+    await tester.tap(find.text(order.orderNumber).first);
     await _pumpUi(tester);
     await tester.tap(find.byKey(const ValueKey('order-financial-preview')));
     await _pumpUi(tester);
@@ -287,7 +287,7 @@ void main() {
     await _pumpUi(tester);
     await tester.tap(find.byKey(const ValueKey('primary-customers')));
     await _pumpUi(tester);
-    await tester.tap(find.text(customer.name));
+    await tester.tap(find.text(customer.name).first);
     await _pumpUi(tester);
     await tester.tap(find.byKey(const ValueKey('customer-customs-info')));
     await tester.pumpAndSettle();

@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import '../../../core/database/app_database.dart';
 import '../../../shared/data/tag_garbage_collector.dart';
 import '../../../shared/domain/priority.dart';
+import '../../../shared/search/fuzzy_match.dart';
 import '../../customers/domain/customer.dart';
 import '../domain/order.dart';
 import '../domain/order_repository.dart';
@@ -364,7 +365,7 @@ class DriftOrderRepository implements OrderRepository {
           payments.putIfAbsent(record.id, () => []).add(_mapPayment(payment));
         }
       }
-      final needle = query.search.trim().toLowerCase();
+      final needle = query.search.trim();
       final result = orders.values.where((order) {
         final projectionMatch = switch (query.projection) {
           OrderProjection.all || OrderProjection.deleted => true,
@@ -392,7 +393,7 @@ class DriftOrderRepository implements OrderRepository {
           customerNames[order.id] ?? '',
           ...searchableChildren[order.id] ?? const <String>{},
         ];
-        return values.any((value) => value.toLowerCase().contains(needle));
+        return FuzzyMatch.matches(needle, values);
       }).toList();
       result.sort(
         _orderComparator(
@@ -501,14 +502,23 @@ class DriftOrderRepository implements OrderRepository {
     final query = _db.select(_db.orderNotes)
       ..where((row) {
         final active = row.orderId.equals(orderId) & row.deletedAt.isNull();
-        return term.isEmpty ? active : active & row.content.like('%$term%');
+        return active;
       })
       ..orderBy([
         (row) => OrderingTerm.desc(row.createdAt),
         (row) => OrderingTerm.desc(row.sortOrder),
-      ])
-      ..limit(limit, offset: offset);
-    return query.watch().map((rows) => rows.map(_mapNote).toList());
+      ]);
+    if (term.isEmpty) query.limit(limit, offset: offset);
+    return query.watch().map((rows) {
+      final matches = term.isEmpty
+          ? rows
+          : rows.where((row) => FuzzyMatch.matches(term, [row.content]));
+      return matches
+          .skip(term.isEmpty ? 0 : offset)
+          .take(limit)
+          .map(_mapNote)
+          .toList();
+    });
   }
 
   @override

@@ -8,7 +8,7 @@ import '../../features/tasks/presentation/task_providers.dart';
 
 class NavigationSettings {
   const NavigationSettings({
-    this.dashboardVisible = true,
+    this.dashboardVisible = false,
     this.crmVisible = true,
     this.toolsVisible = true,
   });
@@ -69,7 +69,7 @@ class NavigationSettingsController extends ChangeNotifier {
       if (row != null) {
         final data = jsonDecode(row.value) as Map<String, dynamic>;
         value = NavigationSettings(
-          dashboardVisible: data['dashboardVisible'] != false,
+          dashboardVisible: data['dashboardVisible'] == true,
           crmVisible: data['crmVisible'] != false,
           toolsVisible: data['toolsVisible'] != false,
         );

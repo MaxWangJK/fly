@@ -13,11 +13,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('fresh startup opens Dashboard workspace', (tester) async {
+  testWidgets('fresh startup opens customer workspace by default', (
+    tester,
+  ) async {
     final database = await _database(tester);
     await _pumpApp(tester, database);
 
-    expect(find.text('Dashboard'), findsOneWidget);
+    expect(find.text('Dashboard'), findsNothing);
     expect(find.byKey(const ValueKey('primary-customers')), findsOneWidget);
     await _disposeUi(tester);
   });

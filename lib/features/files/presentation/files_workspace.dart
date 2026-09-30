@@ -16,6 +16,7 @@ import '../../../shared/attachments/attachment_providers.dart';
 import '../../../shared/data/workspace_folder_repository.dart';
 import '../../../shared/design_system/fly_color_scheme.dart';
 import '../../../shared/design_system/workspace_folder_tree.dart';
+import '../../../shared/search/fuzzy_match.dart';
 import '../../customers/presentation/customer_providers.dart';
 import '../../orders/presentation/order_providers.dart';
 import '../../tasks/presentation/task_providers.dart';
@@ -72,7 +73,7 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
                   decoration: InputDecoration(
                     hintText: context.l10n.t('filesTagSearch'),
                   ),
-                  onChanged: (v) => update(() => term = v.toLowerCase()),
+                  onChanged: (v) => update(() => term = v.trim()),
                 ),
                 Expanded(
                   child: ListView(
@@ -82,7 +83,8 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
                         title: Text(context.l10n.t('fileOwnTags')),
                       ),
                       for (final tag in own.where(
-                        (t) => t.name.toLowerCase().contains(term),
+                        (t) =>
+                            term.isEmpty || FuzzyMatch.matches(term, [t.name]),
                       ))
                         CheckboxListTile(
                           dense: true,
@@ -100,7 +102,9 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
                           title: Text(context.l10n.t('filesCustomerTags')),
                         ),
                         for (final tag in customers.where(
-                          (t) => t.name.toLowerCase().contains(term),
+                          (t) =>
+                              term.isEmpty ||
+                              FuzzyMatch.matches(term, [t.name]),
                         ))
                           CheckboxListTile(
                             dense: true,
@@ -1122,7 +1126,7 @@ class _FileTagsDialogState extends ConsumerState<_FileTagsDialog> {
               decoration: InputDecoration(
                 hintText: context.l10n.t('filesTagCreate'),
               ),
-              onChanged: (v) => setState(() => search = v.toLowerCase()),
+              onChanged: (v) => setState(() => search = v.trim()),
               onSubmitted: (name) async {
                 try {
                   final id = await repo.createTag(name);
@@ -1145,7 +1149,9 @@ class _FileTagsDialogState extends ConsumerState<_FileTagsDialog> {
                       data: (tags) => ListView(
                         children: [
                           for (final tag in tags.where(
-                            (t) => t.name.toLowerCase().contains(search),
+                            (t) =>
+                                search.isEmpty ||
+                                FuzzyMatch.matches(search, [t.name]),
                           ))
                             CheckboxListTile(
                               title: Text(tag.name),

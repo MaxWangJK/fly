@@ -43,21 +43,25 @@ class _DailyReviewPageState extends ConsumerState<DailyReviewPage> {
   @override
   Widget build(BuildContext context) {
     final today = ref.watch(localTodayProvider);
-    final days = List.generate(
-      7,
-      (i) => DailyReviewRepository.key(
-        DateTime(today.year, today.month, today.day - i),
-      ),
-    );
-    final day = selected ?? days.first;
+    final todayKey = DailyReviewRepository.key(today);
+    final day = selected ?? todayKey;
+    final selectedDate = DateTime.parse(day);
     final recorded = ref.watch(recordedReviewDaysProvider);
     final navigationDays = {
       ...?recorded.valueOrNull,
-      days.first,
-    }.where((value) => value.compareTo(days.first) <= 0).toList()..sort();
-    final previous = navigationDays
-        .where((value) => value.compareTo(day) < 0)
-        .lastOrNull;
+      todayKey,
+    }.where((value) => value.compareTo(todayKey) <= 0).toList()..sort();
+    final previous =
+        navigationDays.where((value) => value.compareTo(day) < 0).lastOrNull ??
+        (selectedDate.isAfter(DateTime(2000))
+            ? DailyReviewRepository.key(
+                DateTime(
+                  selectedDate.year,
+                  selectedDate.month,
+                  selectedDate.day - 1,
+                ),
+              )
+            : null);
     final next = navigationDays
         .where((value) => value.compareTo(day) > 0)
         .firstOrNull;
@@ -99,7 +103,7 @@ class _DailyReviewPageState extends ConsumerState<DailyReviewPage> {
               TextButton.icon(
                 icon: const Icon(Icons.chevron_left, size: 18),
                 label: Text(context.l10n.isZh ? '前一天' : 'Previous day'),
-                onPressed: changingDay || previous == null
+                onPressed: changingDay || recorded.isLoading || previous == null
                     ? null
                     : () => changeDay(day, previous),
               ),

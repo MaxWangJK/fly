@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../shared/search/fuzzy_match.dart';
 import '../domain/note_block.dart';
 
 class NoteConflict implements Exception {
@@ -77,30 +78,62 @@ class NoteRepository {
     bool deleted = false,
     String search = '',
   }) {
+    final term = search.trim();
+    if (term.isNotEmpty) {
+      final where = <String>[
+        deleted ? 'n.deleted_at IS NOT NULL' : 'n.deleted_at IS NULL',
+      ];
+      final variables = <Variable>[];
+      if (favorites) {
+        where.add('n.is_favorite=1');
+      } else if (!recent && !deleted) {
+        if (folderId == null) {
+          where.add('n.folder_id IS NULL');
+        } else {
+          where.add('n.folder_id=?');
+          variables.add(Variable(folderId));
+        }
+      }
+      final manualOrder = !recent && !favorites && !deleted
+          ? 'n.manual_sort_order IS NULL, n.manual_sort_order, '
+          : '';
+      return db
+          .customSelect(
+            '''
+        SELECT n.*,
+          coalesce((SELECT group_concat(t.name,' ') FROM note_tag_links l
+            JOIN tags t ON t.id=l.tag_id WHERE l.note_id=n.id
+            AND t.deleted_at IS NULL AND t.is_active=1),'') AS tag_names,
+          coalesce((SELECT group_concat(b.content_json,' ') FROM note_blocks b
+            WHERE b.note_id=n.id),'') AS block_text
+        FROM workspace_notes n WHERE ${where.join(' AND ')}
+        ORDER BY $manualOrder n.created_at DESC, n.id
+      ''',
+            variables: variables,
+            readsFrom: {
+              db.workspaceNotes,
+              db.noteTagLinks,
+              db.tags,
+              db.noteBlocks,
+            },
+          )
+          .watch()
+          .map((rows) {
+            final matches = rows.where(
+              (row) => FuzzyMatch.matches(term, [
+                row.read<String>('title'),
+                row.read<String>('tag_names'),
+                row.read<String>('block_text'),
+              ]),
+            );
+            final limited = recent ? matches.take(100) : matches;
+            return limited
+                .map((row) => db.workspaceNotes.map(row.data))
+                .toList();
+          });
+    }
     final query = db.select(db.workspaceNotes)
       ..where((r) => deleted ? r.deletedAt.isNotNull() : r.deletedAt.isNull());
-    if (search.trim().isNotEmpty) {
-      final term = search.trim().toLowerCase();
-      query.where(
-        (r) =>
-            r.title.lower().contains(term) |
-            r.id.isInQuery(
-              db.selectOnly(db.noteTagLinks)
-                ..addColumns([db.noteTagLinks.noteId])
-                ..join([
-                  innerJoin(
-                    db.tags,
-                    db.tags.id.equalsExp(db.noteTagLinks.tagId),
-                  ),
-                ])
-                ..where(
-                  db.tags.name.lower().contains(term) &
-                      db.tags.isActive.equals(true) &
-                      db.tags.deletedAt.isNull(),
-                ),
-            ),
-      );
-    }
     if (favorites) {
       query.where((r) => r.isFavorite.equals(true));
     } else if (!recent && !deleted) {

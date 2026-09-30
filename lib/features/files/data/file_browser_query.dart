@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../shared/search/fuzzy_match.dart';
 
 enum FileCollection { recent, folder, customers, deleted }
 
@@ -87,12 +88,7 @@ class FileBrowserQuery {
       );
       vars.add(Variable(id));
     }
-    if (search.trim().isNotEmpty) {
-      where.add(
-        "instr(lower(a.display_name || ' ' || a.original_name || ' ' || a.file_name || ' ' || coalesce(o.order_number,'') || ' ' || coalesce(c.name,'') || ' ' || coalesce(c.company_name,'') || ' ' || coalesce((SELECT group_concat(t.name,' ') FROM file_tag_links l JOIN file_tags t ON t.id=l.tag_id WHERE l.file_id=a.id),'') || ' ' || coalesce((SELECT group_concat(t.name,' ') FROM customer_tag_links l JOIN tags t ON t.id=l.tag_id WHERE l.customer_id=c.id AND t.deleted_at IS NULL AND t.is_active=1),'')),?)>0",
-      );
-      vars.add(Variable(search.trim().toLowerCase()));
-    }
+    final term = search.trim();
     final order = switch (sort) {
       FileSort.modified => 'a.updated_at DESC',
       FileSort.created => 'a.created_at DESC',
@@ -115,7 +111,7 @@ class FileBrowserQuery {
         AND o.deleted_at IS NULL
       LEFT JOIN customers c ON c.id=CASE WHEN a.owner_type='customer' THEN a.owner_id ELSE o.customer_id END
         AND c.deleted_at IS NULL
-      WHERE ${where.join(' AND ')} ORDER BY $order,a.id ${collection == FileCollection.recent ? 'LIMIT 100' : ''}''',
+      WHERE ${where.join(' AND ')} ORDER BY $order,a.id ${collection == FileCollection.recent && term.isEmpty ? 'LIMIT 100' : ''}''',
           variables: vars,
           readsFrom: {
             db.attachments,
@@ -131,21 +127,36 @@ class FileBrowserQuery {
           },
         )
         .watch()
-        .map(
-          (rows) => rows
-              .map(
-                (r) => FileBrowserEntry(
-                  db.attachments.map(r.data),
-                  r.read('customer_name'),
-                  r.read('company_name'),
-                  r.read('file_tag_names'),
-                  r.read('customer_tag_names'),
-                  orderNumber: r.read('order_number'),
-                  customerId: r.readNullable<String>('related_customer_id'),
-                  orderId: r.readNullable<String>('related_order_id'),
-                ),
-              )
-              .toList(),
-        );
+        .map((rows) {
+          final entries = rows.map(
+            (r) => FileBrowserEntry(
+              db.attachments.map(r.data),
+              r.read('customer_name'),
+              r.read('company_name'),
+              r.read('file_tag_names'),
+              r.read('customer_tag_names'),
+              orderNumber: r.read('order_number'),
+              customerId: r.readNullable<String>('related_customer_id'),
+              orderId: r.readNullable<String>('related_order_id'),
+            ),
+          );
+          final matched = term.isEmpty
+              ? entries
+              : entries.where(
+                  (entry) => FuzzyMatch.matches(term, [
+                    entry.name,
+                    entry.file.originalName,
+                    entry.file.fileName,
+                    entry.fileTags,
+                    entry.customerTags,
+                    entry.customerName,
+                    entry.companyName,
+                    entry.orderNumber,
+                  ]),
+                );
+          return collection == FileCollection.recent
+              ? matched.take(100).toList()
+              : matched.toList();
+        });
   }
 }

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../l10n/fly_localizations.dart';
 import '../../../shared/design_system/design_tokens.dart';
 import '../../../shared/design_system/workspace_empty_state.dart';
+import '../../../shared/search/fuzzy_match.dart';
 import '../domain/task.dart';
 import '../domain/task_date_range.dart';
 import '../domain/task_list.dart';
@@ -27,13 +28,16 @@ class TaskListPage extends ConsumerStatefulWidget {
 
 class _TaskListPageState extends ConsumerState<TaskListPage> {
   final _quickAddController = TextEditingController();
+  final _searchController = TextEditingController();
   final _quickAddFocus = FocusNode();
   final _listFocus = FocusNode();
   final _scrollController = ScrollController();
+  String _search = '';
 
   @override
   void dispose() {
     _quickAddController.dispose();
+    _searchController.dispose();
     _quickAddFocus.dispose();
     _listFocus.dispose();
     _scrollController.dispose();
@@ -141,8 +145,20 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
   @override
   Widget build(BuildContext context) {
     final tasks = _tasks();
+    final visibleTasks = _search.trim().isEmpty
+        ? tasks
+        : tasks.whenData(
+            (items) => items
+                .where(
+                  (task) => FuzzyMatch.matches(_search, [
+                    task.title,
+                    task.description,
+                  ]),
+                )
+                .toList(),
+          );
     final lists = ref.watch(taskListsProvider).valueOrNull ?? const [];
-    final items = tasks.valueOrNull ?? const <FlyTask>[];
+    final items = visibleTasks.valueOrNull ?? const <FlyTask>[];
     final title = _title(context, lists);
 
     return SafeArea(
@@ -164,7 +180,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
               children: [
                 _ListHeader(
                   title: title,
-                  tasks: tasks,
+                  tasks: visibleTasks,
                   collection: widget.collection,
                 ),
                 const SizedBox(height: FlySpacing.md),
@@ -192,10 +208,33 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                   ),
                   const SizedBox(height: FlySpacing.xs),
                 ],
+                SizedBox(
+                  height: 36,
+                  child: TextField(
+                    key: const ValueKey('task-search'),
+                    controller: _searchController,
+                    onChanged: (value) => setState(() => _search = value),
+                    decoration: InputDecoration(
+                      isDense: true,
+                      hintText: context.l10n.isZh ? '搜索任务' : 'Search tasks',
+                      prefixIcon: const Icon(Icons.search, size: 17),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: FlySpacing.xs),
                 Expanded(
-                  child: tasks.when(
+                  child: visibleTasks.when(
                     data: (data) => data.isEmpty
-                        ? _canAdd
+                        ? _search.trim().isNotEmpty
+                              ? Center(
+                                  child: Text(
+                                    context.l10n.isZh
+                                        ? '没有匹配的任务'
+                                        : 'No matching tasks',
+                                  ),
+                                )
+                              : _canAdd
                               ? WorkspaceEmptyState(
                                   icon: Icons.task_alt,
                                   title: context.l10n.t('emptyTitle'),

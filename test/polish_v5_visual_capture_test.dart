@@ -25,7 +25,7 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('primary-customers')));
     await _pumpUi(tester);
-    await tester.tap(find.text('Jack Lim'));
+    await tester.tap(find.text('Jack Lim').first);
     await _pumpUi(tester);
 
     expect(find.text('Consignee: Manila Home Depot'), findsOneWidget);
@@ -45,7 +45,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('primary-orders')));
     await _pumpUi(tester);
     final orderNumber = 'SO-${DateTime.now().year}-001';
-    await tester.tap(find.text(orderNumber));
+    await tester.tap(find.text(orderNumber).first);
     await _pumpUi(tester);
     expect(find.text(orderNumber), findsWidgets);
     await _captureIfRequested(

@@ -1,5 +1,6 @@
 import 'package:drift/native.dart';
 import 'package:fly/app/app.dart';
+import 'package:fly/app/settings/navigation_settings.dart';
 import 'package:fly/core/database/app_database.dart';
 import 'package:fly/features/customers/data/drift_customer_repository.dart';
 import 'package:fly/features/customers/domain/customer.dart';
@@ -47,6 +48,10 @@ void main() {
     await database.ensureBuiltInData();
     await DriftCustomerRepository(database)
         .createCustomer(name: 'Dashboard sample');
+    final navigation = NavigationSettingsController(database);
+    await navigation.ready;
+    await navigation.update(const NavigationSettings(dashboardVisible: true));
+    navigation.dispose();
     await _pumpFly(tester, database);
 
     await tester.tap(find.byKey(const ValueKey('primary-dashboard')));
@@ -125,8 +130,6 @@ void main() {
     );
     await _pumpFly(tester, database);
     await tester.tap(find.byKey(const ValueKey('primary-orders')));
-    await _pumpUi(tester);
-    await tester.tap(find.text('SO-V7-FINANCE'));
     await _pumpUi(tester);
     await tester.tap(find.byKey(const ValueKey('order-financial-preview')));
     await _pumpUi(tester);

@@ -32,6 +32,17 @@ class _OrderListPageState extends ConsumerState<OrderListPage> {
   );
   final _searchController = TextEditingController();
 
+  void _selectFirstVisible(List<SalesOrder> items) {
+    if (items.isEmpty) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final selected = ref.read(selectedOrderIdProvider);
+      if (items.any((item) => item.id == selected)) return;
+      ref.read(selectedOrderIdProvider.notifier).state = items.first.id;
+      ref.read(orderExtensionProvider.notifier).state = OrderExtensionType.none;
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -84,6 +95,8 @@ class _OrderListPageState extends ConsumerState<OrderListPage> {
   Widget build(BuildContext context) {
     final route = (projection: widget.projection, tagId: widget.tagId);
     final orders = ref.watch(orderListProvider(route));
+    final visibleItems = orders.valueOrNull;
+    if (visibleItems != null) _selectFirstVisible(visibleItems);
     final customers = ref.watch(allCustomersProvider).valueOrNull ?? const [];
     final statuses = ref.watch(orderStatusesProvider).valueOrNull ?? const [];
     final allTags = ref.watch(allOrderTagsProvider).valueOrNull ?? const [];

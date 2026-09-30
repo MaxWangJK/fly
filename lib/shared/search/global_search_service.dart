@@ -3,6 +3,7 @@ import 'dart:convert';
 import '../../core/database/app_database.dart';
 import '../../features/customers/domain/customer.dart';
 import '../../features/files/data/file_browser_query.dart';
+import 'fuzzy_match.dart';
 
 import 'package:drift/drift.dart';
 
@@ -115,7 +116,7 @@ class GlobalSearchService {
     String Function(String)? translate,
   }) async {
     String copy(String value) => translate?.call(value) ?? value;
-    final term = input.trim().toLowerCase();
+    final term = input.trim();
     if (term.isEmpty) return const [];
 
     final customers = await (_db.select(
@@ -158,9 +159,7 @@ class GlobalSearchService {
             type: SearchResultType.note,
             entityId: row.id,
             title: row.name,
-            subtitle:
-                row.nextAction.toLowerCase().contains(term) ||
-                    nextActionType.toLowerCase().contains(term)
+            subtitle: FuzzyMatch.matches(term, [row.nextAction, nextActionType])
                 ? copy('下一步')
                 : copy('客户备注'),
             matchedText: next.value,
@@ -285,11 +284,16 @@ class GlobalSearchService {
     }
     final folderFiles = await _db
         .customSelect(
-          "SELECT a.id, a.display_name, a.original_name, f.name AS folder_name FROM attachments a JOIN file_folders f ON f.id=a.folder_id WHERE a.deleted_at IS NULL AND f.deleted_at IS NULL AND instr(lower(f.name),?)>0 LIMIT ?",
-          variables: [Variable(term), Variable(perGroup)],
+          "SELECT a.id, a.display_name, a.original_name, f.name AS folder_name FROM attachments a JOIN file_folders f ON f.id=a.folder_id WHERE a.deleted_at IS NULL AND f.deleted_at IS NULL",
         )
         .get();
-    for (final row in folderFiles) {
+    for (final row
+        in folderFiles
+            .where(
+              (row) =>
+                  FuzzyMatch.matches(term, [row.read<String>('folder_name')]),
+            )
+            .take(perGroup)) {
       final id = row.read<String>('id');
       if (results.any(
         (r) => r.type == SearchResultType.file && r.entityId == id,
@@ -363,9 +367,9 @@ class GlobalSearchService {
       }
     }
     for (final group in (await _taggedEntities()).entries) {
-      if (!group.key
-          .substring(group.key.indexOf(':') + 1)
-          .contains(_tagName(term))) {
+      if (!FuzzyMatch.matches(term, [
+        group.key.substring(group.key.indexOf(':') + 1),
+      ])) {
         continue;
       }
       final counts = <SearchResultType, int>{};
@@ -409,19 +413,17 @@ class GlobalSearchService {
   }
 
   _Match? _bestMatch(String term, Iterable<String> fields) {
+    final values = fields.toList();
+    final combined = FuzzyMatch.score(term, values);
+    if (combined == null) return null;
     _Match? best;
-    for (final raw in fields) {
+    for (final raw in values) {
       final value = raw.trim();
-      final normalized = value.toLowerCase();
-      if (normalized.isEmpty || !normalized.contains(term)) continue;
-      final score = normalized == term
-          ? 100
-          : normalized.startsWith(term)
-          ? 80
-          : 50;
+      final score = FuzzyMatch.score(term, [value]);
+      if (score == null) continue;
       if (best == null || score > best.score) best = _Match(value, score);
     }
-    return best;
+    return best ?? _Match(values.firstWhere((v) => v.isNotEmpty), combined);
   }
 }
 

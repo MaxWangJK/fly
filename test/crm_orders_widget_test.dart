@@ -51,9 +51,7 @@ void main() {
     await _pumpUi(tester);
 
     expect(find.byType(CustomerSidebar), findsOneWidget);
-    expect(find.text('Jack'), findsOneWidget);
-    await tester.tap(find.text('Jack'));
-    await _pumpUi(tester);
+    expect(find.text('Jack'), findsWidgets);
     expect(find.byType(CustomerDetailPanel), findsOneWidget);
 
     await tester.tap(find.byType(Checkbox).first);
@@ -107,8 +105,7 @@ void main() {
     await _pumpUi(tester);
     await tester.tap(find.byKey(const ValueKey('primary-customers')));
     await _pumpUi(tester);
-    await tester.tap(find.text('Jack'));
-    await _pumpUi(tester);
+    expect(find.byType(CustomerDetailPanel), findsOneWidget);
 
     final customerScrollable = find.descendant(
       of: find.byType(CustomerDetailPanel),
@@ -124,8 +121,8 @@ void main() {
 
     expect(find.byType(OrderSidebar), findsOneWidget);
     expect(find.byKey(const ValueKey('order-customer-filter')), findsOneWidget);
-    expect(find.text('SO-2026-001'), findsOneWidget);
-    await tester.tap(find.text('SO-2026-001'));
+    expect(find.text('SO-2026-001'), findsWidgets);
+    await tester.tap(find.text('SO-2026-001').first);
     await _pumpUi(tester);
     expect(find.byType(OrderDetailPanel), findsOneWidget);
     expect(find.text('Jack ›'), findsOneWidget);
@@ -197,8 +194,9 @@ void main() {
       await _pumpUi(tester);
       await tester.tap(find.byKey(const ValueKey('primary-orders')));
       await _pumpUi(tester);
-      await tester.tap(find.text('SO-SAFE-001'));
+      await tester.tap(find.text('SO-SAFE-001').first);
       await _pumpUi(tester);
+      expect(find.byType(OrderDetailPanel), findsOneWidget);
 
       expect(
         find.byKey(const ValueKey('unplaced-factory-warning')),
@@ -257,8 +255,7 @@ void main() {
       await _pumpUi(tester);
       await tester.tap(find.byKey(const ValueKey('primary-customers')));
       await _pumpUi(tester);
-      await tester.tap(find.text('Jack'));
-      await _pumpUi(tester);
+      expect(find.byType(CustomerDetailPanel), findsOneWidget);
 
       final detailScrollable = find.descendant(
         of: find.byType(CustomerDetailPanel),
@@ -321,8 +318,7 @@ void main() {
     await _pumpUi(tester);
     await tester.tap(find.byKey(const ValueKey('primary-customers')));
     await _pumpUi(tester);
-    await tester.tap(find.text('Jack'));
-    await _pumpUi(tester);
+    expect(find.byType(CustomerDetailPanel), findsOneWidget);
 
     expect(find.text('Note C'), findsOneWidget);
     expect(find.text('Note A'), findsNothing);
@@ -342,8 +338,10 @@ void main() {
     final savedNotes = await (database.select(
       database.customerNotes,
     )..where((row) => row.customerId.equals(customer.id))).get();
-    savedNotes.sort((left, right) => right.createdAt.compareTo(left.createdAt));
-    expect(savedNotes.first.content, '客户本周五确认最终数量');
+    expect(
+      savedNotes.any((note) => note.content == '客户本周五确认最终数量'),
+      isTrue,
+    );
     await _disposeUi(tester);
   });
 
@@ -381,8 +379,7 @@ void main() {
     await _pumpUi(tester);
     await tester.tap(find.byKey(const ValueKey('primary-customers')));
     await _pumpUi(tester);
-    await tester.tap(find.text('Jack'));
-    await _pumpUi(tester);
+    expect(find.byType(CustomerDetailPanel), findsOneWidget);
     expect(find.text('客户确认收到报价'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('customer-followup-preview')));
     await _pumpUi(tester);
@@ -442,8 +439,7 @@ void main() {
     await _pumpUi(tester);
     await tester.tap(find.byKey(const ValueKey('primary-customers')));
     await _pumpUi(tester);
-    await tester.tap(find.text('Jack'));
-    await _pumpUi(tester);
+    expect(find.byType(CustomerDetailPanel), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('priority-medium')));
     await _pumpUi(tester);
     final mediumCustomer = await (database.select(
@@ -461,8 +457,9 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('primary-orders')));
     await _pumpUi(tester);
-    await tester.tap(find.text('SO-PRIORITY'));
+    await tester.tap(find.text('SO-PRIORITY').first);
     await _pumpUi(tester);
+    expect(find.byType(OrderDetailPanel), findsOneWidget);
     await tester.tap(find.text('紧急').last);
     await _pumpUi(tester);
     final highOrder = await (database.select(

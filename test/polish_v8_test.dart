@@ -93,7 +93,7 @@ void main() {
         .createOrder(customerId: customer.id, orderNumber: '001');
     final nav = NavigationSettingsController(db);
     await nav.ready;
-    expect(nav.value.dashboardVisible, isTrue);
+    expect(nav.value.dashboardVisible, isFalse);
     expect(nav.value.crmVisible, isTrue);
     for (final dashboard in [true, false]) {
       for (final crm in [true, false]) {

@@ -7,6 +7,7 @@ import '../../../core/database/app_database.dart';
 import '../../../shared/data/tag_garbage_collector.dart';
 import '../../../shared/domain/priority.dart';
 import '../../../shared/domain/tag_lifecycle.dart';
+import '../../../shared/search/fuzzy_match.dart';
 import '../domain/customer.dart';
 import '../domain/customer_name.dart';
 import '../domain/customer_repository.dart';
@@ -288,7 +289,7 @@ class DriftCustomerRepository implements CustomerRepository {
       final dayStart = DateTime(now.year, now.month, now.day);
       final tomorrow = dayStart.add(const Duration(days: 1));
       final upcomingEnd = dayStart.add(const Duration(days: 8));
-      final needle = query.search.trim().toLowerCase();
+      final needle = query.search.trim();
       final result = customers.values.where((customer) {
         final projectionMatch = switch (query.projection) {
           CustomerProjection.today =>
@@ -309,13 +310,13 @@ class DriftCustomerRepository implements CustomerRepository {
         };
         if (!projectionMatch) return false;
         if (needle.isNotEmpty &&
-            ![
+            !FuzzyMatch.matches(needle, [
               customer.name,
               customer.companyName,
               customer.email,
               customer.whatsapp,
               customer.facebook,
-            ].any((value) => value.toLowerCase().contains(needle))) {
+            ])) {
           return false;
         }
         final appliedTags = tagsByCustomer[customer.id] ?? const <String>{};
@@ -432,16 +433,26 @@ class DriftCustomerRepository implements CustomerRepository {
       ..where((row) {
         final active =
             row.customerId.equals(customerId) & row.deletedAt.isNull();
-        if (term.isEmpty) return active;
-        final pattern = '%$term%';
-        return active &
-            (row.content.like(pattern) |
-                row.nextAction.like(pattern) |
-                row.channel.like(pattern));
+        return active;
       })
-      ..orderBy([(row) => OrderingTerm.desc(row.followedUpAt)])
-      ..limit(limit, offset: offset);
-    return query.watch().map((rows) => rows.map(_mapFollowUp).toList());
+      ..orderBy([(row) => OrderingTerm.desc(row.followedUpAt)]);
+    if (term.isEmpty) query.limit(limit, offset: offset);
+    return query.watch().map((rows) {
+      final matches = term.isEmpty
+          ? rows
+          : rows.where(
+              (row) => FuzzyMatch.matches(term, [
+                row.content,
+                row.nextAction,
+                row.channel,
+              ]),
+            );
+      return matches
+          .skip(term.isEmpty ? 0 : offset)
+          .take(limit)
+          .map(_mapFollowUp)
+          .toList();
+    });
   }
 
   @override
@@ -476,14 +487,23 @@ class DriftCustomerRepository implements CustomerRepository {
       ..where((row) {
         final active =
             row.customerId.equals(customerId) & row.deletedAt.isNull();
-        return term.isEmpty ? active : active & row.content.like('%$term%');
+        return active;
       })
       ..orderBy([
         (row) => OrderingTerm.desc(row.createdAt),
         (row) => OrderingTerm.desc(row.sortOrder),
-      ])
-      ..limit(limit, offset: offset);
-    return query.watch().map((rows) => rows.map(_mapNote).toList());
+      ]);
+    if (term.isEmpty) query.limit(limit, offset: offset);
+    return query.watch().map((rows) {
+      final matches = term.isEmpty
+          ? rows
+          : rows.where((row) => FuzzyMatch.matches(term, [row.content]));
+      return matches
+          .skip(term.isEmpty ? 0 : offset)
+          .take(limit)
+          .map(_mapNote)
+          .toList();
+    });
   }
 
   @override

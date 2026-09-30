@@ -60,7 +60,7 @@ void main() {
       expect(selectedItem.checked, isTrue);
       await tester.tapAt(const Offset(900, 700));
       await _pumpUi(tester);
-      expect(find.text('Jack'), findsOneWidget);
+      expect(find.text('Jack'), findsWidgets);
       await _disposeUi(tester);
     },
   );
@@ -124,7 +124,7 @@ void main() {
     await _pumpApp(tester, database);
     await tester.tap(find.byKey(const ValueKey('primary-orders')));
     await _pumpUi(tester);
-    await tester.tap(find.text(order.orderNumber));
+    await tester.tap(find.text(order.orderNumber).first);
     await _pumpUi(tester);
     expect(find.byType(OrderDetailPanel), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('order-details-preview')));
@@ -177,7 +177,7 @@ void main() {
       await _pumpApp(tester, database);
       await tester.tap(find.byKey(const ValueKey('primary-orders')));
       await _pumpUi(tester);
-      await tester.tap(find.text(order.orderNumber));
+      await tester.tap(find.text(order.orderNumber).first);
       await _pumpUi(tester);
       expect(find.text('客户要求外箱不能有中文'), findsOneWidget);
       expect(find.text('旧备注'), findsNothing);

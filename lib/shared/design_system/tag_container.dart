@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'design_tokens.dart';
+import '../search/fuzzy_match.dart';
 
 class FlyTagItem {
   const FlyTagItem({
@@ -160,7 +161,9 @@ class _TagSelectorPopoverState extends State<_TagSelectorPopover> {
   @override
   Widget build(BuildContext context) {
     final matches = widget.allTags
-        .where((tag) => tag.name.toLowerCase().contains(_search.toLowerCase()))
+        .where(
+          (tag) => _search.isEmpty || FuzzyMatch.matches(_search, [tag.name]),
+        )
         .toList();
     return Dialog(
       alignment: Alignment.centerRight,

@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:drift/native.dart';
 import 'package:fly/app/app.dart';
+import 'package:fly/app/settings/navigation_settings.dart';
 import 'package:fly/core/database/app_database.dart';
 import 'package:fly/features/customers/data/drift_customer_repository.dart';
 import 'package:fly/features/orders/data/drift_order_repository.dart';
@@ -34,6 +35,10 @@ void main() {
         customers: DriftCustomerRepository(database),
         orders: DriftOrderRepository(database),
       ).seedIfEligible();
+      final navigation = NavigationSettingsController(database);
+      await navigation.ready;
+      await navigation.update(const NavigationSettings(dashboardVisible: true));
+      navigation.dispose();
     });
     await tester.pumpWidget(
       ProviderScope(

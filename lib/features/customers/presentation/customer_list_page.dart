@@ -49,6 +49,18 @@ class _CustomerListPageState extends ConsumerState<CustomerListPage> {
   bool _creating = false;
   final _followUpPending = <String>{};
 
+  void _selectFirstVisible(List<Customer> items) {
+    if (items.isEmpty) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final selected = ref.read(selectedCustomerIdProvider);
+      if (items.any((item) => item.id == selected)) return;
+      ref.read(selectedCustomerIdProvider.notifier).state = items.first.id;
+      ref.read(customerDetailExtensionProvider.notifier).state =
+          DetailExtensionType.none;
+    });
+  }
+
   Future<void> _toggleFollowUp(Customer customer) async {
     if (!_followUpPending.add(customer.id)) return;
     try {
@@ -262,6 +274,8 @@ class _CustomerListPageState extends ConsumerState<CustomerListPage> {
       categoryId: widget.categoryId,
     );
     final customers = ref.watch(customerListProvider(route));
+    final visibleItems = customers.valueOrNull;
+    if (visibleItems != null) _selectFirstVisible(visibleItems);
     final categories =
         ref.watch(customerCategoriesProvider).valueOrNull ?? const [];
     final statuses =

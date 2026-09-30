@@ -19,6 +19,7 @@ import '../../../shared/design_system/extension_panel.dart';
 import '../../../shared/design_system/tag_container.dart';
 import '../../../shared/domain/priority.dart';
 import '../../../shared/formatters/relative_date_formatter.dart';
+import '../../../shared/search/fuzzy_match.dart';
 import '../../customers/domain/customer.dart';
 import '../../customers/presentation/customer_providers.dart';
 import '../domain/order.dart';
@@ -2208,9 +2209,7 @@ Future<void> _editProductionItem(
                     : factories
                           .map((item) => item.name)
                           .where(
-                            (name) => name.toLowerCase().contains(
-                              value.text.trim().toLowerCase(),
-                            ),
+                            (name) => FuzzyMatch.matches(value.text, [name]),
                           ),
                 onSelected: (value) => factory.text = value,
                 fieldViewBuilder:
@@ -2247,9 +2246,7 @@ Future<void> _editProductionItem(
                     : products
                           .map((item) => item.name)
                           .where(
-                            (name) => name.toLowerCase().contains(
-                              value.text.trim().toLowerCase(),
-                            ),
+                            (name) => FuzzyMatch.matches(value.text, [name]),
                           ),
                 onSelected: (value) => product.text = value,
                 fieldViewBuilder:

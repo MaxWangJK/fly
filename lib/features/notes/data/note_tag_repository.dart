@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../shared/data/tag_garbage_collector.dart';
+import '../../../shared/search/fuzzy_match.dart';
 
 /// Notes share tag definitions, never customer/order application links.
 class NoteTagRepository {
@@ -19,14 +20,18 @@ class NoteTagRepository {
     final rows = await db
         .customSelect(
           '''SELECT t.* FROM tags t
-      WHERE t.scope='note' AND t.deleted_at IS NULL AND t.is_active=1 AND instr(lower(t.name),?)>0
+      WHERE t.scope='note' AND t.deleted_at IS NULL AND t.is_active=1
       AND NOT EXISTS(SELECT 1 FROM note_tag_links l WHERE l.note_id=? AND l.tag_id=t.id)
       ORDER BY CASE WHEN lower(t.name)=? THEN 0 ELSE 1 END, t.name COLLATE NOCASE, t.id
-      LIMIT 5''',
-          variables: [Variable(term), Variable(noteId), Variable(term)],
+      ''',
+          variables: [Variable(noteId), Variable(term)],
         )
         .get();
-    return rows.map((row) => db.tags.map(row.data)).toList();
+    return rows
+        .map((row) => db.tags.map(row.data))
+        .where((tag) => FuzzyMatch.matches(term, [tag.name]))
+        .take(5)
+        .toList();
   }
 
   Stream<List<TagRecord>> watch(String noteId) =>

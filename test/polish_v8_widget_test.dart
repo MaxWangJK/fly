@@ -169,6 +169,9 @@ void main() {
       await shot('settings_navigation');
       await tester.tap(find.byKey(const ValueKey('dashboard-visible')));
       await settle(tester);
+      expect(find.byKey(const ValueKey('primary-dashboard')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('dashboard-visible')));
+      await settle(tester);
       expect(
         container
             .read(appRouterProvider)

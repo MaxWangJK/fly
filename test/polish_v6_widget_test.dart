@@ -103,7 +103,7 @@ void main() {
     },
   );
 
-  testWidgets('customer rows stay neutral and show compact priority capsule', (
+  testWidgets('selected customer row keeps compact priority capsule', (
     tester,
   ) async {
     final database = AppDatabase(NativeDatabase.memory());
@@ -137,7 +137,9 @@ void main() {
     );
     expect(
       materials.any(
-        (material) => material.color == FlyTheme.light().colorScheme.surface,
+        (material) =>
+            material.color ==
+            FlyTheme.light().colorScheme.surfaceContainerHighest,
       ),
       isTrue,
     );

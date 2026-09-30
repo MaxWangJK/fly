@@ -49,7 +49,7 @@ void main() {
     await tester.tap(find.descendant(of: sidebar, matching: find.text('A级')));
     await _pumpUi(tester);
     expect(container.read(customerTagFilterProvider), {aTagId});
-    expect(find.text('Mira'), findsOneWidget);
+    expect(find.text('Mira'), findsWidgets);
 
     await tester.tap(find.descendant(of: sidebar, matching: find.text('全部客户')));
     await _pumpUi(tester);

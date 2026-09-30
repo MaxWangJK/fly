@@ -215,7 +215,7 @@ void main() {
   });
 
   testWidgets(
-    'primary modules start in Dashboard and show task sidebar only for tasks',
+    'primary modules start in customers and show task sidebar only for tasks',
     (tester) async {
       tester.view.devicePixelRatio = 1;
       tester.view.physicalSize = const Size(1280, 720);
@@ -248,9 +248,9 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));
 
-      expect(find.byType(CustomerSidebar), findsNothing);
+      expect(find.byType(CustomerSidebar), findsOneWidget);
       expect(find.byType(TaskSidebar), findsNothing);
-      expect(find.text('Dashboard'), findsOneWidget);
+      expect(find.text('Dashboard'), findsNothing);
       expect(find.byKey(const ValueKey('primary-tasks')), findsOneWidget);
 
       await tester.tap(find.byKey(const ValueKey('primary-tasks')));
