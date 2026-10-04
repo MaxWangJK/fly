@@ -26,6 +26,7 @@ abstract final class FlyTheme {
           error: colors.danger,
         ).copyWith(
           primary: colors.accent,
+          secondary: palette == FlyPaletteId.clarity ? colors.success : null,
           surface: colors.surface,
           surfaceContainerLowest: colors.surface,
           surfaceContainerLow: colors.surfaceMuted,

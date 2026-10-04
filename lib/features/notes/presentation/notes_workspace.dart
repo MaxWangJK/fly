@@ -17,6 +17,7 @@ import '../../../shared/design_system/fly_color_scheme.dart';
 import '../../../shared/design_system/workspace_folder_tree.dart';
 import '../../files/data/managed_file_repository.dart';
 import '../../files/presentation/file_providers.dart';
+import '../../tasks/presentation/task_providers.dart';
 import '../domain/note_block.dart';
 import 'note_block_editor.dart';
 import 'note_edit_session.dart';
@@ -148,6 +149,7 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
 
   @override
   Widget build(BuildContext context) {
+    final clarityStyle = ref.watch(flyPaletteProvider) == FlyPaletteId.clarity;
     final repository = ref.watch(noteRepositoryProvider);
     stream ??= repository.watch(
       folderId: folderId,
@@ -294,114 +296,142 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
                   return GestureDetector(
                     onSecondaryTap: () =>
                         menuKey.currentState?.showButtonMenu(),
-                    child: ListTile(
-                      selected: selectedId == note.id,
-                      title: Text(
-                        note.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      dense: true,
-                      leading: note.isFavorite
-                          ? const Icon(Icons.star, size: 16)
-                          : null,
-                      onTap: note.deletedAt == null
-                          ? () => select(note.id)
-                          : null,
-                      trailing: PopupMenuButton<String>(
-                        key: menuKey,
-                        tooltip: context.l10n.t('noteActions'),
-                        itemBuilder: (_) => note.deletedAt != null
-                            ? [
-                                PopupMenuItem(
-                                  value: 'restore',
-                                  child: Text(context.l10n.t('restore')),
+                    child: Padding(
+                      padding: clarityStyle
+                          ? const EdgeInsets.fromLTRB(8, 0, 8, 8)
+                          : EdgeInsets.zero,
+                      child: ListTile(
+                        selected: selectedId == note.id,
+                        tileColor: clarityStyle
+                            ? context.flyColors.surface
+                            : null,
+                        selectedTileColor: clarityStyle
+                            ? context.flyColors.selected
+                            : null,
+                        shape: clarityStyle
+                            ? RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                side: BorderSide(
+                                  color: selectedId == note.id
+                                      ? context.flyColors.accent.withValues(
+                                          alpha: .42,
+                                        )
+                                      : context.flyColors.divider,
                                 ),
-                              ]
-                            : [
-                                if (mode == 'folder' && search.isEmpty) ...[
+                              )
+                            : null,
+                        title: Text(
+                          note.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        dense: true,
+                        leading: note.isFavorite
+                            ? const Icon(Icons.star, size: 16)
+                            : null,
+                        onTap: note.deletedAt == null
+                            ? () => select(note.id)
+                            : null,
+                        trailing: PopupMenuButton<String>(
+                          key: menuKey,
+                          tooltip: context.l10n.t('noteActions'),
+                          itemBuilder: (_) => note.deletedAt != null
+                              ? [
                                   PopupMenuItem(
-                                    value: 'up',
-                                    child: Text(context.l10n.t('noteMoveUp')),
+                                    value: 'restore',
+                                    child: Text(context.l10n.t('restore')),
                                   ),
+                                ]
+                              : [
+                                  if (mode == 'folder' && search.isEmpty) ...[
+                                    PopupMenuItem(
+                                      value: 'up',
+                                      child: Text(context.l10n.t('noteMoveUp')),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 'down',
+                                      child: Text(
+                                        context.l10n.t('noteMoveDown'),
+                                      ),
+                                    ),
+                                  ],
                                   PopupMenuItem(
-                                    value: 'down',
-                                    child: Text(context.l10n.t('noteMoveDown')),
-                                  ),
-                                ],
-                                PopupMenuItem(
-                                  value: 'favorite',
-                                  child: Text(
-                                    context.l10n.t(
-                                      note.isFavorite
-                                          ? 'noteUnfavorite'
-                                          : 'noteFavorites',
+                                    value: 'favorite',
+                                    child: Text(
+                                      context.l10n.t(
+                                        note.isFavorite
+                                            ? 'noteUnfavorite'
+                                            : 'noteFavorites',
+                                      ),
                                     ),
                                   ),
-                                ),
-                                PopupMenuItem(
-                                  value: 'move',
-                                  child: Text(context.l10n.t('noteMoveFolder')),
-                                ),
-                                PopupMenuItem(
-                                  value: 'delete',
-                                  child: Text(context.l10n.t('noteTrash')),
-                                ),
-                              ],
-                        onSelected: (action) => attempt(() async {
-                          if (action == 'up' || action == 'down') {
-                            await repository.moveInFolder(
-                              note.id,
-                              action == 'up' ? -1 : 1,
-                            );
-                          }
-                          if (action == 'favorite') {
-                            await repository.favorite(
-                              note.id,
-                              !note.isFavorite,
-                            );
-                          }
-                          if (action == 'restore') {
-                            await repository.restore(note.id);
-                            ref.invalidate(noteSessionProvider(note.id));
-                          }
-                          if (action == 'delete') {
-                            await flush();
-                            await repository.remove(note.id);
-                            ref.invalidate(noteSessionProvider(note.id));
-                            if (mounted && selectedId == note.id) {
-                              setState(() => selectedId = null);
-                            }
-                          }
-                          if (action == 'move') {
-                            if (!context.mounted) return;
-                            final folders =
-                                ref.read(noteFoldersProvider).valueOrNull ?? [];
-                            final target = await showDialog<String>(
-                              context: context,
-                              builder: (c) => SimpleDialog(
-                                title: Text(context.l10n.t('noteMoveFolder')),
-                                children: [
-                                  SimpleDialogOption(
-                                    onPressed: () => Navigator.pop(c, ''),
-                                    child: Text(context.l10n.t('noteRoot')),
-                                  ),
-                                  for (final f in folders)
-                                    SimpleDialogOption(
-                                      onPressed: () => Navigator.pop(c, f.id),
-                                      child: Text(f.name),
+                                  PopupMenuItem(
+                                    value: 'move',
+                                    child: Text(
+                                      context.l10n.t('noteMoveFolder'),
                                     ),
+                                  ),
+                                  PopupMenuItem(
+                                    value: 'delete',
+                                    child: Text(context.l10n.t('noteTrash')),
+                                  ),
                                 ],
-                              ),
-                            );
-                            if (target != null) {
-                              await repository.move(
+                          onSelected: (action) => attempt(() async {
+                            if (action == 'up' || action == 'down') {
+                              await repository.moveInFolder(
                                 note.id,
-                                target.isEmpty ? null : target,
+                                action == 'up' ? -1 : 1,
                               );
                             }
-                          }
-                        }),
+                            if (action == 'favorite') {
+                              await repository.favorite(
+                                note.id,
+                                !note.isFavorite,
+                              );
+                            }
+                            if (action == 'restore') {
+                              await repository.restore(note.id);
+                              ref.invalidate(noteSessionProvider(note.id));
+                            }
+                            if (action == 'delete') {
+                              await flush();
+                              await repository.remove(note.id);
+                              ref.invalidate(noteSessionProvider(note.id));
+                              if (mounted && selectedId == note.id) {
+                                setState(() => selectedId = null);
+                              }
+                            }
+                            if (action == 'move') {
+                              if (!context.mounted) return;
+                              final folders =
+                                  ref.read(noteFoldersProvider).valueOrNull ??
+                                  [];
+                              final target = await showDialog<String>(
+                                context: context,
+                                builder: (c) => SimpleDialog(
+                                  title: Text(context.l10n.t('noteMoveFolder')),
+                                  children: [
+                                    SimpleDialogOption(
+                                      onPressed: () => Navigator.pop(c, ''),
+                                      child: Text(context.l10n.t('noteRoot')),
+                                    ),
+                                    for (final f in folders)
+                                      SimpleDialogOption(
+                                        onPressed: () => Navigator.pop(c, f.id),
+                                        child: Text(f.name),
+                                      ),
+                                  ],
+                                ),
+                              );
+                              if (target != null) {
+                                await repository.move(
+                                  note.id,
+                                  target.isEmpty ? null : target,
+                                );
+                              }
+                            }
+                          }),
+                        ),
                       ),
                     ),
                   );
@@ -458,7 +488,16 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
                         ),
                     ],
                   ),
-                  Expanded(child: selectedId == null ? list : editor),
+                  Expanded(
+                    child: selectedId == null
+                        ? list
+                        : clarityStyle
+                        ? ColoredBox(
+                            color: context.flyColors.surface,
+                            child: editor,
+                          )
+                        : editor,
+                  ),
                 ],
               );
             }
@@ -468,7 +507,14 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
                 const VerticalDivider(width: 1),
                 SizedBox(width: c.maxWidth < 1000 ? 230 : 280, child: list),
                 const VerticalDivider(width: 1),
-                Expanded(child: editor),
+                Expanded(
+                  child: clarityStyle
+                      ? ColoredBox(
+                          color: context.flyColors.surface,
+                          child: editor,
+                        )
+                      : editor,
+                ),
               ],
             );
           },

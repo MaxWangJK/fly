@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum FlyPaletteId { flyDefault, graphite, warmSand, ocean, forest }
+enum FlyPaletteId { flyDefault, graphite, warmSand, ocean, forest, clarity }
 
 extension FlyPaletteIdX on FlyPaletteId {
   String get label => switch (this) {
@@ -9,6 +9,7 @@ extension FlyPaletteIdX on FlyPaletteId {
     FlyPaletteId.warmSand => '暖沙',
     FlyPaletteId.ocean => '海洋',
     FlyPaletteId.forest => '森林',
+    FlyPaletteId.clarity => '清朗商务',
   };
 
   static FlyPaletteId parse(String? value) => FlyPaletteId.values.firstWhere(
@@ -62,6 +63,7 @@ class FlyColorScheme extends ThemeExtension<FlyColorScheme> {
         FlyPaletteId.warmSand => const Color(0xFFC59B65),
         FlyPaletteId.ocean => const Color(0xFF68A5B7),
         FlyPaletteId.forest => const Color(0xFF70A486),
+        FlyPaletteId.clarity => const Color(0xFFB3A4EC),
       };
       return FlyColorScheme(
         primaryRail: const Color(0xFF18191B),
@@ -169,6 +171,22 @@ class FlyColorScheme extends ThemeExtension<FlyColorScheme> {
         danger: Color(0xFFBB6B6B),
         warning: Color(0xFFCA8B4B),
         success: Color(0xFF568568),
+      ),
+      FlyPaletteId.clarity => const FlyColorScheme(
+        primaryRail: Color(0xFFF8FAFC),
+        secondarySidebar: Color(0xFFEDF1F7),
+        canvas: Color(0xFFF5F7FB),
+        surface: Color(0xFFFFFFFF),
+        surfaceMuted: Color(0xFFF1F4F9),
+        selected: Color(0xFFECE9F7),
+        hover: Color(0xFFF0F2F8),
+        accent: Color(0xFF493B82),
+        divider: Color(0xFFE1E6EE),
+        textPrimary: Color(0xFF25243B),
+        textSecondary: Color(0xFF647083),
+        danger: Color(0xFFB45B6C),
+        warning: Color(0xFFAA7033),
+        success: Color(0xFF087E74),
       ),
     };
   }

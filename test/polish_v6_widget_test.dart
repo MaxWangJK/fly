@@ -56,6 +56,21 @@ void main() {
       database.appSettings,
     )..where((row) => row.key.equals('colorPalette'))).getSingle();
     expect(stored.value, FlyPaletteId.ocean.name);
+    await tester.ensureVisible(find.byKey(const ValueKey('palette-clarity')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('palette-clarity')));
+    await tester.pumpAndSettle();
+    expect(
+      rail().color,
+      FlyColorScheme.resolve(
+        FlyPaletteId.clarity,
+        Brightness.light,
+      ).primaryRail,
+    );
+    final updated = await (database.select(
+      database.appSettings,
+    )..where((row) => row.key.equals('colorPalette'))).getSingle();
+    expect(updated.value, FlyPaletteId.clarity.name);
     await _dispose(tester);
   });
 

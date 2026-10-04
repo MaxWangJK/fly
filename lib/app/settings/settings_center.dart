@@ -287,7 +287,21 @@ class _SettingsCenterState extends ConsumerState<SettingsCenter> {
           for (final palette in FlyPaletteId.values)
             ListTile(
               dense: true,
+              key: ValueKey('palette-${palette.name}'),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              selected: ref.watch(flyPaletteProvider) == palette,
+              selectedTileColor: Theme.of(context).colorScheme.primary
+                  .withValues(alpha: .08),
+              leading: _PalettePreview(
+                FlyColorScheme.resolve(palette, Brightness.light),
+              ),
               title: Text(tr(palette.label)),
+              subtitle: palette == FlyPaletteId.clarity
+                  ? Text(tr('灰白分层 · 深紫导航 · 青绿数据'))
+                  : null,
               trailing: ref.watch(flyPaletteProvider) == palette
                   ? const Icon(Icons.check)
                   : null,
@@ -495,4 +509,30 @@ class _SettingsCenterState extends ConsumerState<SettingsCenter> {
           .showSnackBar(SnackBar(content: Text(tr('Excel 已导出'))));
     }
   }
+}
+
+class _PalettePreview extends StatelessWidget {
+  const _PalettePreview(this.colors);
+
+  final FlyColorScheme colors;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 52,
+    height: 30,
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(7),
+      border: Border.all(color: colors.divider),
+    ),
+    clipBehavior: Clip.antiAlias,
+    child: Row(
+      children: [
+        Expanded(child: ColoredBox(color: colors.primaryRail)),
+        Expanded(child: ColoredBox(color: colors.canvas)),
+        Expanded(child: ColoredBox(color: colors.surface)),
+        SizedBox(width: 8, child: ColoredBox(color: colors.accent)),
+        SizedBox(width: 6, child: ColoredBox(color: colors.success)),
+      ],
+    ),
+  );
 }

@@ -202,37 +202,60 @@ void main() {
     },
   );
 
-  test(
-    'five palettes change all major regions and a choice persists',
-    () async {
-      final defaults = FlyColorScheme.resolve(
-        FlyPaletteId.flyDefault,
-        Brightness.light,
-      );
-      for (final palette in FlyPaletteId.values.skip(1)) {
-        final colors = FlyColorScheme.resolve(palette, Brightness.light);
-        expect(colors.primaryRail, isNot(defaults.primaryRail));
-        expect(colors.secondarySidebar, isNot(defaults.secondarySidebar));
-        expect(colors.canvas, isNot(defaults.canvas));
-        expect(colors.surface, isNot(defaults.surface));
-        expect(colors.selected, isNot(defaults.selected));
-        expect(colors.accent, isNot(defaults.accent));
-      }
-      await database
-          .into(database.appSettings)
-          .insertOnConflictUpdate(
-            AppSettingsCompanion.insert(
-              key: 'colorPalette',
-              value: FlyPaletteId.ocean.name,
-              updatedAt: DateTime(2026, 9, 4),
-            ),
-          );
-      final stored = await (database.select(
-        database.appSettings,
-      )..where((row) => row.key.equals('colorPalette'))).getSingle();
-      expect(FlyPaletteIdX.parse(stored.value), FlyPaletteId.ocean);
-    },
-  );
+  test('palettes change all major regions and a choice persists', () async {
+    final defaults = FlyColorScheme.resolve(
+      FlyPaletteId.flyDefault,
+      Brightness.light,
+    );
+    for (final palette in FlyPaletteId.values.skip(1)) {
+      final colors = FlyColorScheme.resolve(palette, Brightness.light);
+      expect(colors.primaryRail, isNot(defaults.primaryRail));
+      expect(colors.secondarySidebar, isNot(defaults.secondarySidebar));
+      expect(colors.canvas, isNot(defaults.canvas));
+      expect(colors.surface, isNot(defaults.surface));
+      expect(colors.selected, isNot(defaults.selected));
+      expect(colors.accent, isNot(defaults.accent));
+    }
+    await database
+        .into(database.appSettings)
+        .insertOnConflictUpdate(
+          AppSettingsCompanion.insert(
+            key: 'colorPalette',
+            value: FlyPaletteId.ocean.name,
+            updatedAt: DateTime(2026, 9, 4),
+          ),
+        );
+    final stored = await (database.select(
+      database.appSettings,
+    )..where((row) => row.key.equals('colorPalette'))).getSingle();
+    expect(FlyPaletteIdX.parse(stored.value), FlyPaletteId.ocean);
+  });
+
+  test('clarity palette keeps neutral layers and readable accents', () {
+    final colors = FlyColorScheme.resolve(
+      FlyPaletteId.clarity,
+      Brightness.light,
+    );
+    expect(colors.canvas, isNot(colors.surface));
+    expect(colors.secondarySidebar, isNot(colors.canvas));
+    expect(colors.primaryRail, isNot(colors.secondarySidebar));
+    expect(colors.accent, isNot(colors.success));
+
+    double contrast(Color first, Color second) {
+      final a = first.computeLuminance() + .05;
+      final b = second.computeLuminance() + .05;
+      return a > b ? a / b : b / a;
+    }
+
+    expect(contrast(colors.textPrimary, colors.surface), greaterThan(7));
+    expect(contrast(colors.textSecondary, colors.surface), greaterThan(4.5));
+    expect(contrast(colors.accent, colors.surface), greaterThan(4.5));
+    expect(FlyPaletteIdX.parse('clarity'), FlyPaletteId.clarity);
+    expect(
+      FlyColorScheme.resolve(FlyPaletteId.clarity, Brightness.dark).accent,
+      isNot(colors.accent),
+    );
+  });
 
   test('schema 7 preserves V6 rows and propagates explicit currency', () async {
     final previous = drift.driftRuntimeOptions.dontWarnAboutMultipleDatabases;

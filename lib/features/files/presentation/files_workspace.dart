@@ -982,6 +982,9 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
 
   Widget tile(FileBrowserEntry entry) {
     final f = entry.file;
+    final cardStyle =
+        ref.watch(flyPaletteProvider) == FlyPaletteId.clarity &&
+        viewMode != FileViewMode.list;
     final icon = Icon(
       f.mimeType.startsWith('image/')
           ? Icons.image_outlined
@@ -1032,8 +1035,20 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
     final card = Material(
       color: selectedId == f.id
           ? context.flyColors.selected
+          : cardStyle
+          ? context.flyColors.surface
           : Colors.transparent,
-      borderRadius: BorderRadius.circular(8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(cardStyle ? 12 : 8),
+        side: cardStyle
+            ? BorderSide(
+                color: selectedId == f.id
+                    ? context.flyColors.accent.withValues(alpha: .48)
+                    : context.flyColors.divider,
+              )
+            : BorderSide.none,
+      ),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => setState(() => selectedId = f.id),
         onDoubleTap: f.deletedAt == null

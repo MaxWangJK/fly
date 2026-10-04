@@ -6,6 +6,8 @@ const settingsEnglish = <String, String>{
   '暖沙': 'Warm Sand',
   '海洋': 'Ocean',
   '森林': 'Forest',
+  '清朗商务': 'Clarity Business',
+  '灰白分层 · 深紫导航 · 青绿数据': 'Layered neutrals · deep violet navigation · teal data',
   'Windows 原生提醒': 'Windows notifications',
   '任务、客户跟进与订单交期': 'Tasks, customer follow-ups and order delivery dates',
   '到期时': 'At due time',
