@@ -82,8 +82,12 @@ void main() {
     );
     const dark = bool.fromEnvironment('FLY_VISUAL_DARK');
     const zh = bool.fromEnvironment('FLY_VISUAL_ZH');
+    const captureWidth = int.fromEnvironment(
+      'FLY_CAPTURE_REVIEW_WIDTH',
+      defaultValue: 1100,
+    );
     if (capture) await tester.runAsync(_loadCaptureFonts);
-    tester.view.physicalSize = const Size(1100, 800);
+    tester.view.physicalSize = Size(captureWidth.toDouble(), 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -119,6 +123,11 @@ void main() {
     );
     await repository.saveAnswer('2026-09-10', 'q1', 'Today fact');
     await repository.saveAnswer('2026-09-10', 'q9', '');
+    await repository.saveAnswer(
+      '2026-09-04',
+      'q1',
+      List.filled(28, 'A longer note.').join(' '),
+    );
     final captureKey = GlobalKey();
     final container = ProviderContainer(
       overrides: [
@@ -162,6 +171,31 @@ void main() {
     );
     expect(find.text('Today fact'), findsOneWidget);
     expect(find.text('Older problem'), findsOneWidget);
+    expect(find.text(zh ? '完成' : 'Done'), findsWidgets);
+    expect(
+      find.text(zh ? '今天完成了什么？' : 'What did I accomplish today?'),
+      findsNothing,
+    );
+    expect(
+      tester
+          .getSize(find.byKey(const ValueKey('review-history-2026-09-04')))
+          .height,
+      greaterThan(
+        tester
+            .getSize(find.byKey(const ValueKey('review-history-2026-09-10')))
+            .height,
+      ),
+    );
+    final factSurface = tester.widget<Container>(
+      find.byKey(const ValueKey('review-history-section-2026-09-07-1')),
+    );
+    final problemSurface = tester.widget<Container>(
+      find.byKey(const ValueKey('review-history-section-2026-09-09-2')),
+    );
+    expect(
+      (factSurface.decoration! as BoxDecoration).color,
+      isNot((problemSurface.decoration! as BoxDecoration).color),
+    );
     expect(
       find.descendant(
         of: find.byKey(const ValueKey('review-history-2026-09-10')),

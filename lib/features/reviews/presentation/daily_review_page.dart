@@ -341,6 +341,7 @@ class _ReviewHistoryCardState extends State<_ReviewHistoryCard> {
   Widget build(BuildContext context) {
     final colors = context.flyColors;
     final text = context.l10n.t;
+    final dark = Theme.of(context).brightness == Brightness.dark;
     const sections = [
       (1, [1, 2]),
       (2, [3, 4]),
@@ -348,7 +349,14 @@ class _ReviewHistoryCardState extends State<_ReviewHistoryCard> {
       (4, [8, 10, 11]),
       (5, [9]),
     ];
-    final visibleSections = [
+    final sectionColors = [
+      colors.accent,
+      colors.warning,
+      Theme.of(context).colorScheme.tertiary,
+      colors.success,
+      colors.textSecondary,
+    ];
+    final visibleSections = <(int, List<int>)>[
       for (final section in sections)
         if (section.$2.any(
           (question) =>
@@ -363,21 +371,11 @@ class _ReviewHistoryCardState extends State<_ReviewHistoryCard> {
         key: ValueKey('review-history-${widget.entry.day}'),
         duration: FlyMotion.fast,
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color.alphaBlend(
-                colors.accent.withValues(alpha: hovered ? .11 : .065),
-                colors.surface,
-              ),
-              colors.surface,
-            ],
-          ),
+          color: colors.surface,
           borderRadius: BorderRadius.circular(FlyRadius.lg),
           border: Border.all(
             color: hovered
-                ? colors.accent.withValues(alpha: .45)
+                ? colors.accent.withValues(alpha: .55)
                 : colors.divider,
           ),
           boxShadow: hovered
@@ -396,7 +394,7 @@ class _ReviewHistoryCardState extends State<_ReviewHistoryCard> {
             borderRadius: BorderRadius.circular(FlyRadius.lg),
             onTap: widget.onTap,
             child: Padding(
-              padding: const EdgeInsets.all(FlySpacing.lg),
+              padding: const EdgeInsets.all(FlySpacing.md),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -404,7 +402,7 @@ class _ReviewHistoryCardState extends State<_ReviewHistoryCard> {
                     children: [
                       Container(
                         width: 4,
-                        height: 27,
+                        height: 22,
                         decoration: BoxDecoration(
                           color: colors.accent,
                           borderRadius: BorderRadius.circular(3),
@@ -425,46 +423,117 @@ class _ReviewHistoryCardState extends State<_ReviewHistoryCard> {
                       ),
                     ],
                   ),
-                  for (final section in visibleSections) ...[
-                    const SizedBox(height: FlySpacing.md),
-                    Text(
-                      section.$1 == 5
-                          ? text('reviewQ9')
-                          : text('reviewSection${section.$1}'),
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: colors.accent,
-                        fontWeight: FontWeight.w700,
-                      ),
+                  if (visibleSections.isNotEmpty)
+                    const SizedBox(height: FlySpacing.sm),
+                  for (
+                    var index = 0;
+                    index < visibleSections.length;
+                    index++
+                  ) ...[
+                    if (index > 0) const SizedBox(height: FlySpacing.xs),
+                    _section(
+                      context,
+                      visibleSections[index],
+                      sectionColors[visibleSections[index].$1 - 1],
+                      dark,
+                      text,
                     ),
-                    const SizedBox(height: FlySpacing.xs),
-                    for (final question in section.$2)
-                      if (widget.entry.answers['q$question']
-                              ?.trim()
-                              .isNotEmpty ??
-                          false)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: FlySpacing.sm),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (section.$2.length > 1)
-                                Text(
-                                  text('reviewQ$question'),
-                                  style: Theme.of(context).textTheme.bodySmall,
-                                ),
-                              Text(
-                                widget.entry.answers['q$question']!.trim(),
-                                style: Theme.of(context).textTheme.bodyMedium,
-                              ),
-                            ],
-                          ),
-                        ),
                   ],
                 ],
               ),
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _section(
+    BuildContext context,
+    (int, List<int>) section,
+    Color tone,
+    bool dark,
+    String Function(String) text,
+  ) {
+    final colors = context.flyColors;
+    final answers = [
+      for (final question in section.$2)
+        if (widget.entry.answers['q$question']?.trim().isNotEmpty ?? false)
+          (question, widget.entry.answers['q$question']!.trim()),
+    ];
+    return Container(
+      key: ValueKey('review-history-section-${widget.entry.day}-${section.$1}'),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: FlySpacing.sm,
+        vertical: FlySpacing.xs,
+      ),
+      decoration: BoxDecoration(
+        color: Color.alphaBlend(
+          tone.withValues(alpha: dark ? .13 : .08),
+          colors.surface,
+        ),
+        borderRadius: BorderRadius.circular(FlyRadius.sm),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 3,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: tone,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: FlySpacing.xs),
+              Text(
+                section.$1 == 5
+                    ? text('reviewQ9')
+                    : text('reviewSection${section.$1}'),
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: colors.textPrimary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: FlySpacing.xxs),
+          for (var index = 0; index < answers.length; index++) ...[
+            if (index > 0) const SizedBox(height: FlySpacing.xxs),
+            if (section.$1 == 5)
+              Text(
+                answers[index].$2,
+                style: Theme.of(context).textTheme.bodyMedium,
+              )
+            else
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 60,
+                    child: Tooltip(
+                      message: text('reviewQ${answers[index].$1}'),
+                      child: Text(
+                        text('reviewHistoryQ${answers[index].$1}'),
+                        style: Theme.of(context).textTheme.bodySmall
+                            ?.copyWith(color: colors.textSecondary),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: FlySpacing.xs),
+                  Expanded(
+                    child: Text(
+                      answers[index].$2,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ),
+                ],
+              ),
+          ],
+        ],
       ),
     );
   }
