@@ -57,6 +57,20 @@ class DashboardService {
               ..where((row) => taskTodayPredicate(row, now))
               ..orderBy([(row) => OrderingTerm.asc(row.sortOrder)]))
             .get();
+    final importantUrgentRows =
+        await (_db.select(_db.tasks)
+              ..where(
+                (row) =>
+                    row.deletedAt.isNull() &
+                    row.status.equals('open') &
+                    row.importance.equals(true) &
+                    row.urgency.equals(true),
+              )
+              ..orderBy([
+                (row) => OrderingTerm.asc(row.dueDate),
+                (row) => OrderingTerm.asc(row.sortOrder),
+              ]))
+            .get();
 
     final orderRows = await (_db.select(
       _db.orders,
@@ -153,6 +167,9 @@ class DashboardService {
           )
           .toList(),
       todayTasks: taskRows
+          .map((row) => DashboardEntry(id: row.id, title: row.title))
+          .toList(),
+      importantUrgentTasks: importantUrgentRows
           .map((row) => DashboardEntry(id: row.id, title: row.title))
           .toList(),
       outstandingOrders: outstanding,

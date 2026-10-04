@@ -323,10 +323,23 @@ class _DashboardDistributionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.flyColors;
     final values = [
-      (context.crmCopy('今天需跟进客户'), data.todayCustomers.length),
-      (context.crmCopy('今天任务'), data.todayTasks.length),
-      (context.crmCopy('待收款订单'), data.outstandingOrders.length),
-      (context.crmCopy('紧急订单'), data.urgentOrders.length),
+      (
+        context.crmCopy('今天需跟进客户'),
+        data.todayCustomers.length,
+        '/customers/today',
+      ),
+      (context.crmCopy('今天任务'), data.todayTasks.length, '/tasks/today'),
+      (
+        context.crmCopy('待收款订单'),
+        data.outstandingOrders.length,
+        '/orders/outstanding',
+      ),
+      (context.crmCopy('紧急订单'), data.urgentOrders.length, '/orders/urgent'),
+      (
+        context.l10n.isZh ? '重要且紧急' : 'Important & urgent',
+        data.importantUrgentTasks.length,
+        '/matrix',
+      ),
     ];
     final highest = values
         .map((item) => item.$2)
@@ -355,34 +368,43 @@ class _DashboardDistributionCard extends StatelessWidget {
                 children: [
                   for (var i = 0; i < values.length; i++)
                     Expanded(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          Text(
-                            '${values[i].$2}',
-                            style: Theme.of(context).textTheme.labelLarge,
-                          ),
-                          const SizedBox(height: 5),
-                          Container(
-                            width: 34,
-                            height: highest == 0
-                                ? 4
-                                : (values[i].$2 / highest * 60 + 4),
-                            decoration: BoxDecoration(
-                              color: i.isEven ? colors.accent : colors.success,
-                              borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(5),
+                      child: InkWell(
+                        key: ValueKey('dashboard-distribution-$i'),
+                        borderRadius: BorderRadius.circular(FlyRadius.sm),
+                        onTap: () => context.go(values[i].$3),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Text(
+                              '${values[i].$2}',
+                              style: Theme.of(context).textTheme.labelLarge,
+                            ),
+                            const SizedBox(height: 5),
+                            Container(
+                              width: 34,
+                              height: highest == 0
+                                  ? 4
+                                  : (values[i].$2 / highest * 60 + 4),
+                              decoration: BoxDecoration(
+                                color: i == 4
+                                    ? colors.warning
+                                    : i.isEven
+                                    ? colors.accent
+                                    : colors.success,
+                                borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(5),
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            values[i].$1,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
+                            const SizedBox(height: 8),
+                            Text(
+                              values[i].$1,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                 ],

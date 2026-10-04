@@ -88,6 +88,8 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
           dueDate: dueDate,
         );
     _quickAddController.clear();
+    if (!mounted) return;
+    setState(() => _search = '');
     ref.read(selectedTaskIdProvider.notifier).state = task.id;
     _quickAddFocus.requestFocus();
   }
@@ -100,6 +102,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
 
   void _cancelAdd() {
     _quickAddController.clear();
+    setState(() => _search = '');
     _quickAddFocus.unfocus();
   }
 
@@ -145,7 +148,8 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
   @override
   Widget build(BuildContext context) {
     final tasks = _tasks();
-    final visibleTasks = _search.trim().isEmpty
+    final query = _search.trim();
+    final visibleTasks = _canAdd || query.isEmpty
         ? tasks
         : tasks.whenData(
             (items) => items
@@ -157,8 +161,24 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                 )
                 .toList(),
           );
+    final searchTasks = _canAdd && query.isNotEmpty
+        ? ref.watch(allTasksProvider).whenData((items) {
+            final matches =
+                items
+                    .where(
+                      (task) => FuzzyMatch.matches(query, [
+                        task.title,
+                        task.description,
+                      ]),
+                    )
+                    .toList()
+                  ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+            return matches;
+          })
+        : null;
     final lists = ref.watch(taskListsProvider).valueOrNull ?? const [];
-    final items = visibleTasks.valueOrNull ?? const <FlyTask>[];
+    final items =
+        (searchTasks ?? visibleTasks).valueOrNull ?? const <FlyTask>[];
     final title = _title(context, lists);
 
     return SafeArea(
@@ -180,7 +200,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
               children: [
                 _ListHeader(
                   title: title,
-                  tasks: visibleTasks,
+                  tasks: tasks,
                   collection: widget.collection,
                 ),
                 const SizedBox(height: FlySpacing.md),
@@ -198,38 +218,75 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                       key: const ValueKey('quick-add-input'),
                       controller: _quickAddController,
                       focusNode: _quickAddFocus,
+                      onChanged: (value) => setState(() => _search = value),
                       onSubmitted: (_) => _addTask(),
                       textInputAction: TextInputAction.done,
                       decoration: InputDecoration(
-                        hintText: context.l10n.t('inputTask'),
-                        prefixIcon: const Icon(Icons.add, size: 19),
+                        hintText: context.l10n.isZh
+                            ? '搜索或新建任务'
+                            : 'Search or create a task',
+                        prefixIcon: const Icon(Icons.search_rounded, size: 19),
+                        suffixIcon: query.isEmpty
+                            ? null
+                            : IconButton(
+                                tooltip: context.l10n.isZh
+                                    ? '清除输入'
+                                    : 'Clear input',
+                                onPressed: _cancelAdd,
+                                icon: const Icon(Icons.close, size: 17),
+                              ),
                       ),
                     ),
                   ),
                   const SizedBox(height: FlySpacing.xs),
                 ],
-                SizedBox(
-                  height: 36,
-                  child: TextField(
-                    key: const ValueKey('task-search'),
-                    controller: _searchController,
-                    onChanged: (value) => setState(() => _search = value),
-                    decoration: InputDecoration(
-                      isDense: true,
-                      hintText: context.l10n.isZh ? '搜索任务' : 'Search tasks',
-                      prefixIcon: const Icon(Icons.search, size: 17),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                if (!_canAdd)
+                  SizedBox(
+                    height: 36,
+                    child: TextField(
+                      key: const ValueKey('task-search'),
+                      controller: _searchController,
+                      onChanged: (value) => setState(() => _search = value),
+                      decoration: InputDecoration(
+                        isDense: true,
+                        hintText: context.l10n.isZh ? '搜索任务' : 'Search tasks',
+                        prefixIcon: const Icon(Icons.search, size: 17),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                      ),
                     ),
                   ),
-                ),
                 const SizedBox(height: FlySpacing.xs),
+                if (_canAdd && query.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: FlySpacing.xs),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.keyboard_return, size: 14),
+                        const SizedBox(width: FlySpacing.xs),
+                        Expanded(
+                          child: Text(
+                            context.l10n.isZh
+                                ? '按 Enter 新建「$query」，或点击下方历史任务查看'
+                                : 'Press Enter to create "$query", or select a result below',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 Expanded(
-                  child: visibleTasks.when(
+                  child: (searchTasks ?? visibleTasks).when(
                     data: (data) => data.isEmpty
-                        ? _search.trim().isNotEmpty
+                        ? query.isNotEmpty
                               ? Center(
                                   child: Text(
-                                    context.l10n.isZh
+                                    _canAdd
+                                        ? context.l10n.isZh
+                                              ? '没有匹配的历史任务，按 Enter 新建'
+                                              : 'No matching tasks. Press Enter to create.'
+                                        : context.l10n.isZh
                                         ? '没有匹配的任务'
                                         : 'No matching tasks',
                                   ),
@@ -242,6 +299,8 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                                   onCreate: _beginAdd,
                                 )
                               : _EmptyTasks(collection: widget.collection)
+                        : searchTasks != null
+                        ? _TaskSearchResults(tasks: data, lists: lists)
                         : _TaskRows(
                             tasks: data,
                             lists: lists,
@@ -308,6 +367,56 @@ class _ListHeader extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+class _TaskSearchResults extends ConsumerWidget {
+  const _TaskSearchResults({required this.tasks, required this.lists});
+
+  final List<FlyTask> tasks;
+  final List<FlyTaskList> lists;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selectedId = ref.watch(selectedTaskIdProvider);
+    return ListView.builder(
+      itemCount: tasks.length,
+      itemBuilder: (context, index) {
+        final task = tasks[index];
+        final listName = lists
+            .where((list) => list.id == task.listId)
+            .firstOrNull
+            ?.name;
+        final metadata = [
+          ?listName,
+          if (task.isCompleted)
+            context.l10n.t('completed')
+          else if (task.dueDate != null)
+            context.l10n.shortDate(task.dueDate!),
+        ];
+        return Material(
+          type: MaterialType.transparency,
+          child: ListTile(
+            key: ValueKey('task-search-result-${task.id}'),
+            dense: true,
+            selected: selectedId == task.id,
+            leading: Icon(
+              task.isCompleted ? Icons.check_circle_outline : Icons.history,
+              size: 20,
+            ),
+            title: FlyTaskTitle(task: task),
+            subtitle: metadata.isEmpty ? null : Text(metadata.join(' · ')),
+            trailing: const Icon(Icons.chevron_right, size: 18),
+            onTap: () {
+              ref.read(selectedTaskIdProvider.notifier).state = task.id;
+              if (MediaQuery.sizeOf(context).width < FlyBreakpoints.expanded) {
+                context.push('/task/${task.id}');
+              }
+            },
+          ),
+        );
+      },
     );
   }
 }

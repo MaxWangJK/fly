@@ -14,6 +14,7 @@ class DashboardSnapshot {
     this.hasBusinessData = true,
     required this.todayCustomers,
     required this.todayTasks,
+    required this.importantUrgentTasks,
     required this.outstandingOrders,
     required this.outstandingByCurrency,
     required this.urgentOrders,
@@ -24,6 +25,7 @@ class DashboardSnapshot {
   final List<DashboardEntry> todayCustomers;
   final bool hasBusinessData;
   final List<DashboardEntry> todayTasks;
+  final List<DashboardEntry> importantUrgentTasks;
   final List<DashboardEntry> outstandingOrders;
   final Map<String, int> outstandingByCurrency;
   final List<DashboardEntry> urgentOrders;

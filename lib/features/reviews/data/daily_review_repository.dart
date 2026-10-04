@@ -4,6 +4,13 @@ import 'package:drift/drift.dart';
 
 import '../../../core/database/app_database.dart';
 
+class ReviewHistoryEntry {
+  const ReviewHistoryEntry({required this.day, required this.answers});
+
+  final String day;
+  final Map<String, String> answers;
+}
+
 class DailyReviewRepository {
   const DailyReviewRepository(this.db);
   final AppDatabase db;
@@ -73,6 +80,28 @@ class DailyReviewRepository {
                 .toList()
               ..sort(),
       );
+
+  /// Only meaningful answers are projected into history. Empty fields never
+  /// become visible cards, even when an older saved row still contains them.
+  Stream<List<ReviewHistoryEntry>> watchHistory() {
+    final query = db.select(db.dailyReviews)
+      ..orderBy([(row) => OrderingTerm.desc(row.dayKey)]);
+    return query.watch().map((rows) {
+      final history = <ReviewHistoryEntry>[];
+      for (final row in rows) {
+        final values = Map<String, String>.from(
+          jsonDecode(row.answersJson) as Map,
+        );
+        final visible = Map<String, String>.fromEntries(
+          values.entries.where((entry) => entry.value.trim().isNotEmpty),
+        );
+        if (visible.isNotEmpty) {
+          history.add(ReviewHistoryEntry(day: row.dayKey, answers: visible));
+        }
+      }
+      return history;
+    });
+  }
 
   Future<Map<String, int>> summary(String day) async {
     final start = date(day);

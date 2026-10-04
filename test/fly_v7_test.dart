@@ -269,6 +269,8 @@ void main() {
                 id: 'dashboard-task-$index',
                 title: 'Task $index',
                 dueDate: drift.Value(DateTime(2026, 9, 5)),
+                importance: drift.Value(index < 2),
+                urgency: drift.Value(index < 2),
                 sortOrder: index,
                 createdAt: now,
                 updatedAt: now,
@@ -295,6 +297,7 @@ void main() {
       final result = await DashboardService(database, now: () => now).load();
       expect(result.todayCustomers, hasLength(3));
       expect(result.todayTasks, hasLength(5));
+      expect(result.importantUrgentTasks, hasLength(2));
       expect(result.urgentOrders, hasLength(2));
     } finally {
       await database.close();

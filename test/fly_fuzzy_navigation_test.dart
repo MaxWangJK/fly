@@ -146,11 +146,16 @@ void main() {
         await crm.saveCustomer(customer);
         final order = await DriftOrderRepository(db)
             .createOrder(customerId: customer.id, orderNumber: 'SO-AUTO-1');
-        final task = await DriftTaskRepository(db).createTask(
+        final tasks = DriftTaskRepository(db);
+        final task = await tasks.createTask(
           title: 'Prepare quotation',
           dueDate: DateTime(today.year, today.month, today.day),
         );
-        return (customer.id, order.id, task.id);
+        final historical = await tasks.createTask(
+          title: 'Historical quotation',
+        );
+        await tasks.setCompleted(historical.id, completed: true);
+        return (customer.id, order.id, task.id, historical.id);
       });
       final container = ProviderContainer(
         overrides: [databaseProvider.overrideWithValue(db)],
@@ -170,18 +175,29 @@ void main() {
       expect(container.read(selectedOrderIdProvider), records.$2);
       await tester.tap(find.byKey(const ValueKey('primary-tasks')));
       await _settle(tester);
-      await tester.enterText(
-        find.byKey(const ValueKey('task-search')),
-        'quotoation',
+      final taskInput = find.byKey(const ValueKey('quick-add-input'));
+      expect(find.byKey(const ValueKey('task-search')), findsNothing);
+      await tester.enterText(taskInput, 'Historical quotoation');
+      await _settle(tester);
+      expect(
+        find.byKey(ValueKey('task-search-result-${records.$4}')),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(ValueKey('task-search-result-${records.$4}')),
       );
       await _settle(tester);
-      expect(find.text('Prepare quotation'), findsOneWidget);
-      await tester.enterText(
-        find.byKey(const ValueKey('task-search')),
-        'unrelated',
-      );
+      expect(container.read(selectedTaskIdProvider), records.$4);
+      await tester.enterText(taskInput, 'New follow-up task');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
       await _settle(tester);
-      expect(find.text('Prepare quotation'), findsNothing);
+      expect(
+        (await tester.runAsync(
+          () => DriftTaskRepository(db).watchAllTasks().first,
+        ))!.where((task) => task.title == 'New follow-up task'),
+        hasLength(1),
+      );
+      expect(find.text('搜索或新建任务'), findsOneWidget);
       await tester.pumpWidget(const SizedBox.shrink());
       container.dispose();
       for (var i = 0; i < 12; i++) {

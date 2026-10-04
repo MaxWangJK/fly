@@ -11,6 +11,10 @@ final reviewSessionsProvider = Provider((ref) => <String, ReviewSession>{});
 final recordedReviewDaysProvider = StreamProvider.autoDispose<List<String>>(
   (ref) => ref.watch(dailyReviewRepositoryProvider).watchRecordedDays(),
 );
+final reviewHistoryProvider =
+    StreamProvider.autoDispose<List<ReviewHistoryEntry>>(
+      (ref) => ref.watch(dailyReviewRepositoryProvider).watchHistory(),
+    );
 final reviewSessionProvider = FutureProvider.family<ReviewSession, String>((
   ref,
   day,

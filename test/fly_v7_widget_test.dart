@@ -60,6 +60,11 @@ void main() {
       expect(find.text(title), findsWidgets);
     }
     expect(find.text('当前工作分布'), findsOneWidget);
+    expect(find.text('重要且紧急'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('dashboard-distribution-4')),
+      findsOneWidget,
+    );
     expect(find.text('Dashboard'), findsOneWidget);
     expect(find.byType(DataTable), findsNothing);
     await _disposeUi(tester);

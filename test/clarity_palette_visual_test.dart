@@ -103,6 +103,20 @@ void main() {
     tester.view.physicalSize = const Size(1400, 820);
     await _pumpUi(tester);
 
+    await tester.tap(find.byKey(const ValueKey('primary-tasks')));
+    await _pumpUi(tester);
+    expect(find.byKey(const ValueKey('task-search')), findsNothing);
+    await tester.enterText(find.byKey(const ValueKey('quick-add-input')), '报价');
+    await _pumpUi(tester);
+    expect(find.text('更新 WPC 报价单'), findsOneWidget);
+    await tester.runAsync(
+      () => _capture(
+        boundaryKey,
+        'artifacts/$paletteName/tasks-search.png',
+        capture,
+      ),
+    );
+
     await tester.tap(find.byKey(const ValueKey('primary-files')));
     await _pumpUi(tester);
     expect(find.text('WPC-price-list.pdf'), findsWidgets);
