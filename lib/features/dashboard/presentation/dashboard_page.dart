@@ -27,7 +27,6 @@ class DashboardPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final value = ref.watch(dashboardProvider);
-    final clarityStyle = ref.watch(flyPaletteProvider) == FlyPaletteId.clarity;
     return Material(
       color: Theme.of(context).scaffoldBackgroundColor,
       child: SafeArea(
@@ -67,66 +66,7 @@ class DashboardPage extends ConsumerWidget {
                           actionLabel: context.l10n.t('addTask'),
                           onCreate: () => context.go('/tasks/today'),
                         )
-                      : clarityStyle
-                      ? _ClarityDashboard(data: data)
-                      : LayoutBuilder(
-                          builder: (context, constraints) {
-                            final columns = constraints.maxWidth >= 980 ? 3 : 2;
-                            return GridView.count(
-                              crossAxisCount: columns,
-                              mainAxisSpacing: 14,
-                              crossAxisSpacing: 14,
-                              childAspectRatio: columns == 3 ? 1.55 : 1.7,
-                              children: [
-                                _DashboardCard(
-                                  title: context.crmCopy('今天需跟进客户'),
-                                  value: '${data.todayCustomers.length}',
-                                  icon: Icons.people_outline,
-                                  entries: data.todayCustomers,
-                                  onTap: () => context.go('/customers/today'),
-                                ),
-                                _DashboardCard(
-                                  title: context.crmCopy('今天任务'),
-                                  value: '${data.todayTasks.length}',
-                                  icon: Icons.check_box_outlined,
-                                  entries: data.todayTasks,
-                                  onTap: () => context.go('/tasks/today'),
-                                ),
-                                _DashboardCard(
-                                  title: context.crmCopy('待收款订单'),
-                                  value: '${data.outstandingOrders.length}',
-                                  subtitle: _currencyTotals(
-                                    data.outstandingByCurrency,
-                                  ),
-                                  icon: Icons.account_balance_wallet_outlined,
-                                  entries: data.outstandingOrders,
-                                  onTap: () =>
-                                      context.go('/orders/outstanding'),
-                                ),
-                                _DashboardCard(
-                                  title: context.crmCopy('紧急订单'),
-                                  value: '${data.urgentOrders.length}',
-                                  icon: Icons.priority_high_rounded,
-                                  entries: data.urgentOrders,
-                                  onTap: () => context.go('/orders/urgent'),
-                                ),
-                                _DashboardCard(
-                                  title: context.crmCopy('本月利润'),
-                                  value:
-                                      'RMB ${(data.monthProfitRmb / 100).toStringAsFixed(2)}',
-                                  subtitle: data.monthMissingRateCount == 0
-                                      ? context.crmCopy('按订单日期统计')
-                                      : (context.l10n.isZh
-                                            ? '另有 ${data.monthMissingRateCount} 个订单缺少汇率'
-                                            : '${data.monthMissingRateCount} other orders have no exchange rate'),
-                                  icon: Icons.trending_up_rounded,
-                                  entries: const [],
-                                  onTap: () => context.go('/orders/all'),
-                                ),
-                              ],
-                            );
-                          },
-                        ),
+                      : _DashboardOverview(data: data),
                 ),
               ),
             ],
@@ -137,10 +77,10 @@ class DashboardPage extends ConsumerWidget {
   }
 }
 
-/// A compact overview for the Clarity palette. The bars compare current work
+/// One overview for every palette. The bars compare current work
 /// counts only; they intentionally do not imply a historical trend.
-class _ClarityDashboard extends StatelessWidget {
-  const _ClarityDashboard({required this.data});
+class _DashboardOverview extends StatelessWidget {
+  const _DashboardOverview({required this.data});
 
   final DashboardSnapshot data;
 
@@ -203,7 +143,7 @@ class _ClarityDashboard extends StatelessWidget {
               itemCount: metrics.length,
               itemBuilder: (context, index) {
                 final item = metrics[index];
-                return _ClarityMetricCard(
+                return _DashboardMetricCard(
                   title: item.$1,
                   value: item.$2,
                   icon: item.$3,
@@ -213,7 +153,10 @@ class _ClarityDashboard extends StatelessWidget {
               },
             ),
             const SizedBox(height: 16),
-            SizedBox(height: 212, child: _ClarityDistributionCard(data: data)),
+            SizedBox(
+              height: 212,
+              child: _DashboardDistributionCard(data: data),
+            ),
             const SizedBox(height: 16),
             if (width >= 660)
               Row(
@@ -221,7 +164,7 @@ class _ClarityDashboard extends StatelessWidget {
                   Expanded(
                     child: SizedBox(
                       height: 196,
-                      child: _ClarityListCard(
+                      child: _DashboardListCard(
                         title: context.crmCopy('今天需跟进客户'),
                         entries: data.todayCustomers,
                         onTap: () => context.go('/customers/today'),
@@ -232,7 +175,7 @@ class _ClarityDashboard extends StatelessWidget {
                   Expanded(
                     child: SizedBox(
                       height: 196,
-                      child: _ClarityListCard(
+                      child: _DashboardListCard(
                         title: context.crmCopy('紧急订单'),
                         entries: data.urgentOrders,
                         onTap: () => context.go('/orders/urgent'),
@@ -244,7 +187,7 @@ class _ClarityDashboard extends StatelessWidget {
             else ...[
               SizedBox(
                 height: 196,
-                child: _ClarityListCard(
+                child: _DashboardListCard(
                   title: context.crmCopy('今天需跟进客户'),
                   entries: data.todayCustomers,
                   onTap: () => context.go('/customers/today'),
@@ -253,7 +196,7 @@ class _ClarityDashboard extends StatelessWidget {
               const SizedBox(height: 12),
               SizedBox(
                 height: 196,
-                child: _ClarityListCard(
+                child: _DashboardListCard(
                   title: context.crmCopy('紧急订单'),
                   entries: data.urgentOrders,
                   onTap: () => context.go('/orders/urgent'),
@@ -282,8 +225,8 @@ class _ClarityDashboard extends StatelessWidget {
   );
 }
 
-class _ClarityMetricCard extends StatelessWidget {
-  const _ClarityMetricCard({
+class _DashboardMetricCard extends StatelessWidget {
+  const _DashboardMetricCard({
     required this.title,
     required this.value,
     required this.icon,
@@ -371,8 +314,8 @@ class _ClarityMetricCard extends StatelessWidget {
   }
 }
 
-class _ClarityDistributionCard extends StatelessWidget {
-  const _ClarityDistributionCard({required this.data});
+class _DashboardDistributionCard extends StatelessWidget {
+  const _DashboardDistributionCard({required this.data});
 
   final DashboardSnapshot data;
 
@@ -452,8 +395,8 @@ class _ClarityDistributionCard extends StatelessWidget {
   }
 }
 
-class _ClarityListCard extends StatelessWidget {
-  const _ClarityListCard({
+class _DashboardListCard extends StatelessWidget {
+  const _DashboardListCard({
     required this.title,
     required this.entries,
     required this.onTap,
@@ -516,81 +459,6 @@ class _ClarityListCard extends StatelessWidget {
                     ],
                   ),
                 ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
-class _DashboardCard extends StatelessWidget {
-  const _DashboardCard({
-    required this.title,
-    required this.value,
-    required this.icon,
-    required this.entries,
-    required this.onTap,
-    this.subtitle,
-  });
-
-  final String title;
-  final String value;
-  final String? subtitle;
-  final IconData icon;
-  final List<DashboardEntry> entries;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => Material(
-    color: Theme.of(context).colorScheme.surface,
-    borderRadius: BorderRadius.circular(FlyRadius.lg),
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(FlyRadius.lg),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          border: Border.all(color: Theme.of(context).dividerColor),
-          borderRadius: BorderRadius.circular(FlyRadius.lg),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, size: 18),
-                const SizedBox(width: 7),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                const Icon(Icons.arrow_forward_ios_rounded, size: 12),
-              ],
-            ),
-            const SizedBox(height: 11),
-            Text(
-              value,
-              style: Theme.of(context).textTheme.headlineSmall
-                  ?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            if (subtitle != null && subtitle!.isNotEmpty)
-              Text(subtitle!, style: Theme.of(context).textTheme.labelSmall),
-            const Spacer(),
-            for (final entry in entries.take(3))
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  '• ${entry.title}${entry.subtitle.isEmpty ? '' : ' · ${entry.subtitle}'}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 11.5),
-                ),
-              ),
           ],
         ),
       ),

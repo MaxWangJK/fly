@@ -239,16 +239,9 @@ void main() {
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await settle(tester);
     expect(find.text('外贸知识'), findsWidgets);
-    expect(find.byTooltip('块操作'), findsOneWidget);
-    await tester.enterText(
-      find.byWidgetPredicate(
-        (widget) =>
-            widget is TextField &&
-            widget.key is ValueKey<String> &&
-            (widget.key! as ValueKey<String>).value.startsWith('block-text-'),
-      ),
-      '先了解客户市场，再准备产品资料。',
-    );
+    final noteBody = find.byKey(const ValueKey('note-continuous-body'));
+    expect(noteBody, findsOneWidget);
+    await tester.enterText(noteBody, '先了解客户市场，再准备产品资料。');
     await settle(tester);
     expect(find.text('先了解客户市场，再准备产品资料。'), findsOneWidget);
     await capture(tester, 'notes');

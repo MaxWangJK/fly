@@ -15,6 +15,8 @@ class WorkspaceFolderTree extends StatefulWidget {
     required this.onDelete,
     this.onReveal,
     this.onFileDrop,
+    this.selectionColor,
+    this.folderIconColor,
     super.key,
   });
   final List<WorkspaceFolder> folders;
@@ -24,6 +26,7 @@ class WorkspaceFolderTree extends StatefulWidget {
   final ValueChanged<WorkspaceFolder> onRename, onDelete;
   final ValueChanged<WorkspaceFolder>? onReveal;
   final void Function(String fileId, String folderId)? onFileDrop;
+  final Color? selectionColor, folderIconColor;
   @override
   State<WorkspaceFolderTree> createState() => _WorkspaceFolderTreeState();
 }
@@ -113,8 +116,9 @@ class _WorkspaceFolderTreeState extends State<WorkspaceFolderTree> {
                   menu(folder, details.globalPosition),
               child: Material(
                 color: candidates.isNotEmpty || widget.selectedId == folder.id
-                    ? Theme.of(context).colorScheme.primary
-                          .withValues(alpha: .1)
+                    ? widget.selectionColor ??
+                          Theme.of(context).colorScheme.primary
+                              .withValues(alpha: .1)
                     : Colors.transparent,
                 child: Row(
                   children: [
@@ -148,7 +152,11 @@ class _WorkspaceFolderTreeState extends State<WorkspaceFolderTree> {
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           child: Row(
                             children: [
-                              const Icon(Icons.folder_outlined, size: 17),
+                              Icon(
+                                Icons.folder_outlined,
+                                size: 17,
+                                color: widget.folderIconColor,
+                              ),
                               const SizedBox(width: 6),
                               Expanded(
                                 child: Text(

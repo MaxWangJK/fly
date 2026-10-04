@@ -40,7 +40,7 @@ void main() {
     await _disposeUi(tester);
   });
 
-  testWidgets('dashboard contains only the five V7 focus cards', (
+  testWidgets('dashboard uses the unified five-metric overview', (
     tester,
   ) async {
     final database = AppDatabase(NativeDatabase.memory());
@@ -57,8 +57,9 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('primary-dashboard')));
     await _pumpUi(tester);
     for (final title in const ['今天需跟进客户', '今天任务', '待收款订单', '紧急订单', '本月利润']) {
-      expect(find.text(title), findsOneWidget);
+      expect(find.text(title), findsWidgets);
     }
+    expect(find.text('当前工作分布'), findsOneWidget);
     expect(find.text('Dashboard'), findsOneWidget);
     expect(find.byType(DataTable), findsNothing);
     await _disposeUi(tester);

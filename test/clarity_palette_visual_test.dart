@@ -11,6 +11,7 @@ import 'package:fly/features/notes/data/note_repository.dart';
 import 'package:fly/features/orders/data/drift_order_repository.dart';
 import 'package:fly/features/tasks/data/drift_task_repository.dart';
 import 'package:fly/features/tasks/presentation/task_providers.dart';
+import 'package:fly/shared/design_system/design_tokens.dart';
 import 'package:fly/shared/design_system/fly_color_scheme.dart';
 import 'package:fly/shared/dev/first_run_demo_seeder.dart';
 import 'package:flutter/material.dart';
@@ -20,10 +21,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('clarity palette renders dashboard, files and notes', (
-    tester,
-  ) async {
+  testWidgets('palette renders dashboard, files and notes', (tester) async {
     const capture = bool.fromEnvironment('FLY_CAPTURE_CLARITY');
+    const paletteName = String.fromEnvironment(
+      'FLY_VISUAL_PALETTE',
+      defaultValue: 'clarity',
+    );
     if (capture) await tester.runAsync(_loadFonts);
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(1400, 820);
@@ -69,18 +72,30 @@ void main() {
       ProviderScope(
         overrides: [
           databaseProvider.overrideWithValue(database),
-          flyPaletteProvider.overrideWith((ref) => FlyPaletteId.clarity),
+          flyPaletteProvider.overrideWith(
+            (ref) => FlyPaletteIdX.parse(paletteName),
+          ),
         ],
         child: RepaintBoundary(key: boundaryKey, child: const FlyApp()),
       ),
     );
     await _pumpUi(tester);
+    final avatar = find.byKey(const ValueKey('primary-profile-avatar'));
+    final search = find.byKey(const ValueKey('primary-global-search'));
+    expect(
+      tester.getTopLeft(search).dy - tester.getBottomLeft(avatar).dy,
+      greaterThanOrEqualTo(FlySpacing.sm),
+    );
 
     await tester.tap(find.byKey(const ValueKey('primary-dashboard')));
     await _pumpUi(tester);
     expect(find.text('本月利润'), findsOneWidget);
     await tester.runAsync(
-      () => _capture(boundaryKey, 'artifacts/clarity/dashboard.png', capture),
+      () => _capture(
+        boundaryKey,
+        'artifacts/$paletteName/dashboard.png',
+        capture,
+      ),
     );
     tester.view.physicalSize = const Size(660, 760);
     await _pumpUi(tester);
@@ -92,7 +107,7 @@ void main() {
     await _pumpUi(tester);
     expect(find.text('WPC-price-list.pdf'), findsWidgets);
     await tester.runAsync(
-      () => _capture(boundaryKey, 'artifacts/clarity/files.png', capture),
+      () => _capture(boundaryKey, 'artifacts/$paletteName/files.png', capture),
     );
 
     await tester.tap(find.byKey(const ValueKey('primary-notes')));
@@ -101,8 +116,15 @@ void main() {
     await tester.tap(find.text('客户开发方法'));
     await _pumpUi(tester);
     expect(find.text('客户开发方法'), findsWidgets);
+    expect(find.byKey(const ValueKey('note-continuous-body')), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const ValueKey('note-continuous-body')),
+      '# 客户开发\n\n- [ ] 跟进报价\n\n记录客户需求与下一步。',
+    );
+    await _pumpUi(tester);
+    expect(find.textContaining('跟进报价'), findsOneWidget);
     await tester.runAsync(
-      () => _capture(boundaryKey, 'artifacts/clarity/notes.png', capture),
+      () => _capture(boundaryKey, 'artifacts/$paletteName/notes.png', capture),
     );
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();

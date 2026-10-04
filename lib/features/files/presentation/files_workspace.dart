@@ -562,6 +562,7 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
 
   @override
   Widget build(BuildContext context) {
+    final clarityStyle = ref.watch(flyPaletteProvider) == FlyPaletteId.clarity;
     final crm = ref.watch(navigationSettingsProvider).value.crmVisible;
     if (lastCrm != crm) {
       lastCrm = crm;
@@ -586,255 +587,295 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
     );
     final tree = Material(
       color: context.flyColors.secondarySidebar,
-      child: Column(
-        children: [
-          ListTile(title: Text(context.l10n.t('filesWorkspace'))),
-          ListTile(
-            dense: true,
-            leading: const Icon(Icons.history),
-            title: Text(context.l10n.t('noteRecent')),
-            selected: collection == FileCollection.recent,
-            onTap: () => select(FileCollection.recent),
-          ),
-          if (crm)
+      child: ListTileTheme(
+        data: ListTileThemeData(
+          selectedTileColor: clarityStyle ? null : context.flyColors.selected,
+          selectedColor: clarityStyle ? null : context.flyColors.accent,
+          shape: clarityStyle
+              ? null
+              : RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+        child: Column(
+          children: [
+            ListTile(title: Text(context.l10n.t('filesWorkspace'))),
             ListTile(
               dense: true,
-              leading: const Icon(Icons.people_outline),
-              title: Text(context.l10n.t('filesCustomers')),
-              selected: collection == FileCollection.customers,
-              onTap: () => select(FileCollection.customers),
+              leading: const Icon(Icons.history),
+              title: Text(context.l10n.t('noteRecent')),
+              selected: collection == FileCollection.recent,
+              onTap: () => select(FileCollection.recent),
             ),
-          ListTile(
-            dense: true,
-            title: Text(context.l10n.t('filesRoot')),
-            selected: collection == FileCollection.folder && folderId == null,
-            onTap: () => select(FileCollection.folder),
-            trailing: IconButton(
-              tooltip: context.l10n.t('filesNewFolder'),
-              onPressed: () => createFolder(null),
-              icon: const Icon(Icons.add),
+            if (crm)
+              ListTile(
+                dense: true,
+                leading: const Icon(Icons.people_outline),
+                title: Text(context.l10n.t('filesCustomers')),
+                selected: collection == FileCollection.customers,
+                onTap: () => select(FileCollection.customers),
+              ),
+            ListTile(
+              dense: true,
+              title: Text(context.l10n.t('filesRoot')),
+              selected: collection == FileCollection.folder && folderId == null,
+              onTap: () => select(FileCollection.folder),
+              trailing: IconButton(
+                tooltip: context.l10n.t('filesNewFolder'),
+                onPressed: () => createFolder(null),
+                icon: const Icon(Icons.add),
+              ),
+            ),
+            Expanded(
+              child: folders.when(
+                data: (items) => WorkspaceFolderTree(
+                  folders: items,
+                  selectedId: folderId,
+                  selectionColor: clarityStyle
+                      ? null
+                      : context.flyColors.selected,
+                  folderIconColor: clarityStyle
+                      ? null
+                      : context.flyColors.accent,
+                  onSelect: (id) => select(FileCollection.folder, id),
+                  onCreate: createFolder,
+                  onRename: (f) async {
+                    final name = await workspaceNameDialog(
+                      context,
+                      title: context.l10n.t('rename'),
+                      initial: f.name,
+                    );
+                    if (name != null) {
+                      await attempt(
+                        () => ref
+                            .read(fileFolderRepositoryProvider)
+                            .rename(f.id, name),
+                      );
+                    }
+                  },
+                  onDelete: folderDelete,
+                  onReveal: (folder) => attempt(() => revealFolder(folder)),
+                  onFileDrop: (file, id) => attempt(
+                    () =>
+                        ref.read(managedFileRepositoryProvider).move(file, id),
+                  ),
+                ),
+                error: (e, _) => Text(
+                  '${context.l10n.t('filesFolderError')}: ${context.flyError(e)}',
+                ),
+                loading: () => const Center(child: CircularProgressIndicator()),
+              ),
+            ),
+            ListTile(
+              dense: true,
+              leading: const Icon(Icons.delete_outline),
+              title: Text(context.l10n.t('noteDeleted')),
+              selected: !clarityStyle && collection == FileCollection.deleted,
+              onTap: () => select(FileCollection.deleted),
+            ),
+          ],
+        ),
+      ),
+    );
+    final browser = ColoredBox(
+      color: context.flyColors.canvas,
+      child: Column(
+        children: [
+          ColoredBox(
+            color: clarityStyle
+                ? context.flyColors.canvas
+                : context.flyColors.surfaceMuted,
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Wrap(
+                spacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  TextButton(
+                    onPressed: () => select(FileCollection.folder),
+                    child: Text(context.l10n.t('filesRoot')),
+                  ),
+                  if (collection == FileCollection.folder)
+                    ..._breadcrumbs(folders.valueOrNull ?? []),
+                  if (collection != FileCollection.folder)
+                    Text(switch (collection) {
+                      FileCollection.recent => context.l10n.t('noteRecent'),
+                      FileCollection.customers => context.l10n.t(
+                        'filesCustomers',
+                      ),
+                      FileCollection.deleted => context.l10n.t('noteDeleted'),
+                      _ => '',
+                    }),
+                  PopupMenuButton<FileViewMode>(
+                    tooltip: context.l10n.t('fileViewMode'),
+                    initialValue: viewMode,
+                    onSelected: (value) => setState(() => viewMode = value),
+                    icon: Icon(
+                      viewMode == FileViewMode.list
+                          ? Icons.view_list_outlined
+                          : Icons.grid_view,
+                    ),
+                    itemBuilder: (_) => [
+                      for (final mode in FileViewMode.values)
+                        CheckedPopupMenuItem(
+                          value: mode,
+                          checked: viewMode == mode,
+                          child: Text(context.l10n.t('fileView_${mode.name}')),
+                        ),
+                    ],
+                  ),
+                  TextButton.icon(
+                    onPressed: () => attempt(filters),
+                    icon: const Icon(Icons.filter_list, size: 18),
+                    label: Text(
+                      '${context.l10n.t('filesTagFilter')}${tags.isEmpty && customerTags.isEmpty ? '' : ' (${tags.length + customerTags.length})'}',
+                    ),
+                  ),
+                  PopupMenuButton<FileSort>(
+                    tooltip: context.l10n.t('filesSort'),
+                    initialValue: sort,
+                    onSelected: (v) {
+                      sort = v;
+                      reload();
+                    },
+                    itemBuilder: (_) => [
+                      for (final s in FileSort.values)
+                        PopupMenuItem(
+                          value: s,
+                          child: Text(switch (s) {
+                            FileSort.modified => context.l10n.t('fileModified'),
+                            FileSort.created => context.l10n.t('filesCreated'),
+                            FileSort.name => context.l10n.t('filesName'),
+                            FileSort.type => context.l10n.t('filesType'),
+                            FileSort.size => context.l10n.t('filesSize'),
+                          }),
+                        ),
+                    ],
+                  ),
+                  if (collection == FileCollection.folder ||
+                      collection == FileCollection.recent)
+                    TextButton.icon(
+                      onPressed: importing
+                          ? null
+                          : () => attempt(() async {
+                              final files = await openFiles();
+                              await importPaths(
+                                files.map((f) => f.path).toList(),
+                              );
+                            }),
+                      icon: const Icon(Icons.file_upload_outlined),
+                      label: Text(context.l10n.t('filesImport')),
+                    ),
+                  if (cutId != null && collection == FileCollection.folder)
+                    TextButton(
+                      onPressed: () => attempt(() async {
+                        await ref
+                            .read(managedFileRepositoryProvider)
+                            .move(cutId!, folderId);
+                        if (mounted) setState(() => cutId = null);
+                      }),
+                      child: Text(context.l10n.t('filesPaste')),
+                    ),
+                ],
+              ),
             ),
           ),
+          ColoredBox(
+            color: clarityStyle
+                ? context.flyColors.canvas
+                : context.flyColors.surfaceMuted,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: TextField(
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.search),
+                  hintText: context.l10n.t('filesSearch'),
+                ),
+                onChanged: (s) {
+                  search = s;
+                  reload();
+                },
+              ),
+            ),
+          ),
+          if (collection == FileCollection.folder)
+            Material(
+              type: MaterialType.transparency,
+              child: CheckboxListTile(
+                dense: true,
+                controlAffinity: ListTileControlAffinity.leading,
+                title: Text(context.l10n.t('filesIncludeChildren')),
+                value: includeChildren,
+                onChanged: (v) {
+                  includeChildren = v == true;
+                  reload();
+                },
+              ),
+            ),
+          if (importing)
+            Row(
+              children: [
+                Expanded(child: LinearProgressIndicator(value: progress)),
+                TextButton(
+                  onPressed: () => cancellation?.cancel(),
+                  child: Text(context.l10n.t('filesCancelImport')),
+                ),
+              ],
+            ),
+          if (collection == FileCollection.deleted)
+            StreamBuilder<List<WorkspaceFolder>>(
+              stream: ref
+                  .read(fileFolderRepositoryProvider)
+                  .watch(deleted: true),
+              builder: (context, snapshot) => Wrap(
+                children: [
+                  for (final f in snapshot.data ?? <WorkspaceFolder>[])
+                    TextButton.icon(
+                      onPressed: () => attempt(
+                        () => ref
+                            .read(fileFolderRepositoryProvider)
+                            .restore(f.id),
+                      ),
+                      icon: const Icon(Icons.restore, size: 16),
+                      label: Text('${context.l10n.t('restore')} ${f.name}'),
+                    ),
+                ],
+              ),
+            ),
           Expanded(
-            child: folders.when(
-              data: (items) => WorkspaceFolderTree(
-                folders: items,
-                selectedId: folderId,
-                onSelect: (id) => select(FileCollection.folder, id),
-                onCreate: createFolder,
-                onRename: (f) async {
-                  final name = await workspaceNameDialog(
-                    context,
-                    title: context.l10n.t('rename'),
-                    initial: f.name,
-                  );
-                  if (name != null) {
-                    await attempt(
-                      () => ref
-                          .read(fileFolderRepositoryProvider)
-                          .rename(f.id, name),
+            child: DropTarget(
+              onDragDone: (details) => attempt(
+                () => importPaths(details.files.map((f) => f.path).toList()),
+              ),
+              child: StreamBuilder<List<FileBrowserEntry>>(
+                stream: rows,
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(context.l10n.t('filesLoadError')),
+                          TextButton(
+                            onPressed: reload,
+                            child: Text(context.l10n.t('licenseRetryShort')),
+                          ),
+                        ],
+                      ),
                     );
                   }
+                  if (!snapshot.hasData) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  final entries = snapshot.data!;
+                  if (entries.isEmpty) {
+                    return Center(child: Text(context.l10n.t('filesEmpty')));
+                  }
+                  return fileResults(entries);
                 },
-                onDelete: folderDelete,
-                onReveal: (folder) => attempt(() => revealFolder(folder)),
-                onFileDrop: (file, id) => attempt(
-                  () => ref.read(managedFileRepositoryProvider).move(file, id),
-                ),
               ),
-              error: (e, _) => Text(
-                '${context.l10n.t('filesFolderError')}: ${context.flyError(e)}',
-              ),
-              loading: () => const Center(child: CircularProgressIndicator()),
             ),
-          ),
-          ListTile(
-            dense: true,
-            leading: const Icon(Icons.delete_outline),
-            title: Text(context.l10n.t('noteDeleted')),
-            onTap: () => select(FileCollection.deleted),
           ),
         ],
       ),
-    );
-    final browser = Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: Wrap(
-            spacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              TextButton(
-                onPressed: () => select(FileCollection.folder),
-                child: Text(context.l10n.t('filesRoot')),
-              ),
-              if (collection == FileCollection.folder)
-                ..._breadcrumbs(folders.valueOrNull ?? []),
-              if (collection != FileCollection.folder)
-                Text(switch (collection) {
-                  FileCollection.recent => context.l10n.t('noteRecent'),
-                  FileCollection.customers => context.l10n.t('filesCustomers'),
-                  FileCollection.deleted => context.l10n.t('noteDeleted'),
-                  _ => '',
-                }),
-              PopupMenuButton<FileViewMode>(
-                tooltip: context.l10n.t('fileViewMode'),
-                initialValue: viewMode,
-                onSelected: (value) => setState(() => viewMode = value),
-                icon: Icon(
-                  viewMode == FileViewMode.list
-                      ? Icons.view_list_outlined
-                      : Icons.grid_view,
-                ),
-                itemBuilder: (_) => [
-                  for (final mode in FileViewMode.values)
-                    CheckedPopupMenuItem(
-                      value: mode,
-                      checked: viewMode == mode,
-                      child: Text(context.l10n.t('fileView_${mode.name}')),
-                    ),
-                ],
-              ),
-              TextButton.icon(
-                onPressed: () => attempt(filters),
-                icon: const Icon(Icons.filter_list, size: 18),
-                label: Text(
-                  '${context.l10n.t('filesTagFilter')}${tags.isEmpty && customerTags.isEmpty ? '' : ' (${tags.length + customerTags.length})'}',
-                ),
-              ),
-              PopupMenuButton<FileSort>(
-                tooltip: context.l10n.t('filesSort'),
-                initialValue: sort,
-                onSelected: (v) {
-                  sort = v;
-                  reload();
-                },
-                itemBuilder: (_) => [
-                  for (final s in FileSort.values)
-                    PopupMenuItem(
-                      value: s,
-                      child: Text(switch (s) {
-                        FileSort.modified => context.l10n.t('fileModified'),
-                        FileSort.created => context.l10n.t('filesCreated'),
-                        FileSort.name => context.l10n.t('filesName'),
-                        FileSort.type => context.l10n.t('filesType'),
-                        FileSort.size => context.l10n.t('filesSize'),
-                      }),
-                    ),
-                ],
-              ),
-              if (collection == FileCollection.folder ||
-                  collection == FileCollection.recent)
-                TextButton.icon(
-                  onPressed: importing
-                      ? null
-                      : () => attempt(() async {
-                          final files = await openFiles();
-                          await importPaths(files.map((f) => f.path).toList());
-                        }),
-                  icon: const Icon(Icons.file_upload_outlined),
-                  label: Text(context.l10n.t('filesImport')),
-                ),
-              if (cutId != null && collection == FileCollection.folder)
-                TextButton(
-                  onPressed: () => attempt(() async {
-                    await ref
-                        .read(managedFileRepositoryProvider)
-                        .move(cutId!, folderId);
-                    if (mounted) setState(() => cutId = null);
-                  }),
-                  child: Text(context.l10n.t('filesPaste')),
-                ),
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: TextField(
-            decoration: InputDecoration(
-              prefixIcon: const Icon(Icons.search),
-              hintText: context.l10n.t('filesSearch'),
-            ),
-            onChanged: (s) {
-              search = s;
-              reload();
-            },
-          ),
-        ),
-        if (collection == FileCollection.folder)
-          CheckboxListTile(
-            dense: true,
-            controlAffinity: ListTileControlAffinity.leading,
-            title: Text(context.l10n.t('filesIncludeChildren')),
-            value: includeChildren,
-            onChanged: (v) {
-              includeChildren = v == true;
-              reload();
-            },
-          ),
-        if (importing)
-          Row(
-            children: [
-              Expanded(child: LinearProgressIndicator(value: progress)),
-              TextButton(
-                onPressed: () => cancellation?.cancel(),
-                child: Text(context.l10n.t('filesCancelImport')),
-              ),
-            ],
-          ),
-        if (collection == FileCollection.deleted)
-          StreamBuilder<List<WorkspaceFolder>>(
-            stream: ref.read(fileFolderRepositoryProvider).watch(deleted: true),
-            builder: (context, snapshot) => Wrap(
-              children: [
-                for (final f in snapshot.data ?? <WorkspaceFolder>[])
-                  TextButton.icon(
-                    onPressed: () => attempt(
-                      () =>
-                          ref.read(fileFolderRepositoryProvider).restore(f.id),
-                    ),
-                    icon: const Icon(Icons.restore, size: 16),
-                    label: Text('${context.l10n.t('restore')} ${f.name}'),
-                  ),
-              ],
-            ),
-          ),
-        Expanded(
-          child: DropTarget(
-            onDragDone: (details) => attempt(
-              () => importPaths(details.files.map((f) => f.path).toList()),
-            ),
-            child: StreamBuilder<List<FileBrowserEntry>>(
-              stream: rows,
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(context.l10n.t('filesLoadError')),
-                        TextButton(
-                          onPressed: reload,
-                          child: Text(context.l10n.t('licenseRetryShort')),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-                if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                final entries = snapshot.data!;
-                if (entries.isEmpty) {
-                  return Center(child: Text(context.l10n.t('filesEmpty')));
-                }
-                return fileResults(entries);
-              },
-            ),
-          ),
-        ),
-      ],
     );
     return CallbackShortcuts(
       bindings: {
@@ -925,7 +966,15 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
                 child: ListView.builder(
                   padding: const EdgeInsets.all(12),
                   itemCount: entries.length,
-                  itemBuilder: (_, i) => tile(entries[i]),
+                  itemBuilder: (_, i) => Padding(
+                    padding: EdgeInsets.only(
+                      bottom:
+                          ref.watch(flyPaletteProvider) == FlyPaletteId.clarity
+                          ? 0
+                          : 6,
+                    ),
+                    child: tile(entries[i]),
+                  ),
                 ),
               ),
             ),
@@ -983,7 +1032,7 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
   Widget tile(FileBrowserEntry entry) {
     final f = entry.file;
     final cardStyle =
-        ref.watch(flyPaletteProvider) == FlyPaletteId.clarity &&
+        ref.watch(flyPaletteProvider) != FlyPaletteId.clarity ||
         viewMode != FileViewMode.list;
     final icon = Icon(
       f.mimeType.startsWith('image/')
@@ -998,6 +1047,9 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
         FileViewMode.medium => 72,
         FileViewMode.list => 24,
       },
+      color: ref.watch(flyPaletteProvider) == FlyPaletteId.clarity
+          ? null
+          : context.flyColors.accent,
     );
     Widget visual = icon;
     if (f.deletedAt == null && f.mimeType.startsWith('image/')) {

@@ -53,6 +53,7 @@ class PrimaryNavigationRail extends ConsumerWidget {
           child: Column(
             children: [
               const _ProfileAvatar(),
+              const SizedBox(height: FlySpacing.sm),
               IconButton(
                 key: const ValueKey('primary-global-search'),
                 tooltip: '${context.l10n.t('globalSearch')}\nCtrl+K',
@@ -257,6 +258,7 @@ class _ProfileAvatar extends StatelessWidget {
   Widget build(BuildContext context) => Tooltip(
     message: 'Fly',
     child: Container(
+      key: const ValueKey('primary-profile-avatar'),
       width: 34,
       height: 34,
       decoration: BoxDecoration(

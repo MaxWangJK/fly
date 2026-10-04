@@ -19,7 +19,8 @@ import '../../files/data/managed_file_repository.dart';
 import '../../files/presentation/file_providers.dart';
 import '../../tasks/presentation/task_providers.dart';
 import '../domain/note_block.dart';
-import 'note_block_editor.dart';
+import '../domain/note_document_codec.dart';
+import 'note_document_text_controller.dart';
 import 'note_edit_session.dart';
 import 'note_providers.dart';
 import 'note_tags_editor.dart';
@@ -160,67 +161,88 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
     );
     final sidebar = Material(
       color: context.flyColors.secondarySidebar,
-      child: Column(
-        children: [
-          ListTile(title: Text(context.l10n.t('noteWorkspace'))),
-          for (final item in [
-            ('recent', context.l10n.t('noteRecent'), Icons.history),
-            ('favorites', context.l10n.t('noteFavorites'), Icons.star_outline),
-          ])
+      child: ListTileTheme(
+        data: ListTileThemeData(
+          selectedTileColor: clarityStyle ? null : context.flyColors.selected,
+          selectedColor: clarityStyle ? null : context.flyColors.accent,
+          shape: clarityStyle
+              ? null
+              : RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+        child: Column(
+          children: [
+            ListTile(title: Text(context.l10n.t('noteWorkspace'))),
+            for (final item in [
+              ('recent', context.l10n.t('noteRecent'), Icons.history),
+              (
+                'favorites',
+                context.l10n.t('noteFavorites'),
+                Icons.star_outline,
+              ),
+            ])
+              ListTile(
+                dense: true,
+                selected: mode == item.$1,
+                leading: Icon(item.$3),
+                title: Text(item.$2),
+                onTap: () => filter(item.$1),
+              ),
             ListTile(
               dense: true,
-              selected: mode == item.$1,
-              leading: Icon(item.$3),
-              title: Text(item.$2),
-              onTap: () => filter(item.$1),
+              title: Text(context.l10n.t('noteRoot')),
+              selected: !clarityStyle && mode == 'folder' && folderId == null,
+              onTap: () => filter('folder'),
+              trailing: IconButton(
+                tooltip: context.l10n.t('noteNewFolder'),
+                onPressed: () => createFolder(null),
+                icon: const Icon(Icons.add),
+              ),
             ),
-          ListTile(
-            dense: true,
-            title: Text(context.l10n.t('noteRoot')),
-            onTap: () => filter('folder'),
-            trailing: IconButton(
-              tooltip: context.l10n.t('noteNewFolder'),
-              onPressed: () => createFolder(null),
-              icon: const Icon(Icons.add),
-            ),
-          ),
-          Expanded(
-            child: ref
-                .watch(noteFoldersProvider)
-                .when(
-                  data: (folders) => WorkspaceFolderTree(
-                    folders: folders,
-                    selectedId: folderId,
-                    onSelect: (id) => filter('folder', id),
-                    onCreate: createFolder,
-                    onRename: (f) async {
-                      final name = await workspaceNameDialog(
-                        context,
-                        title: context.l10n.t('rename'),
-                        initial: f.name,
-                      );
-                      if (name != null) {
-                        await attempt(
-                          () => ref
-                              .read(noteFolderRepositoryProvider)
-                              .rename(f.id, name),
+            Expanded(
+              child: ref
+                  .watch(noteFoldersProvider)
+                  .when(
+                    data: (folders) => WorkspaceFolderTree(
+                      folders: folders,
+                      selectedId: folderId,
+                      selectionColor: clarityStyle
+                          ? null
+                          : context.flyColors.selected,
+                      folderIconColor: clarityStyle
+                          ? null
+                          : context.flyColors.accent,
+                      onSelect: (id) => filter('folder', id),
+                      onCreate: createFolder,
+                      onRename: (f) async {
+                        final name = await workspaceNameDialog(
+                          context,
+                          title: context.l10n.t('rename'),
+                          initial: f.name,
                         );
-                      }
-                    },
-                    onDelete: deleteFolder,
+                        if (name != null) {
+                          await attempt(
+                            () => ref
+                                .read(noteFolderRepositoryProvider)
+                                .rename(f.id, name),
+                          );
+                        }
+                      },
+                      onDelete: deleteFolder,
+                    ),
+                    error: (e, _) => Text(context.flyError(e)),
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
                   ),
-                  error: (e, _) => Text(context.flyError(e)),
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                ),
-          ),
-          ListTile(
-            dense: true,
-            leading: const Icon(Icons.delete_outline),
-            title: Text(context.l10n.t('noteDeleted')),
-            onTap: () => filter('deleted'),
-          ),
-        ],
+            ),
+            ListTile(
+              dense: true,
+              leading: const Icon(Icons.delete_outline),
+              title: Text(context.l10n.t('noteDeleted')),
+              selected: !clarityStyle && mode == 'deleted',
+              onTap: () => filter('deleted'),
+            ),
+          ],
+        ),
       ),
     );
     final list = Column(
@@ -297,140 +319,144 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
                     onSecondaryTap: () =>
                         menuKey.currentState?.showButtonMenu(),
                     child: Padding(
-                      padding: clarityStyle
-                          ? const EdgeInsets.fromLTRB(8, 0, 8, 8)
-                          : EdgeInsets.zero,
-                      child: ListTile(
-                        selected: selectedId == note.id,
-                        tileColor: clarityStyle
-                            ? context.flyColors.surface
-                            : null,
-                        selectedTileColor: clarityStyle
-                            ? context.flyColors.selected
-                            : null,
-                        shape: clarityStyle
-                            ? RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                side: BorderSide(
-                                  color: selectedId == note.id
-                                      ? context.flyColors.accent.withValues(
-                                          alpha: .42,
-                                        )
-                                      : context.flyColors.divider,
-                                ),
-                              )
-                            : null,
-                        title: Text(
-                          note.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        dense: true,
-                        leading: note.isFavorite
-                            ? const Icon(Icons.star, size: 16)
-                            : null,
-                        onTap: note.deletedAt == null
-                            ? () => select(note.id)
-                            : null,
-                        trailing: PopupMenuButton<String>(
-                          key: menuKey,
-                          tooltip: context.l10n.t('noteActions'),
-                          itemBuilder: (_) => note.deletedAt != null
-                              ? [
-                                  PopupMenuItem(
-                                    value: 'restore',
-                                    child: Text(context.l10n.t('restore')),
-                                  ),
-                                ]
-                              : [
-                                  if (mode == 'folder' && search.isEmpty) ...[
+                      padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                      child: Material(
+                        type: MaterialType.transparency,
+                        child: ListTile(
+                          selected: selectedId == note.id,
+                          tileColor: context.flyColors.surface,
+                          selectedTileColor: context.flyColors.selected,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(
+                              color: selectedId == note.id
+                                  ? context.flyColors.accent.withValues(
+                                      alpha: .42,
+                                    )
+                                  : context.flyColors.divider,
+                            ),
+                          ),
+                          title: Text(
+                            note.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          dense: true,
+                          leading: note.isFavorite
+                              ? Icon(
+                                  Icons.star,
+                                  size: 16,
+                                  color: context.flyColors.accent,
+                                )
+                              : null,
+                          onTap: note.deletedAt == null
+                              ? () => select(note.id)
+                              : null,
+                          trailing: PopupMenuButton<String>(
+                            key: menuKey,
+                            tooltip: context.l10n.t('noteActions'),
+                            itemBuilder: (_) => note.deletedAt != null
+                                ? [
                                     PopupMenuItem(
-                                      value: 'up',
-                                      child: Text(context.l10n.t('noteMoveUp')),
+                                      value: 'restore',
+                                      child: Text(context.l10n.t('restore')),
                                     ),
+                                  ]
+                                : [
+                                    if (mode == 'folder' && search.isEmpty) ...[
+                                      PopupMenuItem(
+                                        value: 'up',
+                                        child: Text(
+                                          context.l10n.t('noteMoveUp'),
+                                        ),
+                                      ),
+                                      PopupMenuItem(
+                                        value: 'down',
+                                        child: Text(
+                                          context.l10n.t('noteMoveDown'),
+                                        ),
+                                      ),
+                                    ],
                                     PopupMenuItem(
-                                      value: 'down',
+                                      value: 'favorite',
                                       child: Text(
-                                        context.l10n.t('noteMoveDown'),
+                                        context.l10n.t(
+                                          note.isFavorite
+                                              ? 'noteUnfavorite'
+                                              : 'noteFavorites',
+                                        ),
                                       ),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 'move',
+                                      child: Text(
+                                        context.l10n.t('noteMoveFolder'),
+                                      ),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 'delete',
+                                      child: Text(context.l10n.t('noteTrash')),
                                     ),
                                   ],
-                                  PopupMenuItem(
-                                    value: 'favorite',
-                                    child: Text(
-                                      context.l10n.t(
-                                        note.isFavorite
-                                            ? 'noteUnfavorite'
-                                            : 'noteFavorites',
-                                      ),
-                                    ),
-                                  ),
-                                  PopupMenuItem(
-                                    value: 'move',
-                                    child: Text(
-                                      context.l10n.t('noteMoveFolder'),
-                                    ),
-                                  ),
-                                  PopupMenuItem(
-                                    value: 'delete',
-                                    child: Text(context.l10n.t('noteTrash')),
-                                  ),
-                                ],
-                          onSelected: (action) => attempt(() async {
-                            if (action == 'up' || action == 'down') {
-                              await repository.moveInFolder(
-                                note.id,
-                                action == 'up' ? -1 : 1,
-                              );
-                            }
-                            if (action == 'favorite') {
-                              await repository.favorite(
-                                note.id,
-                                !note.isFavorite,
-                              );
-                            }
-                            if (action == 'restore') {
-                              await repository.restore(note.id);
-                              ref.invalidate(noteSessionProvider(note.id));
-                            }
-                            if (action == 'delete') {
-                              await flush();
-                              await repository.remove(note.id);
-                              ref.invalidate(noteSessionProvider(note.id));
-                              if (mounted && selectedId == note.id) {
-                                setState(() => selectedId = null);
-                              }
-                            }
-                            if (action == 'move') {
-                              if (!context.mounted) return;
-                              final folders =
-                                  ref.read(noteFoldersProvider).valueOrNull ??
-                                  [];
-                              final target = await showDialog<String>(
-                                context: context,
-                                builder: (c) => SimpleDialog(
-                                  title: Text(context.l10n.t('noteMoveFolder')),
-                                  children: [
-                                    SimpleDialogOption(
-                                      onPressed: () => Navigator.pop(c, ''),
-                                      child: Text(context.l10n.t('noteRoot')),
-                                    ),
-                                    for (final f in folders)
-                                      SimpleDialogOption(
-                                        onPressed: () => Navigator.pop(c, f.id),
-                                        child: Text(f.name),
-                                      ),
-                                  ],
-                                ),
-                              );
-                              if (target != null) {
-                                await repository.move(
+                            onSelected: (action) => attempt(() async {
+                              if (action == 'up' || action == 'down') {
+                                await repository.moveInFolder(
                                   note.id,
-                                  target.isEmpty ? null : target,
+                                  action == 'up' ? -1 : 1,
                                 );
                               }
-                            }
-                          }),
+                              if (action == 'favorite') {
+                                await repository.favorite(
+                                  note.id,
+                                  !note.isFavorite,
+                                );
+                              }
+                              if (action == 'restore') {
+                                await repository.restore(note.id);
+                                ref.invalidate(noteSessionProvider(note.id));
+                              }
+                              if (action == 'delete') {
+                                await flush();
+                                await repository.remove(note.id);
+                                ref.invalidate(noteSessionProvider(note.id));
+                                if (mounted && selectedId == note.id) {
+                                  setState(() => selectedId = null);
+                                }
+                              }
+                              if (action == 'move') {
+                                if (!context.mounted) return;
+                                final folders =
+                                    ref.read(noteFoldersProvider).valueOrNull ??
+                                    [];
+                                final target = await showDialog<String>(
+                                  context: context,
+                                  builder: (c) => SimpleDialog(
+                                    title: Text(
+                                      context.l10n.t('noteMoveFolder'),
+                                    ),
+                                    children: [
+                                      SimpleDialogOption(
+                                        onPressed: () => Navigator.pop(c, ''),
+                                        child: Text(context.l10n.t('noteRoot')),
+                                      ),
+                                      for (final f in folders)
+                                        SimpleDialogOption(
+                                          onPressed: () =>
+                                              Navigator.pop(c, f.id),
+                                          child: Text(f.name),
+                                        ),
+                                    ],
+                                  ),
+                                );
+                                if (target != null) {
+                                  await repository.move(
+                                    note.id,
+                                    target.isEmpty ? null : target,
+                                  );
+                                }
+                              }
+                            }),
+                          ),
                         ),
                       ),
                     ),
@@ -490,13 +516,16 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
                   ),
                   Expanded(
                     child: selectedId == null
-                        ? list
-                        : clarityStyle
                         ? ColoredBox(
+                            color: clarityStyle
+                                ? context.flyColors.canvas
+                                : context.flyColors.surfaceMuted,
+                            child: list,
+                          )
+                        : ColoredBox(
                             color: context.flyColors.surface,
                             child: editor,
-                          )
-                        : editor,
+                          ),
                   ),
                 ],
               );
@@ -505,15 +534,21 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
               children: [
                 SizedBox(width: 190, child: sidebar),
                 const VerticalDivider(width: 1),
-                SizedBox(width: c.maxWidth < 1000 ? 230 : 280, child: list),
+                SizedBox(
+                  width: c.maxWidth < 1000 ? 230 : 280,
+                  child: ColoredBox(
+                    color: clarityStyle
+                        ? context.flyColors.canvas
+                        : context.flyColors.surfaceMuted,
+                    child: list,
+                  ),
+                ),
                 const VerticalDivider(width: 1),
                 Expanded(
-                  child: clarityStyle
-                      ? ColoredBox(
-                          color: context.flyColors.surface,
-                          child: editor,
-                        )
-                      : editor,
+                  child: ColoredBox(
+                    color: context.flyColors.surface,
+                    child: editor,
+                  ),
                 ),
               ],
             );
@@ -538,6 +573,10 @@ class _NoteDocument extends ConsumerStatefulWidget {
 
 class _NoteDocumentState extends ConsumerState<_NoteDocument> {
   late final title = TextEditingController(text: widget.session.title);
+  late final body = NoteDocumentTextController(
+    text: NoteDocumentCodec.read(widget.session.blocks),
+  );
+  final bodyFocus = FocusNode();
   bool importing = false;
   bool recovering = false;
   Future<void> recoverCopy() async {
@@ -565,10 +604,53 @@ class _NoteDocumentState extends ConsumerState<_NoteDocument> {
   @override
   void dispose() {
     title.dispose();
+    body.dispose();
+    bodyFocus.dispose();
     super.dispose();
   }
 
-  Future<void> media(NoteBlockType type, {String? replaceBlockId}) async {
+  void updateBody(String text) => widget.session.edit(
+    blocks: NoteDocumentCodec.write(widget.session.blocks, text),
+  );
+
+  void insertAtCursor(String markup, {bool atLineStart = false}) {
+    final selection = body.selection;
+    final start = selection.isValid ? selection.start : body.text.length;
+    final end = selection.isValid ? selection.end : start;
+    final offset = atLineStart
+        ? body.text.lastIndexOf('\n', start - 1) + 1
+        : start;
+    final next = body.text.replaceRange(
+      offset,
+      atLineStart ? offset : end,
+      markup,
+    );
+    body.value = TextEditingValue(
+      text: next,
+      selection: TextSelection.collapsed(offset: offset + markup.length),
+    );
+    updateBody(next);
+    bodyFocus.requestFocus();
+  }
+
+  void insertTemplate(String type) {
+    switch (type) {
+      case 'heading2':
+        insertAtCursor('## ', atLineStart: true);
+      case 'heading3':
+        insertAtCursor('### ', atLineStart: true);
+      case 'numbered':
+        insertAtCursor('1. ', atLineStart: true);
+      case 'divider':
+        insertAtCursor('\n---\n');
+      case 'code':
+        insertAtCursor('\n```\n\n```\n');
+      case 'table':
+        insertAtCursor('\n| 列 1 | 列 2 |\n| --- | --- |\n|  |  |\n');
+    }
+  }
+
+  Future<void> media(NoteBlockType type) async {
     if (importing) return;
     final file = await openFile(
       acceptedTypeGroups: type == NoteBlockType.image
@@ -596,24 +678,12 @@ class _NoteDocumentState extends ConsumerState<_NoteDocument> {
             );
         committed = id != null;
         if (id != null) {
-          final next = [...widget.session.blocks];
-          final target = next.indexWhere((b) => b.id == replaceBlockId);
           final block = NoteBlock(
             id: const Uuid().v7(),
             type: type.name,
             content: {'attachmentId': id, 'caption': file.name},
           );
-          if (target >= 0 &&
-              next[target].knownType == NoteBlockType.paragraph &&
-              ['', '/'].contains(next[target].content['text'])) {
-            next[target] = block;
-          } else if (target >= 0) {
-            // The user typed during import: retain their text and insert after it.
-            next.insert(target + 1, block);
-          } else {
-            next.add(block);
-          }
-          widget.session.edit(blocks: next);
+          widget.session.edit(blocks: [...widget.session.blocks, block]);
           await widget.session.flush();
         }
       } finally {
@@ -645,6 +715,8 @@ class _NoteDocumentState extends ConsumerState<_NoteDocument> {
               decoration: InputDecoration(
                 hintText: context.l10n.t('noteTitle'),
                 border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
                 filled: false,
                 counterText: '',
               ),
@@ -705,15 +777,127 @@ class _NoteDocumentState extends ConsumerState<_NoteDocument> {
             ),
           ),
           if (importing) const LinearProgressIndicator(),
-          Expanded(
-            child: NoteBlockEditor(
-              blocks: widget.session.blocks,
-              onChanged: (v) => widget.session.edit(blocks: v),
-              onAddMedia: media,
-              onInsertMedia: (type, id) => media(type, replaceBlockId: id),
-              mediaBuilder: (context, block) => _NoteMedia(block: block),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+            child: Material(
+              color: context.flyColors.surfaceMuted,
+              borderRadius: BorderRadius.circular(10),
+              child: Wrap(
+                spacing: 2,
+                children: [
+                  IconButton(
+                    tooltip: context.l10n.t('block_heading1'),
+                    onPressed: () => insertAtCursor('# ', atLineStart: true),
+                    icon: const Icon(Icons.title, size: 19),
+                  ),
+                  IconButton(
+                    tooltip: context.l10n.t('block_bullet'),
+                    onPressed: () => insertAtCursor('- ', atLineStart: true),
+                    icon: const Icon(Icons.format_list_bulleted, size: 19),
+                  ),
+                  IconButton(
+                    tooltip: context.l10n.t('block_checklist'),
+                    onPressed: () =>
+                        insertAtCursor('- [ ] ', atLineStart: true),
+                    icon: const Icon(Icons.checklist, size: 19),
+                  ),
+                  IconButton(
+                    tooltip: context.l10n.t('block_quote'),
+                    onPressed: () => insertAtCursor('> ', atLineStart: true),
+                    icon: const Icon(Icons.format_quote, size: 19),
+                  ),
+                  PopupMenuButton<String>(
+                    tooltip: context.l10n.t('noteActions'),
+                    onSelected: insertTemplate,
+                    icon: const Icon(Icons.more_horiz, size: 19),
+                    itemBuilder: (_) => [
+                      for (final type in [
+                        'heading2',
+                        'heading3',
+                        'numbered',
+                        'divider',
+                        'code',
+                        'table',
+                      ])
+                        PopupMenuItem(
+                          value: type,
+                          child: Text(context.l10n.t('block_$type')),
+                        ),
+                    ],
+                  ),
+                  IconButton(
+                    tooltip: context.l10n.t('block_image'),
+                    onPressed: importing
+                        ? null
+                        : () => media(NoteBlockType.image),
+                    icon: const Icon(Icons.image_outlined, size: 19),
+                  ),
+                  IconButton(
+                    tooltip: context.l10n.t('block_attachment'),
+                    onPressed: importing
+                        ? null
+                        : () => media(NoteBlockType.attachment),
+                    icon: const Icon(Icons.attach_file, size: 19),
+                  ),
+                ],
+              ),
             ),
           ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 4, 24, 12),
+              child: TextField(
+                key: const ValueKey('note-continuous-body'),
+                controller: body,
+                focusNode: bodyFocus,
+                expands: true,
+                minLines: null,
+                maxLines: null,
+                textAlignVertical: TextAlignVertical.top,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  height: 1.65,
+                  color: context.flyColors.textPrimary,
+                ),
+                decoration: InputDecoration(
+                  hintText: context.l10n.t('noteBodyHint'),
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  filled: false,
+                  contentPadding: EdgeInsets.zero,
+                ),
+                onChanged: updateBody,
+              ),
+            ),
+          ),
+          if (widget.session.blocks.any(
+            (block) =>
+                block.knownType == NoteBlockType.image ||
+                block.knownType == NoteBlockType.attachment,
+          ))
+            Container(
+              constraints: const BoxConstraints(maxHeight: 220),
+              decoration: BoxDecoration(
+                color: context.flyColors.surfaceMuted,
+                border: Border(
+                  top: BorderSide(color: context.flyColors.divider),
+                ),
+              ),
+              child: ListView(
+                shrinkWrap: true,
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+                children: [
+                  Text(
+                    context.l10n.t('block_attachment'),
+                    style: Theme.of(context).textTheme.labelMedium,
+                  ),
+                  for (final block in widget.session.blocks)
+                    if (block.knownType == NoteBlockType.image ||
+                        block.knownType == NoteBlockType.attachment)
+                      _NoteMedia(block: block),
+                ],
+              ),
+            ),
           NoteTagsEditor(
             key: ValueKey(widget.session.id),
             noteId: widget.session.id,
