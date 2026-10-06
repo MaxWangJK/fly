@@ -19,6 +19,9 @@ const _databaseName = String.fromEnvironment(
 @DriftDatabase(
   tables: [
     AppSettings,
+    DashboardFocuses,
+    DashboardFocusHistories,
+    DashboardDailyFocuses,
     TaskLists,
     Tasks,
     Tags,
@@ -80,7 +83,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 16;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -370,6 +373,11 @@ class AppDatabase extends _$AppDatabase {
             "AND EXISTS (SELECT 1 FROM tags clone WHERE clone.id IN ('v11-order-' || tags.id, 'v11-note-' || tags.id, 'v11-task-' || tags.id))",
           );
         }
+        if (from < 16) {
+          await migrator.createTable(dashboardFocuses);
+          await migrator.createTable(dashboardFocusHistories);
+          await migrator.createTable(dashboardDailyFocuses);
+        }
         await _createIndexes();
         final violations = await customSelect('PRAGMA foreign_key_check').get();
         if (violations.isNotEmpty) {
@@ -464,6 +472,8 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> _createIndexes() async {
     const statements = [
+      'CREATE INDEX IF NOT EXISTS idx_dashboard_focus_history_date ON dashboard_focus_histories(effective_date DESC, created_at DESC)',
+      'CREATE INDEX IF NOT EXISTS idx_dashboard_daily_focus_day ON dashboard_daily_focuses(day_key DESC)',
       'CREATE INDEX IF NOT EXISTS idx_file_folders_parent ON file_folders(parent_id, deleted_at, sort_order)',
       'CREATE INDEX IF NOT EXISTS idx_files_folder ON attachments(folder_id, deleted_at, updated_at)',
       'CREATE INDEX IF NOT EXISTS idx_files_hash ON attachments(sha256, folder_id)',

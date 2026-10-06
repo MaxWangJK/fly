@@ -59,10 +59,13 @@ void main() {
     for (final title in const ['今天需跟进客户', '今天任务', '待收款订单', '紧急订单', '本月利润']) {
       expect(find.text(title), findsWidgets);
     }
-    expect(find.text('当前工作分布'), findsOneWidget);
-    expect(find.text('重要且紧急'), findsOneWidget);
+    expect(find.text('当前工作分布'), findsNothing);
+    expect(find.text('我的聚焦'), findsOneWidget);
+    expect(find.text('人生主线'), findsOneWidget);
+    expect(find.text('本周重点'), findsOneWidget);
+    expect(find.text('今日提醒'), findsOneWidget);
     expect(
-      find.byKey(const ValueKey('dashboard-distribution-4')),
+      find.byKey(const ValueKey('dashboard-focus-history')),
       findsOneWidget,
     );
     expect(find.text('Dashboard'), findsOneWidget);

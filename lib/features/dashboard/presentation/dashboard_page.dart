@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import '../../../l10n/crm_copy.dart';
 import '../../../l10n/fly_localizations.dart';
 import '../../../l10n/service_error_copy.dart';
@@ -8,10 +10,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../../shared/design_system/design_tokens.dart';
 import '../../../shared/design_system/fly_color_scheme.dart';
-import '../../../shared/design_system/workspace_empty_state.dart';
 import '../../tasks/presentation/task_providers.dart';
 import '../data/dashboard_service.dart';
 import '../domain/dashboard_snapshot.dart';
+import 'dashboard_focus_board.dart';
 
 final dashboardServiceProvider = Provider<DashboardService>(
   (ref) => DashboardService(ref.watch(databaseProvider)),
@@ -21,54 +23,87 @@ final dashboardProvider = StreamProvider.autoDispose<DashboardSnapshot>((ref) {
   return ref.watch(dashboardServiceProvider).watch();
 });
 
-class DashboardPage extends ConsumerWidget {
+class DashboardPage extends ConsumerStatefulWidget {
   const DashboardPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DashboardPage> createState() => _DashboardPageState();
+}
+
+class _DashboardPageState extends ConsumerState<DashboardPage> {
+  bool historyOpen = false;
+
+  @override
+  Widget build(BuildContext context) {
     final value = ref.watch(dashboardProvider);
+    final day = ref.watch(localTodayProvider);
     return Material(
       color: Theme.of(context).scaffoldBackgroundColor,
       child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        child: LayoutBuilder(
+          builder: (context, bounds) => Stack(
             children: [
-              Text(
-                'Dashboard',
-                style: Theme.of(context).textTheme.headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                context.crmCopy('今天最值得关注的五件事'),
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(height: 20),
-              Expanded(
-                child: value.when(
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator.adaptive()),
-                  error: (error, stack) => Center(
-                    child: Text(
-                      (context.l10n.isZh
-                          ? 'Dashboard 读取失败：${context.flyError(error)}'
-                          : 'Unable to load dashboard: ${context.flyError(error)}'),
-                    ),
+              Positioned.fill(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Dashboard',
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        context.crmCopy('今天最值得关注的五件事'),
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      const SizedBox(height: 20),
+                      Expanded(
+                        child: value.when(
+                          loading: () => const Center(
+                            child: CircularProgressIndicator.adaptive(),
+                          ),
+                          error: (error, stack) => Center(
+                            child: Text(
+                              context.l10n.isZh
+                                  ? 'Dashboard 读取失败：${context.flyError(error)}'
+                                  : 'Unable to load dashboard: ${context.flyError(error)}',
+                            ),
+                          ),
+                          data: (data) => _DashboardOverview(
+                            data: data,
+                            day: day,
+                            onHistory: () => setState(() => historyOpen = true),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  data: (data) => !data.hasBusinessData
-                      ? WorkspaceEmptyState(
-                          icon: Icons.home_outlined,
-                          title: context.l10n.isZh
-                              ? '从第一件事开始'
-                              : 'Start with your first task',
-                          actionLabel: context.l10n.t('addTask'),
-                          onCreate: () => context.go('/tasks/today'),
-                        )
-                      : _DashboardOverview(data: data),
                 ),
               ),
+              if (historyOpen) ...[
+                Positioned.fill(
+                  child: GestureDetector(
+                    onTap: () => setState(() => historyOpen = false),
+                    child: ColoredBox(
+                      color: context.flyColors.textPrimary.withValues(
+                        alpha: .08,
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  bottom: 0,
+                  width: math.min(390, bounds.maxWidth),
+                  child: DashboardFocusHistoryPanel(
+                    onClose: () => setState(() => historyOpen = false),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -77,12 +112,16 @@ class DashboardPage extends ConsumerWidget {
   }
 }
 
-/// One overview for every palette. The bars compare current work
-/// counts only; they intentionally do not imply a historical trend.
 class _DashboardOverview extends StatelessWidget {
-  const _DashboardOverview({required this.data});
+  const _DashboardOverview({
+    required this.data,
+    required this.day,
+    required this.onHistory,
+  });
 
   final DashboardSnapshot data;
+  final DateTime day;
+  final VoidCallback onHistory;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -153,10 +192,7 @@ class _DashboardOverview extends StatelessWidget {
               },
             ),
             const SizedBox(height: 16),
-            SizedBox(
-              height: 212,
-              child: _DashboardDistributionCard(data: data),
-            ),
+            DashboardFocusBoard(day: day, onHistory: onHistory),
             const SizedBox(height: 16),
             if (width >= 660)
               Row(
@@ -308,109 +344,6 @@ class _DashboardMetricCard extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DashboardDistributionCard extends StatelessWidget {
-  const _DashboardDistributionCard({required this.data});
-
-  final DashboardSnapshot data;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.flyColors;
-    final values = [
-      (
-        context.crmCopy('今天需跟进客户'),
-        data.todayCustomers.length,
-        '/customers/today',
-      ),
-      (context.crmCopy('今天任务'), data.todayTasks.length, '/tasks/today'),
-      (
-        context.crmCopy('待收款订单'),
-        data.outstandingOrders.length,
-        '/orders/outstanding',
-      ),
-      (context.crmCopy('紧急订单'), data.urgentOrders.length, '/orders/urgent'),
-      (
-        context.l10n.isZh ? '重要且紧急' : 'Important & urgent',
-        data.importantUrgentTasks.length,
-        '/matrix',
-      ),
-    ];
-    final highest = values
-        .map((item) => item.$2)
-        .reduce((a, b) => a > b ? a : b);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              context.l10n.isZh ? '当前工作分布' : 'Current work overview',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 3),
-            Text(
-              context.l10n.isZh
-                  ? '按当前待处理数量比较，不代表历史趋势'
-                  : 'Current counts only, not a historical trend',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 14),
-            Expanded(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  for (var i = 0; i < values.length; i++)
-                    Expanded(
-                      child: InkWell(
-                        key: ValueKey('dashboard-distribution-$i'),
-                        borderRadius: BorderRadius.circular(FlyRadius.sm),
-                        onTap: () => context.go(values[i].$3),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            Text(
-                              '${values[i].$2}',
-                              style: Theme.of(context).textTheme.labelLarge,
-                            ),
-                            const SizedBox(height: 5),
-                            Container(
-                              width: 34,
-                              height: highest == 0
-                                  ? 4
-                                  : (values[i].$2 / highest * 60 + 4),
-                              decoration: BoxDecoration(
-                                color: i == 4
-                                    ? colors.warning
-                                    : i.isEven
-                                    ? colors.accent
-                                    : colors.success,
-                                borderRadius: const BorderRadius.vertical(
-                                  top: Radius.circular(5),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              values[i].$1,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ],
         ),
       ),
     );

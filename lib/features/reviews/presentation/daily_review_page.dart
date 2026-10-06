@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' show PointerDeviceKind;
 
 import 'package:flutter/material.dart';
@@ -217,6 +218,27 @@ class _ReviewHistory extends ConsumerStatefulWidget {
 class _ReviewHistoryState extends ConsumerState<_ReviewHistory> {
   final scrollController = ScrollController();
 
+  double _preferredCardWidth(ReviewHistoryEntry entry) {
+    final answers = entry.answers.values
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toList();
+    final total = answers.fold<int>(
+      0,
+      (sum, value) => sum + value.runes.length,
+    );
+    final longest = answers.fold<int>(
+      0,
+      (length, value) => math.max(length, value.runes.length),
+    );
+    return (235 +
+            answers.length * 14 +
+            math.min(total / 8, 110) +
+            math.min(longest / 6, 90))
+        .clamp(250, 520)
+        .toDouble();
+  }
+
   @override
   void dispose() {
     scrollController.dispose();
@@ -248,17 +270,37 @@ class _ReviewHistoryState extends ConsumerState<_ReviewHistory> {
         }
         return LayoutBuilder(
           builder: (context, constraints) {
-            final columns = constraints.maxWidth >= 1100
-                ? 3
-                : constraints.maxWidth >= 700
-                ? 2
-                : 1;
+            const gap = FlySpacing.md;
+            final contentWidth = math.max(0.0, constraints.maxWidth - 40);
+            final columns = math.min(
+              entries.length,
+              ((contentWidth + gap) / (250 + gap)).floor().clamp(1, 5),
+            );
             final groups = List.generate(
               columns,
               (_) => <ReviewHistoryEntry>[],
             );
             for (var index = 0; index < entries.length; index++) {
               groups[index % columns].add(entries[index]);
+            }
+            final available = math.max(0.0, contentWidth - gap * (columns - 1));
+            final minimum = math.min(250.0, available / columns);
+            final widths = List<double>.filled(columns, minimum);
+            final desired = [
+              for (final group in groups)
+                group.map(_preferredCardWidth).reduce(math.max),
+            ];
+            final extra = math.max(0.0, available - minimum * columns);
+            final demand = desired.fold<double>(
+              0,
+              (sum, width) => sum + math.max(0.0, width - minimum),
+            );
+            if (demand > 0) {
+              for (var index = 0; index < columns; index++) {
+                widths[index] +=
+                    math.max(0.0, desired[index] - minimum) *
+                    math.min(1.0, extra / demand);
+              }
             }
             return Scrollbar(
               controller: scrollController,
@@ -295,14 +337,22 @@ class _ReviewHistoryState extends ConsumerState<_ReviewHistory> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           for (var index = 0; index < columns; index++) ...[
-                            if (index > 0) const SizedBox(width: FlySpacing.md),
-                            Expanded(
+                            if (index > 0) const SizedBox(width: gap),
+                            SizedBox(
+                              width: widths[index],
                               child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   for (final entry in groups[index]) ...[
-                                    _ReviewHistoryCard(
-                                      entry: entry,
-                                      onTap: () => widget.onOpen(entry.day),
+                                    SizedBox(
+                                      width: math.min(
+                                        widths[index],
+                                        _preferredCardWidth(entry),
+                                      ),
+                                      child: _ReviewHistoryCard(
+                                        entry: entry,
+                                        onTap: () => widget.onOpen(entry.day),
+                                      ),
                                     ),
                                     const SizedBox(height: FlySpacing.md),
                                   ],
@@ -489,13 +539,15 @@ class _ReviewHistoryCardState extends State<_ReviewHistoryCard> {
                 ),
               ),
               const SizedBox(width: FlySpacing.xs),
-              Text(
-                section.$1 == 5
-                    ? text('reviewQ9')
-                    : text('reviewSection${section.$1}'),
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: colors.textPrimary,
-                  fontWeight: FontWeight.w700,
+              Flexible(
+                child: Text(
+                  section.$1 == 5
+                      ? text('reviewQ9')
+                      : text('reviewSection${section.$1}'),
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: colors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],
@@ -507,6 +559,8 @@ class _ReviewHistoryCardState extends State<_ReviewHistoryCard> {
               Text(
                 answers[index].$2,
                 style: Theme.of(context).textTheme.bodyMedium,
+                maxLines: 7,
+                overflow: TextOverflow.ellipsis,
               )
             else
               Row(
@@ -528,6 +582,8 @@ class _ReviewHistoryCardState extends State<_ReviewHistoryCard> {
                     child: Text(
                       answers[index].$2,
                       style: Theme.of(context).textTheme.bodyMedium,
+                      maxLines: 7,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],

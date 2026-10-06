@@ -169,6 +169,17 @@ void main() {
       find.byKey(const ValueKey('review-history-2026-09-09')),
       findsOneWidget,
     );
+    if (captureWidth >= 900) {
+      final firstRowY = tester
+          .getTopLeft(find.byKey(const ValueKey('review-history-2026-09-10')))
+          .dy;
+      expect(
+        tester
+            .getTopLeft(find.byKey(const ValueKey('review-history-2026-09-08')))
+            .dy,
+        firstRowY,
+      );
+    }
     expect(find.text('Today fact'), findsOneWidget);
     expect(find.text('Older problem'), findsOneWidget);
     expect(find.text(zh ? '完成' : 'Done'), findsWidgets);
@@ -185,6 +196,22 @@ void main() {
             .getSize(find.byKey(const ValueKey('review-history-2026-09-10')))
             .height,
       ),
+    );
+    expect(
+      tester
+          .getSize(find.byKey(const ValueKey('review-history-2026-09-04')))
+          .width,
+      greaterThan(
+        tester
+            .getSize(find.byKey(const ValueKey('review-history-2026-09-10')))
+            .width,
+      ),
+    );
+    expect(
+      tester
+          .widget<Text>(find.text(List.filled(28, 'A longer note.').join(' ')))
+          .maxLines,
+      7,
     );
     final factSurface = tester.widget<Container>(
       find.byKey(const ValueKey('review-history-section-2026-09-07-1')),

@@ -27,6 +27,11 @@ abstract final class FlyTheme {
         ).copyWith(
           primary: colors.accent,
           secondary: palette == FlyPaletteId.clarity ? colors.success : null,
+          tertiary: palette == FlyPaletteId.mintCloud
+              ? brightness == Brightness.dark
+                    ? const Color(0xFFB6A6DE)
+                    : const Color(0xFF7766A6)
+              : null,
           surface: colors.surface,
           surfaceContainerLowest: colors.surface,
           surfaceContainerLow: colors.surfaceMuted,

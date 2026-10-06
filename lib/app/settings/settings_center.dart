@@ -284,36 +284,7 @@ class _SettingsCenterState extends ConsumerState<SettingsCenter> {
           ),
           const Divider(),
           _heading('配色方案'),
-          for (final palette in FlyPaletteId.values)
-            ListTile(
-              dense: true,
-              key: ValueKey('palette-${palette.name}'),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              selected: ref.watch(flyPaletteProvider) == palette,
-              selectedTileColor: Theme.of(context).colorScheme.primary
-                  .withValues(alpha: .08),
-              leading: _PalettePreview(
-                FlyColorScheme.resolve(palette, Brightness.light),
-              ),
-              title: Text(tr(palette.label)),
-              subtitle: palette == FlyPaletteId.clarity
-                  ? Text(tr('灰白分层 · 深紫导航 · 青绿数据'))
-                  : null,
-              trailing: ref.watch(flyPaletteProvider) == palette
-                  ? const Icon(Icons.check)
-                  : null,
-              onTap: busy
-                  ? null
-                  : () => _save(
-                      'colorPalette',
-                      palette.name,
-                      () =>
-                          ref.read(flyPaletteProvider.notifier).state = palette,
-                    ),
-            ),
+          _paletteChooser(),
         ];
       case 2:
         return [
@@ -457,6 +428,106 @@ class _SettingsCenterState extends ConsumerState<SettingsCenter> {
     }
   }
 
+  Widget _paletteChooser() {
+    final selectedPalette = ref.watch(flyPaletteProvider);
+    return LayoutBuilder(
+      builder: (context, bounds) {
+        final columns = bounds.maxWidth >= 680
+            ? 3
+            : bounds.maxWidth >= 420
+            ? 2
+            : 1;
+        const gap = 12.0;
+        final width = (bounds.maxWidth - gap * (columns - 1)) / columns;
+        return Wrap(
+          spacing: gap,
+          runSpacing: gap,
+          children: [
+            for (final palette in FlyPaletteId.values)
+              SizedBox(
+                width: width,
+                child: Semantics(
+                  button: true,
+                  selected: selectedPalette == palette,
+                  child: Material(
+                    color: selectedPalette == palette
+                        ? context.flyColors.selected
+                        : context.flyColors.surface,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(
+                        color: selectedPalette == palette
+                            ? context.flyColors.accent
+                            : context.flyColors.divider,
+                        width: selectedPalette == palette ? 1.5 : 1,
+                      ),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      key: ValueKey('palette-${palette.name}'),
+                      onTap: busy
+                          ? null
+                          : () => _save(
+                              'colorPalette',
+                              palette.name,
+                              () =>
+                                  ref.read(flyPaletteProvider.notifier).state =
+                                      palette,
+                            ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _PalettePreview(
+                              FlyColorScheme.resolve(palette, Brightness.light),
+                            ),
+                            const SizedBox(height: 9),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    tr(palette.label),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelLarge,
+                                  ),
+                                ),
+                                if (selectedPalette == palette)
+                                  Icon(
+                                    Icons.check_circle_rounded,
+                                    size: 17,
+                                    color: context.flyColors.accent,
+                                  ),
+                              ],
+                            ),
+                            Text(
+                              tr(switch (palette) {
+                                FlyPaletteId.flyDefault => '温和米杏',
+                                FlyPaletteId.graphite => '中性石墨',
+                                FlyPaletteId.warmSand => '暖调沙色',
+                                FlyPaletteId.ocean => '清透海蓝',
+                                FlyPaletteId.forest => '自然森林',
+                                FlyPaletteId.clarity => '灰白与深紫',
+                                FlyPaletteId.mintCloud => '冷白与薄荷',
+                              }),
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
   String _startupLabel(NavigationSettings value) => value.dashboardVisible
       ? 'Dashboard'
       : value.crmVisible
@@ -518,8 +589,7 @@ class _PalettePreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    width: 52,
-    height: 30,
+    height: 68,
     decoration: BoxDecoration(
       borderRadius: BorderRadius.circular(7),
       border: Border.all(color: colors.divider),
@@ -527,11 +597,45 @@ class _PalettePreview extends StatelessWidget {
     clipBehavior: Clip.antiAlias,
     child: Row(
       children: [
-        Expanded(child: ColoredBox(color: colors.primaryRail)),
-        Expanded(child: ColoredBox(color: colors.canvas)),
-        Expanded(child: ColoredBox(color: colors.surface)),
-        SizedBox(width: 8, child: ColoredBox(color: colors.accent)),
-        SizedBox(width: 6, child: ColoredBox(color: colors.success)),
+        SizedBox(width: 17, child: ColoredBox(color: colors.primaryRail)),
+        SizedBox(width: 42, child: ColoredBox(color: colors.secondarySidebar)),
+        Expanded(
+          child: ColoredBox(
+            color: colors.canvas,
+            child: Padding(
+              padding: const EdgeInsets.all(7),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 50,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      color: colors.accent,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const SizedBox(height: 7),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: ColoredBox(color: colors.surface),
+                        ),
+                        const SizedBox(width: 5),
+                        Expanded(
+                          flex: 2,
+                          child: ColoredBox(color: colors.selected),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ],
     ),
   );

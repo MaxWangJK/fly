@@ -140,6 +140,15 @@ void main() {
     await tester.runAsync(
       () => _capture(boundaryKey, 'artifacts/$paletteName/notes.png', capture),
     );
+    await tester.tap(find.byKey(const ValueKey('primary-settings')));
+    await _pumpUi(tester);
+    await tester.tap(find.byKey(const ValueKey('settings-category-1')));
+    await _pumpUi(tester);
+    expect(find.byKey(const ValueKey('palette-mintCloud')), findsOneWidget);
+    await tester.runAsync(
+      () =>
+          _capture(boundaryKey, 'artifacts/$paletteName/settings.png', capture),
+    );
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
     await tester.pump(Duration.zero);

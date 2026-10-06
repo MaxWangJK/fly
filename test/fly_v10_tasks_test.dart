@@ -45,7 +45,7 @@ void main() {
       container.read(appRouterProvider).go('/tasks/today');
       await settle();
       expect(
-        tester.getTopLeft(find.text('今天处理')).dy,
+        tester.getTopLeft(find.text('今天处理').first).dy,
         lessThan(tester.getTopLeft(find.text('最近过期')).dy),
       );
       expect(

@@ -1,5 +1,37 @@
 import 'package:drift/drift.dart';
 
+@DataClassName('DashboardFocusRecord')
+class DashboardFocuses extends Table {
+  TextColumn get id => text()();
+  TextColumn get focusType => text().unique()();
+  TextColumn get content => text()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+@DataClassName('DashboardFocusHistoryRecord')
+class DashboardFocusHistories extends Table {
+  TextColumn get id => text()();
+  TextColumn get focusType => text()();
+  TextColumn get content => text()();
+  DateTimeColumn get effectiveDate => dateTime()();
+  DateTimeColumn get createdAt => dateTime()();
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+@DataClassName('DashboardDailyFocusRecord')
+class DashboardDailyFocuses extends Table {
+  TextColumn get dayKey => text()();
+  TextColumn get content => text()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  @override
+  Set<Column<Object>> get primaryKey => {dayKey};
+}
+
 @DataClassName('DailyReviewRecord')
 class DailyReviews extends Table {
   TextColumn get dayKey => text()();

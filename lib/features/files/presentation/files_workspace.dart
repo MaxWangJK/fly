@@ -676,13 +676,12 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
       ),
     );
     final browser = ColoredBox(
-      color: context.flyColors.canvas,
+      key: const ValueKey('file-browser-background'),
+      color: context.flyColors.surface,
       child: Column(
         children: [
           ColoredBox(
-            color: clarityStyle
-                ? context.flyColors.canvas
-                : context.flyColors.surfaceMuted,
+            color: context.flyColors.surface,
             child: Padding(
               padding: const EdgeInsets.all(12),
               child: Wrap(
@@ -779,9 +778,7 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
             ),
           ),
           ColoredBox(
-            color: clarityStyle
-                ? context.flyColors.canvas
-                : context.flyColors.surfaceMuted,
+            color: context.flyColors.surface,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: TextField(

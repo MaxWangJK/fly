@@ -1,3 +1,5 @@
+import 'dart:ui' show PointerDeviceKind;
+
 import 'package:drift/native.dart';
 import 'package:fly/core/database/app_database.dart';
 import 'package:fly/app/shell/primary_navigation_rail.dart';
@@ -13,6 +15,7 @@ import 'package:fly/shared/design_system/app_theme.dart';
 import 'package:fly/shared/design_system/fly_color_scheme.dart';
 import 'package:fly/shared/domain/priority.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart' show kSecondaryMouseButton;
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -46,6 +49,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('settings-category-1')));
     await tester.pumpAndSettle();
+    expect(
+      tester.getTopLeft(find.byKey(const ValueKey('palette-flyDefault'))).dy,
+      tester.getTopLeft(find.byKey(const ValueKey('palette-graphite'))).dy,
+    );
     await tester.tap(find.text('海洋'));
     await tester.pumpAndSettle();
     expect(
@@ -71,7 +78,88 @@ void main() {
       database.appSettings,
     )..where((row) => row.key.equals('colorPalette'))).getSingle();
     expect(updated.value, FlyPaletteId.clarity.name);
+    await tester.ensureVisible(find.byKey(const ValueKey('palette-mintCloud')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('palette-mintCloud')));
+    await tester.pumpAndSettle();
+    expect(
+      rail().color,
+      FlyColorScheme.resolve(
+        FlyPaletteId.mintCloud,
+        Brightness.light,
+      ).primaryRail,
+    );
+    expect(
+      (await (database.select(
+        database.appSettings,
+      )..where((row) => row.key.equals('colorPalette'))).getSingle()).value,
+      FlyPaletteId.mintCloud.name,
+    );
     await _dispose(tester);
+  });
+
+  testWidgets('task list selects its first item and keeps a minimal menu', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1300, 850);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    await database.ensureBuiltInData();
+    final repository = DriftTaskRepository(database);
+    final today = DateTime.now();
+    final first = await repository.createTask(
+      title: 'First visible task',
+      dueDate: today,
+    );
+    await repository.createTask(
+      title: 'Overdue visible task',
+      dueDate: today.subtract(const Duration(days: 2)),
+    );
+    final container = ProviderContainer(
+      overrides: [
+        databaseProvider.overrideWithValue(database),
+        taskRepositoryProvider.overrideWithValue(repository),
+      ],
+    );
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const _TestApp(
+          child: TaskListPage(collection: TaskCollection.today),
+        ),
+      ),
+    );
+    await _pump(tester);
+    expect(container.read(selectedTaskIdProvider), first.id);
+    Future<void> rightClick(String title) async {
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.text(title)),
+        kind: PointerDeviceKind.mouse,
+        buttons: kSecondaryMouseButton,
+      );
+      await gesture.up();
+      await tester.pumpAndSettle();
+    }
+
+    await rightClick('First visible task');
+    expect(find.text('删除任务'), findsOneWidget);
+    expect(find.text('顺延到今天'), findsNothing);
+    expect(find.text('设置日期'), findsNothing);
+    expect(find.text('编辑'), findsNothing);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    await rightClick('Overdue visible task');
+    expect(find.text('删除任务'), findsOneWidget);
+    expect(find.text('顺延到今天'), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await _dispose(tester);
+    container.dispose();
+    for (var index = 0; index < 12; index++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
   });
 
   testWidgets(

@@ -120,6 +120,11 @@ void main() {
       await settle(tester);
       container.read(appRouterProvider).go('/files');
       await settle(tester);
+      final browser = find.byKey(const ValueKey('file-browser-background'));
+      expect(
+        tester.widget<ColoredBox>(browser).color,
+        Theme.of(tester.element(browser)).colorScheme.surface,
+      );
       expect(
         tester
             .widget<FileEntryContent>(find.byType(FileEntryContent).first)

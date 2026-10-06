@@ -27,7 +27,7 @@ try {
   if ($LASTEXITCODE -ne 0) { throw 'flutter pub get failed.' }
   & $flutter analyze --no-pub
   if ($LASTEXITCODE -ne 0) { throw 'flutter analyze failed.' }
-  & $flutter test --no-pub
+  & $flutter test --no-pub --concurrency=1
   if ($LASTEXITCODE -ne 0) { throw 'flutter test failed.' }
   & $flutter build windows --release "--build-name=$version" "--build-number=$buildNumber" `
     "--dart-define=FLY_APP_VERSION=$fullVersion" `

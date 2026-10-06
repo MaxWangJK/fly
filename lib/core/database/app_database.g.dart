@@ -269,6 +269,1066 @@ class AppSettingsCompanion extends UpdateCompanion<AppSettingRecord> {
   }
 }
 
+class $DashboardFocusesTable extends DashboardFocuses
+    with TableInfo<$DashboardFocusesTable, DashboardFocusRecord> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DashboardFocusesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _focusTypeMeta = const VerificationMeta(
+    'focusType',
+  );
+  @override
+  late final GeneratedColumn<String> focusType = GeneratedColumn<String>(
+    'focus_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  static const VerificationMeta _contentMeta = const VerificationMeta(
+    'content',
+  );
+  @override
+  late final GeneratedColumn<String> content = GeneratedColumn<String>(
+    'content',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    focusType,
+    content,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'dashboard_focuses';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DashboardFocusRecord> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('focus_type')) {
+      context.handle(
+        _focusTypeMeta,
+        focusType.isAcceptableOrUnknown(data['focus_type']!, _focusTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_focusTypeMeta);
+    }
+    if (data.containsKey('content')) {
+      context.handle(
+        _contentMeta,
+        content.isAcceptableOrUnknown(data['content']!, _contentMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_contentMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  DashboardFocusRecord map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DashboardFocusRecord(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      focusType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}focus_type'],
+      )!,
+      content: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}content'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $DashboardFocusesTable createAlias(String alias) {
+    return $DashboardFocusesTable(attachedDatabase, alias);
+  }
+}
+
+class DashboardFocusRecord extends DataClass
+    implements Insertable<DashboardFocusRecord> {
+  final String id;
+  final String focusType;
+  final String content;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const DashboardFocusRecord({
+    required this.id,
+    required this.focusType,
+    required this.content,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['focus_type'] = Variable<String>(focusType);
+    map['content'] = Variable<String>(content);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  DashboardFocusesCompanion toCompanion(bool nullToAbsent) {
+    return DashboardFocusesCompanion(
+      id: Value(id),
+      focusType: Value(focusType),
+      content: Value(content),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory DashboardFocusRecord.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DashboardFocusRecord(
+      id: serializer.fromJson<String>(json['id']),
+      focusType: serializer.fromJson<String>(json['focusType']),
+      content: serializer.fromJson<String>(json['content']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'focusType': serializer.toJson<String>(focusType),
+      'content': serializer.toJson<String>(content),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  DashboardFocusRecord copyWith({
+    String? id,
+    String? focusType,
+    String? content,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => DashboardFocusRecord(
+    id: id ?? this.id,
+    focusType: focusType ?? this.focusType,
+    content: content ?? this.content,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  DashboardFocusRecord copyWithCompanion(DashboardFocusesCompanion data) {
+    return DashboardFocusRecord(
+      id: data.id.present ? data.id.value : this.id,
+      focusType: data.focusType.present ? data.focusType.value : this.focusType,
+      content: data.content.present ? data.content.value : this.content,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DashboardFocusRecord(')
+          ..write('id: $id, ')
+          ..write('focusType: $focusType, ')
+          ..write('content: $content, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, focusType, content, createdAt, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DashboardFocusRecord &&
+          other.id == this.id &&
+          other.focusType == this.focusType &&
+          other.content == this.content &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class DashboardFocusesCompanion extends UpdateCompanion<DashboardFocusRecord> {
+  final Value<String> id;
+  final Value<String> focusType;
+  final Value<String> content;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const DashboardFocusesCompanion({
+    this.id = const Value.absent(),
+    this.focusType = const Value.absent(),
+    this.content = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  DashboardFocusesCompanion.insert({
+    required String id,
+    required String focusType,
+    required String content,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       focusType = Value(focusType),
+       content = Value(content),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<DashboardFocusRecord> custom({
+    Expression<String>? id,
+    Expression<String>? focusType,
+    Expression<String>? content,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (focusType != null) 'focus_type': focusType,
+      if (content != null) 'content': content,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  DashboardFocusesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? focusType,
+    Value<String>? content,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return DashboardFocusesCompanion(
+      id: id ?? this.id,
+      focusType: focusType ?? this.focusType,
+      content: content ?? this.content,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (focusType.present) {
+      map['focus_type'] = Variable<String>(focusType.value);
+    }
+    if (content.present) {
+      map['content'] = Variable<String>(content.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DashboardFocusesCompanion(')
+          ..write('id: $id, ')
+          ..write('focusType: $focusType, ')
+          ..write('content: $content, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $DashboardFocusHistoriesTable extends DashboardFocusHistories
+    with TableInfo<$DashboardFocusHistoriesTable, DashboardFocusHistoryRecord> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DashboardFocusHistoriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _focusTypeMeta = const VerificationMeta(
+    'focusType',
+  );
+  @override
+  late final GeneratedColumn<String> focusType = GeneratedColumn<String>(
+    'focus_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _contentMeta = const VerificationMeta(
+    'content',
+  );
+  @override
+  late final GeneratedColumn<String> content = GeneratedColumn<String>(
+    'content',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _effectiveDateMeta = const VerificationMeta(
+    'effectiveDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> effectiveDate =
+      GeneratedColumn<DateTime>(
+        'effective_date',
+        aliasedName,
+        false,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    focusType,
+    content,
+    effectiveDate,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'dashboard_focus_histories';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DashboardFocusHistoryRecord> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('focus_type')) {
+      context.handle(
+        _focusTypeMeta,
+        focusType.isAcceptableOrUnknown(data['focus_type']!, _focusTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_focusTypeMeta);
+    }
+    if (data.containsKey('content')) {
+      context.handle(
+        _contentMeta,
+        content.isAcceptableOrUnknown(data['content']!, _contentMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_contentMeta);
+    }
+    if (data.containsKey('effective_date')) {
+      context.handle(
+        _effectiveDateMeta,
+        effectiveDate.isAcceptableOrUnknown(
+          data['effective_date']!,
+          _effectiveDateMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_effectiveDateMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  DashboardFocusHistoryRecord map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DashboardFocusHistoryRecord(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      focusType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}focus_type'],
+      )!,
+      content: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}content'],
+      )!,
+      effectiveDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}effective_date'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $DashboardFocusHistoriesTable createAlias(String alias) {
+    return $DashboardFocusHistoriesTable(attachedDatabase, alias);
+  }
+}
+
+class DashboardFocusHistoryRecord extends DataClass
+    implements Insertable<DashboardFocusHistoryRecord> {
+  final String id;
+  final String focusType;
+  final String content;
+  final DateTime effectiveDate;
+  final DateTime createdAt;
+  const DashboardFocusHistoryRecord({
+    required this.id,
+    required this.focusType,
+    required this.content,
+    required this.effectiveDate,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['focus_type'] = Variable<String>(focusType);
+    map['content'] = Variable<String>(content);
+    map['effective_date'] = Variable<DateTime>(effectiveDate);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  DashboardFocusHistoriesCompanion toCompanion(bool nullToAbsent) {
+    return DashboardFocusHistoriesCompanion(
+      id: Value(id),
+      focusType: Value(focusType),
+      content: Value(content),
+      effectiveDate: Value(effectiveDate),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory DashboardFocusHistoryRecord.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DashboardFocusHistoryRecord(
+      id: serializer.fromJson<String>(json['id']),
+      focusType: serializer.fromJson<String>(json['focusType']),
+      content: serializer.fromJson<String>(json['content']),
+      effectiveDate: serializer.fromJson<DateTime>(json['effectiveDate']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'focusType': serializer.toJson<String>(focusType),
+      'content': serializer.toJson<String>(content),
+      'effectiveDate': serializer.toJson<DateTime>(effectiveDate),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  DashboardFocusHistoryRecord copyWith({
+    String? id,
+    String? focusType,
+    String? content,
+    DateTime? effectiveDate,
+    DateTime? createdAt,
+  }) => DashboardFocusHistoryRecord(
+    id: id ?? this.id,
+    focusType: focusType ?? this.focusType,
+    content: content ?? this.content,
+    effectiveDate: effectiveDate ?? this.effectiveDate,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  DashboardFocusHistoryRecord copyWithCompanion(
+    DashboardFocusHistoriesCompanion data,
+  ) {
+    return DashboardFocusHistoryRecord(
+      id: data.id.present ? data.id.value : this.id,
+      focusType: data.focusType.present ? data.focusType.value : this.focusType,
+      content: data.content.present ? data.content.value : this.content,
+      effectiveDate: data.effectiveDate.present
+          ? data.effectiveDate.value
+          : this.effectiveDate,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DashboardFocusHistoryRecord(')
+          ..write('id: $id, ')
+          ..write('focusType: $focusType, ')
+          ..write('content: $content, ')
+          ..write('effectiveDate: $effectiveDate, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, focusType, content, effectiveDate, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DashboardFocusHistoryRecord &&
+          other.id == this.id &&
+          other.focusType == this.focusType &&
+          other.content == this.content &&
+          other.effectiveDate == this.effectiveDate &&
+          other.createdAt == this.createdAt);
+}
+
+class DashboardFocusHistoriesCompanion
+    extends UpdateCompanion<DashboardFocusHistoryRecord> {
+  final Value<String> id;
+  final Value<String> focusType;
+  final Value<String> content;
+  final Value<DateTime> effectiveDate;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const DashboardFocusHistoriesCompanion({
+    this.id = const Value.absent(),
+    this.focusType = const Value.absent(),
+    this.content = const Value.absent(),
+    this.effectiveDate = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  DashboardFocusHistoriesCompanion.insert({
+    required String id,
+    required String focusType,
+    required String content,
+    required DateTime effectiveDate,
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       focusType = Value(focusType),
+       content = Value(content),
+       effectiveDate = Value(effectiveDate),
+       createdAt = Value(createdAt);
+  static Insertable<DashboardFocusHistoryRecord> custom({
+    Expression<String>? id,
+    Expression<String>? focusType,
+    Expression<String>? content,
+    Expression<DateTime>? effectiveDate,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (focusType != null) 'focus_type': focusType,
+      if (content != null) 'content': content,
+      if (effectiveDate != null) 'effective_date': effectiveDate,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  DashboardFocusHistoriesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? focusType,
+    Value<String>? content,
+    Value<DateTime>? effectiveDate,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return DashboardFocusHistoriesCompanion(
+      id: id ?? this.id,
+      focusType: focusType ?? this.focusType,
+      content: content ?? this.content,
+      effectiveDate: effectiveDate ?? this.effectiveDate,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (focusType.present) {
+      map['focus_type'] = Variable<String>(focusType.value);
+    }
+    if (content.present) {
+      map['content'] = Variable<String>(content.value);
+    }
+    if (effectiveDate.present) {
+      map['effective_date'] = Variable<DateTime>(effectiveDate.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DashboardFocusHistoriesCompanion(')
+          ..write('id: $id, ')
+          ..write('focusType: $focusType, ')
+          ..write('content: $content, ')
+          ..write('effectiveDate: $effectiveDate, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $DashboardDailyFocusesTable extends DashboardDailyFocuses
+    with TableInfo<$DashboardDailyFocusesTable, DashboardDailyFocusRecord> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DashboardDailyFocusesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _dayKeyMeta = const VerificationMeta('dayKey');
+  @override
+  late final GeneratedColumn<String> dayKey = GeneratedColumn<String>(
+    'day_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _contentMeta = const VerificationMeta(
+    'content',
+  );
+  @override
+  late final GeneratedColumn<String> content = GeneratedColumn<String>(
+    'content',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [dayKey, content, createdAt, updatedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'dashboard_daily_focuses';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DashboardDailyFocusRecord> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('day_key')) {
+      context.handle(
+        _dayKeyMeta,
+        dayKey.isAcceptableOrUnknown(data['day_key']!, _dayKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dayKeyMeta);
+    }
+    if (data.containsKey('content')) {
+      context.handle(
+        _contentMeta,
+        content.isAcceptableOrUnknown(data['content']!, _contentMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_contentMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {dayKey};
+  @override
+  DashboardDailyFocusRecord map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DashboardDailyFocusRecord(
+      dayKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}day_key'],
+      )!,
+      content: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}content'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $DashboardDailyFocusesTable createAlias(String alias) {
+    return $DashboardDailyFocusesTable(attachedDatabase, alias);
+  }
+}
+
+class DashboardDailyFocusRecord extends DataClass
+    implements Insertable<DashboardDailyFocusRecord> {
+  final String dayKey;
+  final String content;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const DashboardDailyFocusRecord({
+    required this.dayKey,
+    required this.content,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['day_key'] = Variable<String>(dayKey);
+    map['content'] = Variable<String>(content);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  DashboardDailyFocusesCompanion toCompanion(bool nullToAbsent) {
+    return DashboardDailyFocusesCompanion(
+      dayKey: Value(dayKey),
+      content: Value(content),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory DashboardDailyFocusRecord.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DashboardDailyFocusRecord(
+      dayKey: serializer.fromJson<String>(json['dayKey']),
+      content: serializer.fromJson<String>(json['content']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'dayKey': serializer.toJson<String>(dayKey),
+      'content': serializer.toJson<String>(content),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  DashboardDailyFocusRecord copyWith({
+    String? dayKey,
+    String? content,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => DashboardDailyFocusRecord(
+    dayKey: dayKey ?? this.dayKey,
+    content: content ?? this.content,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  DashboardDailyFocusRecord copyWithCompanion(
+    DashboardDailyFocusesCompanion data,
+  ) {
+    return DashboardDailyFocusRecord(
+      dayKey: data.dayKey.present ? data.dayKey.value : this.dayKey,
+      content: data.content.present ? data.content.value : this.content,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DashboardDailyFocusRecord(')
+          ..write('dayKey: $dayKey, ')
+          ..write('content: $content, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(dayKey, content, createdAt, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DashboardDailyFocusRecord &&
+          other.dayKey == this.dayKey &&
+          other.content == this.content &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class DashboardDailyFocusesCompanion
+    extends UpdateCompanion<DashboardDailyFocusRecord> {
+  final Value<String> dayKey;
+  final Value<String> content;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const DashboardDailyFocusesCompanion({
+    this.dayKey = const Value.absent(),
+    this.content = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  DashboardDailyFocusesCompanion.insert({
+    required String dayKey,
+    required String content,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : dayKey = Value(dayKey),
+       content = Value(content),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<DashboardDailyFocusRecord> custom({
+    Expression<String>? dayKey,
+    Expression<String>? content,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (dayKey != null) 'day_key': dayKey,
+      if (content != null) 'content': content,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  DashboardDailyFocusesCompanion copyWith({
+    Value<String>? dayKey,
+    Value<String>? content,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return DashboardDailyFocusesCompanion(
+      dayKey: dayKey ?? this.dayKey,
+      content: content ?? this.content,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (dayKey.present) {
+      map['day_key'] = Variable<String>(dayKey.value);
+    }
+    if (content.present) {
+      map['content'] = Variable<String>(content.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DashboardDailyFocusesCompanion(')
+          ..write('dayKey: $dayKey, ')
+          ..write('content: $content, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $TaskListsTable extends TaskLists
     with TableInfo<$TaskListsTable, TaskListRecord> {
   @override
@@ -27340,6 +28400,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $AppSettingsTable appSettings = $AppSettingsTable(this);
+  late final $DashboardFocusesTable dashboardFocuses = $DashboardFocusesTable(
+    this,
+  );
+  late final $DashboardFocusHistoriesTable dashboardFocusHistories =
+      $DashboardFocusHistoriesTable(this);
+  late final $DashboardDailyFocusesTable dashboardDailyFocuses =
+      $DashboardDailyFocusesTable(this);
   late final $TaskListsTable taskLists = $TaskListsTable(this);
   late final $TasksTable tasks = $TasksTable(this);
   late final $TagsTable tags = $TagsTable(this);
@@ -27409,6 +28476,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     appSettings,
+    dashboardFocuses,
+    dashboardFocusHistories,
+    dashboardDailyFocuses,
     taskLists,
     tasks,
     tags,
@@ -27782,6 +28852,637 @@ typedef $$AppSettingsTableProcessedTableManager =
         BaseReferences<_$AppDatabase, $AppSettingsTable, AppSettingRecord>,
       ),
       AppSettingRecord,
+      PrefetchHooks Function()
+    >;
+typedef $$DashboardFocusesTableCreateCompanionBuilder =
+    DashboardFocusesCompanion Function({
+      required String id,
+      required String focusType,
+      required String content,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$DashboardFocusesTableUpdateCompanionBuilder =
+    DashboardFocusesCompanion Function({
+      Value<String> id,
+      Value<String> focusType,
+      Value<String> content,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$DashboardFocusesTableFilterComposer
+    extends Composer<_$AppDatabase, $DashboardFocusesTable> {
+  $$DashboardFocusesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get focusType => $composableBuilder(
+    column: $table.focusType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get content => $composableBuilder(
+    column: $table.content,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$DashboardFocusesTableOrderingComposer
+    extends Composer<_$AppDatabase, $DashboardFocusesTable> {
+  $$DashboardFocusesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get focusType => $composableBuilder(
+    column: $table.focusType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get content => $composableBuilder(
+    column: $table.content,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$DashboardFocusesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DashboardFocusesTable> {
+  $$DashboardFocusesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get focusType =>
+      $composableBuilder(column: $table.focusType, builder: (column) => column);
+
+  GeneratedColumn<String> get content =>
+      $composableBuilder(column: $table.content, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$DashboardFocusesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $DashboardFocusesTable,
+          DashboardFocusRecord,
+          $$DashboardFocusesTableFilterComposer,
+          $$DashboardFocusesTableOrderingComposer,
+          $$DashboardFocusesTableAnnotationComposer,
+          $$DashboardFocusesTableCreateCompanionBuilder,
+          $$DashboardFocusesTableUpdateCompanionBuilder,
+          (
+            DashboardFocusRecord,
+            BaseReferences<
+              _$AppDatabase,
+              $DashboardFocusesTable,
+              DashboardFocusRecord
+            >,
+          ),
+          DashboardFocusRecord,
+          PrefetchHooks Function()
+        > {
+  $$DashboardFocusesTableTableManager(
+    _$AppDatabase db,
+    $DashboardFocusesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DashboardFocusesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DashboardFocusesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DashboardFocusesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> focusType = const Value.absent(),
+                Value<String> content = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DashboardFocusesCompanion(
+                id: id,
+                focusType: focusType,
+                content: content,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String focusType,
+                required String content,
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => DashboardFocusesCompanion.insert(
+                id: id,
+                focusType: focusType,
+                content: content,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$DashboardFocusesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $DashboardFocusesTable,
+      DashboardFocusRecord,
+      $$DashboardFocusesTableFilterComposer,
+      $$DashboardFocusesTableOrderingComposer,
+      $$DashboardFocusesTableAnnotationComposer,
+      $$DashboardFocusesTableCreateCompanionBuilder,
+      $$DashboardFocusesTableUpdateCompanionBuilder,
+      (
+        DashboardFocusRecord,
+        BaseReferences<
+          _$AppDatabase,
+          $DashboardFocusesTable,
+          DashboardFocusRecord
+        >,
+      ),
+      DashboardFocusRecord,
+      PrefetchHooks Function()
+    >;
+typedef $$DashboardFocusHistoriesTableCreateCompanionBuilder =
+    DashboardFocusHistoriesCompanion Function({
+      required String id,
+      required String focusType,
+      required String content,
+      required DateTime effectiveDate,
+      required DateTime createdAt,
+      Value<int> rowid,
+    });
+typedef $$DashboardFocusHistoriesTableUpdateCompanionBuilder =
+    DashboardFocusHistoriesCompanion Function({
+      Value<String> id,
+      Value<String> focusType,
+      Value<String> content,
+      Value<DateTime> effectiveDate,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+
+class $$DashboardFocusHistoriesTableFilterComposer
+    extends Composer<_$AppDatabase, $DashboardFocusHistoriesTable> {
+  $$DashboardFocusHistoriesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get focusType => $composableBuilder(
+    column: $table.focusType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get content => $composableBuilder(
+    column: $table.content,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get effectiveDate => $composableBuilder(
+    column: $table.effectiveDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$DashboardFocusHistoriesTableOrderingComposer
+    extends Composer<_$AppDatabase, $DashboardFocusHistoriesTable> {
+  $$DashboardFocusHistoriesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get focusType => $composableBuilder(
+    column: $table.focusType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get content => $composableBuilder(
+    column: $table.content,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get effectiveDate => $composableBuilder(
+    column: $table.effectiveDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$DashboardFocusHistoriesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DashboardFocusHistoriesTable> {
+  $$DashboardFocusHistoriesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get focusType =>
+      $composableBuilder(column: $table.focusType, builder: (column) => column);
+
+  GeneratedColumn<String> get content =>
+      $composableBuilder(column: $table.content, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get effectiveDate => $composableBuilder(
+    column: $table.effectiveDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$DashboardFocusHistoriesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $DashboardFocusHistoriesTable,
+          DashboardFocusHistoryRecord,
+          $$DashboardFocusHistoriesTableFilterComposer,
+          $$DashboardFocusHistoriesTableOrderingComposer,
+          $$DashboardFocusHistoriesTableAnnotationComposer,
+          $$DashboardFocusHistoriesTableCreateCompanionBuilder,
+          $$DashboardFocusHistoriesTableUpdateCompanionBuilder,
+          (
+            DashboardFocusHistoryRecord,
+            BaseReferences<
+              _$AppDatabase,
+              $DashboardFocusHistoriesTable,
+              DashboardFocusHistoryRecord
+            >,
+          ),
+          DashboardFocusHistoryRecord,
+          PrefetchHooks Function()
+        > {
+  $$DashboardFocusHistoriesTableTableManager(
+    _$AppDatabase db,
+    $DashboardFocusHistoriesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DashboardFocusHistoriesTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$DashboardFocusHistoriesTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$DashboardFocusHistoriesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> focusType = const Value.absent(),
+                Value<String> content = const Value.absent(),
+                Value<DateTime> effectiveDate = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DashboardFocusHistoriesCompanion(
+                id: id,
+                focusType: focusType,
+                content: content,
+                effectiveDate: effectiveDate,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String focusType,
+                required String content,
+                required DateTime effectiveDate,
+                required DateTime createdAt,
+                Value<int> rowid = const Value.absent(),
+              }) => DashboardFocusHistoriesCompanion.insert(
+                id: id,
+                focusType: focusType,
+                content: content,
+                effectiveDate: effectiveDate,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$DashboardFocusHistoriesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $DashboardFocusHistoriesTable,
+      DashboardFocusHistoryRecord,
+      $$DashboardFocusHistoriesTableFilterComposer,
+      $$DashboardFocusHistoriesTableOrderingComposer,
+      $$DashboardFocusHistoriesTableAnnotationComposer,
+      $$DashboardFocusHistoriesTableCreateCompanionBuilder,
+      $$DashboardFocusHistoriesTableUpdateCompanionBuilder,
+      (
+        DashboardFocusHistoryRecord,
+        BaseReferences<
+          _$AppDatabase,
+          $DashboardFocusHistoriesTable,
+          DashboardFocusHistoryRecord
+        >,
+      ),
+      DashboardFocusHistoryRecord,
+      PrefetchHooks Function()
+    >;
+typedef $$DashboardDailyFocusesTableCreateCompanionBuilder =
+    DashboardDailyFocusesCompanion Function({
+      required String dayKey,
+      required String content,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$DashboardDailyFocusesTableUpdateCompanionBuilder =
+    DashboardDailyFocusesCompanion Function({
+      Value<String> dayKey,
+      Value<String> content,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$DashboardDailyFocusesTableFilterComposer
+    extends Composer<_$AppDatabase, $DashboardDailyFocusesTable> {
+  $$DashboardDailyFocusesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get dayKey => $composableBuilder(
+    column: $table.dayKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get content => $composableBuilder(
+    column: $table.content,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$DashboardDailyFocusesTableOrderingComposer
+    extends Composer<_$AppDatabase, $DashboardDailyFocusesTable> {
+  $$DashboardDailyFocusesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get dayKey => $composableBuilder(
+    column: $table.dayKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get content => $composableBuilder(
+    column: $table.content,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$DashboardDailyFocusesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DashboardDailyFocusesTable> {
+  $$DashboardDailyFocusesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get dayKey =>
+      $composableBuilder(column: $table.dayKey, builder: (column) => column);
+
+  GeneratedColumn<String> get content =>
+      $composableBuilder(column: $table.content, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$DashboardDailyFocusesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $DashboardDailyFocusesTable,
+          DashboardDailyFocusRecord,
+          $$DashboardDailyFocusesTableFilterComposer,
+          $$DashboardDailyFocusesTableOrderingComposer,
+          $$DashboardDailyFocusesTableAnnotationComposer,
+          $$DashboardDailyFocusesTableCreateCompanionBuilder,
+          $$DashboardDailyFocusesTableUpdateCompanionBuilder,
+          (
+            DashboardDailyFocusRecord,
+            BaseReferences<
+              _$AppDatabase,
+              $DashboardDailyFocusesTable,
+              DashboardDailyFocusRecord
+            >,
+          ),
+          DashboardDailyFocusRecord,
+          PrefetchHooks Function()
+        > {
+  $$DashboardDailyFocusesTableTableManager(
+    _$AppDatabase db,
+    $DashboardDailyFocusesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DashboardDailyFocusesTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$DashboardDailyFocusesTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$DashboardDailyFocusesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> dayKey = const Value.absent(),
+                Value<String> content = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DashboardDailyFocusesCompanion(
+                dayKey: dayKey,
+                content: content,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String dayKey,
+                required String content,
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => DashboardDailyFocusesCompanion.insert(
+                dayKey: dayKey,
+                content: content,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$DashboardDailyFocusesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $DashboardDailyFocusesTable,
+      DashboardDailyFocusRecord,
+      $$DashboardDailyFocusesTableFilterComposer,
+      $$DashboardDailyFocusesTableOrderingComposer,
+      $$DashboardDailyFocusesTableAnnotationComposer,
+      $$DashboardDailyFocusesTableCreateCompanionBuilder,
+      $$DashboardDailyFocusesTableUpdateCompanionBuilder,
+      (
+        DashboardDailyFocusRecord,
+        BaseReferences<
+          _$AppDatabase,
+          $DashboardDailyFocusesTable,
+          DashboardDailyFocusRecord
+        >,
+      ),
+      DashboardDailyFocusRecord,
       PrefetchHooks Function()
     >;
 typedef $$TaskListsTableCreateCompanionBuilder = TaskListsCompanion Function({
@@ -49646,6 +51347,15 @@ class $AppDatabaseManager {
   $AppDatabaseManager(this._db);
   $$AppSettingsTableTableManager get appSettings =>
       $$AppSettingsTableTableManager(_db, _db.appSettings);
+  $$DashboardFocusesTableTableManager get dashboardFocuses =>
+      $$DashboardFocusesTableTableManager(_db, _db.dashboardFocuses);
+  $$DashboardFocusHistoriesTableTableManager get dashboardFocusHistories =>
+      $$DashboardFocusHistoriesTableTableManager(
+        _db,
+        _db.dashboardFocusHistories,
+      );
+  $$DashboardDailyFocusesTableTableManager get dashboardDailyFocuses =>
+      $$DashboardDailyFocusesTableTableManager(_db, _db.dashboardDailyFocuses);
   $$TaskListsTableTableManager get taskLists =>
       $$TaskListsTableTableManager(_db, _db.taskLists);
   $$TasksTableTableManager get tasks =>

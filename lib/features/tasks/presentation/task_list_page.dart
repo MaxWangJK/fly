@@ -33,6 +33,16 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
   final _listFocus = FocusNode();
   final _scrollController = ScrollController();
   String _search = '';
+  bool _initialSelectionPending = true;
+
+  @override
+  void didUpdateWidget(covariant TaskListPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.collection != widget.collection ||
+        oldWidget.listId != widget.listId) {
+      _initialSelectionPending = true;
+    }
+  }
 
   @override
   void dispose() {
@@ -180,6 +190,42 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
     final items =
         (searchTasks ?? visibleTasks).valueOrNull ?? const <FlyTask>[];
     final title = _title(context, lists);
+    if (_initialSelectionPending &&
+        query.isEmpty &&
+        widget.collection != TaskCollection.trash &&
+        MediaQuery.sizeOf(context).width >= FlyBreakpoints.expanded) {
+      final loaded = tasks.valueOrNull;
+      if (loaded != null && loaded.isNotEmpty) {
+        final first = widget.collection == TaskCollection.today
+            ? loaded
+                      .where(
+                        (task) => TaskDateRange.isToday(
+                          task,
+                          ref.read(localTodayProvider),
+                        ),
+                      )
+                      .firstOrNull ??
+                  (loaded
+                          .where(
+                            (task) => TaskDateRange.isOverdue(
+                              task,
+                              ref.read(localTodayProvider),
+                            ),
+                          )
+                          .toList()
+                        ..sort((a, b) => b.dueDate!.compareTo(a.dueDate!)))
+                      .firstOrNull
+            : loaded.firstOrNull;
+        _initialSelectionPending = false;
+        if (first != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && ref.read(selectedTaskIdProvider) == null) {
+              ref.read(selectedTaskIdProvider.notifier).state = first.id;
+            }
+          });
+        }
+      }
+    }
 
     return SafeArea(
       child: Focus(
@@ -606,28 +652,17 @@ class _TaskRow extends ConsumerWidget {
     WidgetRef ref,
     Offset position,
   ) async {
-    final repository = ref.read(taskRepositoryProvider);
     final entries = <PopupMenuEntry<String>>[
-      PopupMenuItem(
-        value: 'complete',
-        child: Text(
-          context.l10n.t(task.isCompleted ? 'uncomplete' : 'complete'),
-        ),
-      ),
-      PopupMenuItem(value: 'edit', child: Text(context.l10n.t('edit'))),
-      const PopupMenuDivider(),
-      PopupMenuItem(value: 'date', child: Text(context.l10n.t('setDate'))),
       if (TaskDateRange.isOverdue(task, ref.read(localTodayProvider)))
         PopupMenuItem(
           value: 'postpone',
           child: Text(context.l10n.t('postponeToday')),
         ),
-      const PopupMenuDivider(),
       PopupMenuItem(
         value: 'delete',
         child: Text(
-          context.l10n.t('delete'),
-          style: const TextStyle(color: FlyColors.danger),
+          context.l10n.t('deleteTask'),
+          style: TextStyle(color: Theme.of(context).colorScheme.error),
         ),
       ),
     ];
@@ -642,22 +677,10 @@ class _TaskRow extends ConsumerWidget {
       items: entries,
     );
     if (action == null || !context.mounted) return;
-    if (action == 'complete') {
-      await repository.setCompleted(task.id, completed: !task.isCompleted);
-    } else if (action == 'edit') {
-      _open(context, ref);
-    } else if (action == 'delete') {
+    if (action == 'delete') {
       await deleteTaskWithConfirmation(context, ref, task);
     } else if (action == 'postpone') {
       await _postponeTasks(context, ref, [task]);
-    } else if (action == 'date') {
-      final date = await showDatePicker(
-        context: context,
-        initialDate: task.dueDate ?? DateTime.now(),
-        firstDate: DateTime(1900),
-        lastDate: DateTime(2200),
-      );
-      if (date != null) await repository.moveTaskToDate(task.id, date);
     }
   }
 
