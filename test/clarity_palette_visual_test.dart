@@ -23,10 +23,12 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   testWidgets('palette renders dashboard, files and notes', (tester) async {
     const capture = bool.fromEnvironment('FLY_CAPTURE_CLARITY');
+    const dark = bool.fromEnvironment('FLY_VISUAL_DARK');
     const paletteName = String.fromEnvironment(
       'FLY_VISUAL_PALETTE',
       defaultValue: 'clarity',
     );
+    final captureFolder = dark ? '$paletteName-dark' : paletteName;
     if (capture) await tester.runAsync(_loadFonts);
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(1400, 820);
@@ -75,6 +77,9 @@ void main() {
           flyPaletteProvider.overrideWith(
             (ref) => FlyPaletteIdX.parse(paletteName),
           ),
+          themeModeProvider.overrideWith(
+            (ref) => dark ? ThemeMode.dark : ThemeMode.light,
+          ),
         ],
         child: RepaintBoundary(key: boundaryKey, child: const FlyApp()),
       ),
@@ -93,7 +98,7 @@ void main() {
     await tester.runAsync(
       () => _capture(
         boundaryKey,
-        'artifacts/$paletteName/dashboard.png',
+        'artifacts/$captureFolder/dashboard.png',
         capture,
       ),
     );
@@ -112,7 +117,7 @@ void main() {
     await tester.runAsync(
       () => _capture(
         boundaryKey,
-        'artifacts/$paletteName/tasks-search.png',
+        'artifacts/$captureFolder/tasks-search.png',
         capture,
       ),
     );
@@ -121,7 +126,8 @@ void main() {
     await _pumpUi(tester);
     expect(find.text('WPC-price-list.pdf'), findsWidgets);
     await tester.runAsync(
-      () => _capture(boundaryKey, 'artifacts/$paletteName/files.png', capture),
+      () =>
+          _capture(boundaryKey, 'artifacts/$captureFolder/files.png', capture),
     );
 
     await tester.tap(find.byKey(const ValueKey('primary-notes')));
@@ -140,16 +146,22 @@ void main() {
     await _pumpUi(tester);
     expect(find.textContaining('跟进报价'), findsOneWidget);
     await tester.runAsync(
-      () => _capture(boundaryKey, 'artifacts/$paletteName/notes.png', capture),
+      () =>
+          _capture(boundaryKey, 'artifacts/$captureFolder/notes.png', capture),
     );
     await tester.tap(find.byKey(const ValueKey('primary-settings')));
     await _pumpUi(tester);
     await tester.tap(find.byKey(const ValueKey('settings-category-1')));
     await _pumpUi(tester);
     expect(find.byKey(const ValueKey('palette-mintCloud')), findsOneWidget);
+    expect(find.byKey(const ValueKey('palette-sageMist')), findsOneWidget);
+    expect(find.byKey(const ValueKey('palette-graphite')), findsNothing);
     await tester.runAsync(
-      () =>
-          _capture(boundaryKey, 'artifacts/$paletteName/settings.png', capture),
+      () => _capture(
+        boundaryKey,
+        'artifacts/$captureFolder/settings.png',
+        capture,
+      ),
     );
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();

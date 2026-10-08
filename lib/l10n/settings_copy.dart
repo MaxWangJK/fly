@@ -2,14 +2,14 @@
 /// user-entered content or persisted setting values.
 const settingsEnglish = <String, String>{
   'Fly 默认': 'Fly Default',
-  '石墨': 'Graphite',
+  '青霭雅灰': 'Sage Mist',
   '暖沙': 'Warm Sand',
   '海洋': 'Ocean',
   '森林': 'Forest',
   '清朗商务': 'Clarity Business',
   '薄荷云境': 'Mint Cloud',
   '温和米杏': 'Soft beige',
-  '中性石墨': 'Neutral graphite',
+  '青绿灰与雾蓝': 'Sage gray and mist blue',
   '暖调沙色': 'Warm sand',
   '清透海蓝': 'Clear ocean',
   '自然森林': 'Natural forest',

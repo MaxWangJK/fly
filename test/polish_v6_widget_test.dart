@@ -51,7 +51,23 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       tester.getTopLeft(find.byKey(const ValueKey('palette-flyDefault'))).dy,
-      tester.getTopLeft(find.byKey(const ValueKey('palette-graphite'))).dy,
+      tester.getTopLeft(find.byKey(const ValueKey('palette-sageMist'))).dy,
+    );
+    expect(find.byKey(const ValueKey('palette-graphite')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('palette-sageMist')));
+    await tester.pumpAndSettle();
+    expect(
+      rail().color,
+      FlyColorScheme.resolve(
+        FlyPaletteId.sageMist,
+        Brightness.light,
+      ).primaryRail,
+    );
+    expect(
+      (await (database.select(
+        database.appSettings,
+      )..where((row) => row.key.equals('colorPalette'))).getSingle()).value,
+      FlyPaletteId.sageMist.name,
     );
     await tester.tap(find.text('海洋'));
     await tester.pumpAndSettle();

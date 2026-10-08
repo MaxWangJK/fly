@@ -567,7 +567,7 @@ class _SettingsCenterState extends ConsumerState<SettingsCenter> {
                             Text(
                               tr(switch (palette) {
                                 FlyPaletteId.flyDefault => '温和米杏',
-                                FlyPaletteId.graphite => '中性石墨',
+                                FlyPaletteId.sageMist => '青绿灰与雾蓝',
                                 FlyPaletteId.warmSand => '暖调沙色',
                                 FlyPaletteId.ocean => '清透海蓝',
                                 FlyPaletteId.forest => '自然森林',

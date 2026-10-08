@@ -26,11 +26,43 @@ abstract final class FlyTheme {
           error: colors.danger,
         ).copyWith(
           primary: colors.accent,
-          secondary: palette == FlyPaletteId.clarity ? colors.success : null,
-          tertiary: palette == FlyPaletteId.mintCloud
+          primaryContainer: palette == FlyPaletteId.sageMist
+              ? colors.selected
+              : null,
+          onPrimaryContainer: palette == FlyPaletteId.sageMist
+              ? colors.textPrimary
+              : null,
+          secondary: palette == FlyPaletteId.sageMist
+              ? brightness == Brightness.dark
+                    ? const Color(0xFFB6C5CF)
+                    : const Color(0xFF527987)
+              : palette == FlyPaletteId.clarity
+              ? colors.success
+              : null,
+          secondaryContainer: palette == FlyPaletteId.sageMist
+              ? brightness == Brightness.dark
+                    ? const Color(0xFF33454D)
+                    : const Color(0xFFE0EAED)
+              : null,
+          onSecondaryContainer: palette == FlyPaletteId.sageMist
+              ? colors.textPrimary
+              : null,
+          tertiary: palette == FlyPaletteId.sageMist
+              ? brightness == Brightness.dark
+                    ? const Color(0xFFD0B8CA)
+                    : const Color(0xFF866C84)
+              : palette == FlyPaletteId.mintCloud
               ? brightness == Brightness.dark
                     ? const Color(0xFFB6A6DE)
                     : const Color(0xFF7766A6)
+              : null,
+          tertiaryContainer: palette == FlyPaletteId.sageMist
+              ? brightness == Brightness.dark
+                    ? const Color(0xFF473947)
+                    : const Color(0xFFE5D8E2)
+              : null,
+          onTertiaryContainer: palette == FlyPaletteId.sageMist
+              ? colors.textPrimary
               : null,
           surface: colors.surface,
           surfaceContainerLowest: colors.surface,
@@ -144,7 +176,9 @@ abstract final class FlyTheme {
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: colors.accent,
-          foregroundColor: Colors.white,
+          foregroundColor: palette == FlyPaletteId.sageMist
+              ? scheme.onPrimary
+              : Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(FlyRadius.sm),
           ),

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 enum FlyPaletteId {
   flyDefault,
-  graphite,
+  sageMist,
   warmSand,
   ocean,
   forest,
@@ -13,7 +13,7 @@ enum FlyPaletteId {
 extension FlyPaletteIdX on FlyPaletteId {
   String get label => switch (this) {
     FlyPaletteId.flyDefault => 'Fly 默认',
-    FlyPaletteId.graphite => '石墨',
+    FlyPaletteId.sageMist => '青霭雅灰',
     FlyPaletteId.warmSand => '暖沙',
     FlyPaletteId.ocean => '海洋',
     FlyPaletteId.forest => '森林',
@@ -21,10 +21,14 @@ extension FlyPaletteIdX on FlyPaletteId {
     FlyPaletteId.mintCloud => '薄荷云境',
   };
 
-  static FlyPaletteId parse(String? value) => FlyPaletteId.values.firstWhere(
-    (entry) => entry.name == value,
-    orElse: () => FlyPaletteId.flyDefault,
-  );
+  static FlyPaletteId parse(String? value) {
+    // Graphite has been retired; existing installations use its replacement.
+    if (value == 'graphite') return FlyPaletteId.sageMist;
+    return FlyPaletteId.values.firstWhere(
+      (entry) => entry.name == value,
+      orElse: () => FlyPaletteId.flyDefault,
+    );
+  }
 }
 
 @immutable
@@ -66,9 +70,27 @@ class FlyColorScheme extends ThemeExtension<FlyColorScheme> {
 
   static FlyColorScheme resolve(FlyPaletteId id, Brightness brightness) {
     if (brightness == Brightness.dark) {
+      if (id == FlyPaletteId.sageMist) {
+        return const FlyColorScheme(
+          primaryRail: Color(0xFF202823),
+          secondarySidebar: Color(0xFF293330),
+          canvas: Color(0xFF1A211F),
+          surface: Color(0xFF252D2A),
+          surfaceMuted: Color(0xFF2B363B),
+          selected: Color(0xFF394737),
+          hover: Color(0xFF343D38),
+          accent: Color(0xFFBAC8B0),
+          divider: Color(0xFF424E46),
+          textPrimary: Color(0xFFECF0E9),
+          textSecondary: Color(0xFFB0BCB6),
+          danger: Color(0xFFDBABB0),
+          warning: Color(0xFFD7BF9B),
+          success: Color(0xFFA4C1B6),
+        );
+      }
       final accent = switch (id) {
         FlyPaletteId.flyDefault => const Color(0xFF8CAD73),
-        FlyPaletteId.graphite => const Color(0xFF9AA3AD),
+        FlyPaletteId.sageMist => const Color(0xFFBAC8B0),
         FlyPaletteId.warmSand => const Color(0xFFC59B65),
         FlyPaletteId.ocean => const Color(0xFF68A5B7),
         FlyPaletteId.forest => const Color(0xFF70A486),
@@ -118,21 +140,21 @@ class FlyColorScheme extends ThemeExtension<FlyColorScheme> {
         warning: Color(0xFFD98C4F),
         success: Color(0xFF6D9A68),
       ),
-      FlyPaletteId.graphite => const FlyColorScheme(
-        primaryRail: Color(0xFFD5D8DC),
-        secondarySidebar: Color(0xFFE9EBED),
-        canvas: Color(0xFFF1F2F3),
-        surface: Color(0xFFFCFCFC),
-        surfaceMuted: Color(0xFFF0F1F2),
-        selected: Color(0xFFDDE3E8),
-        hover: Color(0xFFF0F2F4),
-        accent: Color(0xFF596673),
-        divider: Color(0xFFD9DDE1),
-        textPrimary: Color(0xFF1B2025),
-        textSecondary: Color(0xFF6F7881),
-        danger: Color(0xFFB9686D),
-        warning: Color(0xFFC6894F),
-        success: Color(0xFF668E73),
+      FlyPaletteId.sageMist => const FlyColorScheme(
+        primaryRail: Color(0xFF97A791),
+        secondarySidebar: Color(0xFFE7EBE4),
+        canvas: Color(0xFFF2F1EB),
+        surface: Color(0xFFFDFCF8),
+        surfaceMuted: Color(0xFFE8EEF0),
+        selected: Color(0xFFD7E1CF),
+        hover: Color(0xFFF0ECE8),
+        accent: Color(0xFF526951),
+        divider: Color(0xFFD4DCD3),
+        textPrimary: Color(0xFF27342F),
+        textSecondary: Color(0xFF405448),
+        danger: Color(0xFFA95F62),
+        warning: Color(0xFF93683E),
+        success: Color(0xFF4F776B),
       ),
       FlyPaletteId.warmSand => const FlyColorScheme(
         primaryRail: Color(0xFFDFC9AF),

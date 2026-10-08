@@ -257,6 +257,55 @@ void main() {
     );
   });
 
+  test(
+    'Sage Mist replaces legacy graphite and keeps readable layered surfaces',
+    () {
+      expect(FlyPaletteIdX.parse('graphite'), FlyPaletteId.sageMist);
+      expect(FlyPaletteIdX.parse('sageMist'), FlyPaletteId.sageMist);
+      expect(
+        FlyPaletteId.values.any((palette) => palette.name == 'graphite'),
+        isFalse,
+      );
+      double contrast(Color first, Color second) {
+        final a = first.computeLuminance() + .05;
+        final b = second.computeLuminance() + .05;
+        return a > b ? a / b : b / a;
+      }
+
+      for (final brightness in Brightness.values) {
+        final colors = FlyColorScheme.resolve(
+          FlyPaletteId.sageMist,
+          brightness,
+        );
+        expect(colors.secondarySidebar, isNot(colors.surfaceMuted));
+        expect(colors.surfaceMuted, isNot(colors.surface));
+        for (final background in [
+          colors.canvas,
+          colors.surface,
+          colors.surfaceMuted,
+          colors.secondarySidebar,
+        ]) {
+          expect(
+            contrast(colors.textPrimary, background),
+            greaterThanOrEqualTo(4.5),
+          );
+          expect(
+            contrast(colors.textSecondary, background),
+            greaterThanOrEqualTo(4.5),
+          );
+          expect(
+            contrast(colors.accent, background),
+            greaterThanOrEqualTo(4.5),
+          );
+        }
+        expect(
+          contrast(colors.textSecondary, colors.primaryRail),
+          greaterThanOrEqualTo(3),
+        );
+      }
+    },
+  );
+
   test('schema 7 preserves V6 rows and propagates explicit currency', () async {
     final previous = drift.driftRuntimeOptions.dontWarnAboutMultipleDatabases;
     drift.driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
