@@ -9,7 +9,7 @@ import 'package:fly/features/orders/data/drift_order_repository.dart';
 
 void main() {
   test(
-    'schema 14 to 16 preserves rows and separates shared tag links',
+    'schema 14 to 17 preserves rows and separates shared tag links',
     () async {
       final root = await Directory.systemTemp.createTemp('fly-schema15-');
       final file = File(p.join(root.path, 'fly.db'));
@@ -58,17 +58,21 @@ void main() {
         }
         // Recreate a genuine v14 schema before exercising the full upgrade.
         for (final table in [
+          'knowledge_favorites',
           'dashboard_focus_histories',
           'dashboard_daily_focuses',
           'dashboard_focuses',
         ]) {
           await db.customStatement('DROP TABLE $table');
         }
+        await db.customStatement(
+          'ALTER TABLE workspace_notes DROP COLUMN linked_knowledge_article_id',
+        );
         await db.customStatement('PRAGMA user_version=14');
         await db.close();
 
         db = AppDatabase(NativeDatabase(file));
-        expect(db.schemaVersion, 16);
+        expect(db.schemaVersion, 17);
         expect(
           (await customersFor(db).watchCustomer(customer.id).first)?.name,
           'Preserved Jack',

@@ -25,7 +25,21 @@ class DriftTaskRepository implements TaskRepository {
       ..where((row) => row.deletedAt.isNull() & predicate(row))
       ..orderBy([
         (row) => OrderingTerm(expression: row.status.equals('completed')),
+        (row) => OrderingTerm(
+          expression: row.priority.equals('high'),
+          mode: OrderingMode.desc,
+        ),
+        (row) => OrderingTerm(
+          expression: row.priority.equals('medium'),
+          mode: OrderingMode.desc,
+        ),
+        (row) => OrderingTerm(
+          expression: row.priority.equals('low'),
+          mode: OrderingMode.desc,
+        ),
         (row) => OrderingTerm(expression: row.sortOrder),
+        (row) => OrderingTerm(expression: row.createdAt),
+        (row) => OrderingTerm(expression: row.id),
       ]);
     return query.watch().map(
       (rows) => rows.map(_fromRecord).toList(growable: false),
@@ -455,15 +469,28 @@ class DriftTaskRepository implements TaskRepository {
 
   @override
   Future<void> reorderTask(String taskId, List<String> orderedTaskIds) async {
-    final index = orderedTaskIds.indexOf(taskId);
+    if (!orderedTaskIds.contains(taskId)) return;
+    final current = await _record(taskId);
+    // Manual ordering stays inside a priority/status group. Neighbours from
+    // another group must not skew the saved sortOrder or change its priority.
+    final records =
+        await (_db.select(_db.tasks)..where(
+              (row) =>
+                  row.id.isIn(orderedTaskIds) &
+                  row.priority.equals(current.priority) &
+                  row.status.equals(current.status) &
+                  row.deletedAt.isNull(),
+            ))
+            .get();
+    final group = {for (final record in records) record.id: record};
+    final groupIds = orderedTaskIds.where(group.containsKey).toList();
+    final index = groupIds.indexOf(taskId);
     if (index < 0) return;
 
-    final previous = index == 0
+    final previous = index == 0 ? null : group[groupIds[index - 1]];
+    final next = index == groupIds.length - 1
         ? null
-        : await _record(orderedTaskIds[index - 1]);
-    final next = index == orderedTaskIds.length - 1
-        ? null
-        : await _record(orderedTaskIds[index + 1]);
+        : group[groupIds[index + 1]];
     final previousOrder = previous?.sortOrder;
     final nextOrder = next?.sortOrder;
 
@@ -477,11 +504,10 @@ class DriftTaskRepository implements TaskRepository {
     } else if (nextOrder - previousOrder > 1) {
       order = previousOrder + ((nextOrder - previousOrder) ~/ 2);
     } else {
-      await _rebalance(orderedTaskIds);
+      await _rebalance(groupIds);
       return;
     }
 
-    final current = await _record(taskId);
     await _write(
       taskId,
       TasksCompanion(

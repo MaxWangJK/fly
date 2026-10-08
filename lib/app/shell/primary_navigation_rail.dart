@@ -27,7 +27,9 @@ PrimaryModule primaryModuleForPath(String path) {
   if (path.startsWith('/calendar')) return PrimaryModule.calendar;
   if (path.startsWith('/matrix')) return PrimaryModule.matrix;
   if (path.startsWith('/files')) return PrimaryModule.files;
-  if (path.startsWith('/notes')) return PrimaryModule.notes;
+  if (path.startsWith('/notes') || path.startsWith('/knowledge')) {
+    return PrimaryModule.notes;
+  }
   if (path.startsWith('/tools')) return PrimaryModule.tools;
   return PrimaryModule.tasks;
 }
@@ -142,8 +144,8 @@ class PrimaryNavigationRail extends ConsumerWidget {
                       const SizedBox(height: FlySpacing.xs),
                       NavigationRailItem(
                         module: PrimaryModule.notes,
-                        icon: Icons.article_outlined,
-                        selectedIcon: Icons.article,
+                        icon: Icons.menu_book_outlined,
+                        selectedIcon: Icons.menu_book_rounded,
                         tooltip: context.l10n.t('navNotes'),
                         selected: selectedModule == PrimaryModule.notes,
                         onTap: () => onSelected(PrimaryModule.notes),

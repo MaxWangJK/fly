@@ -6,6 +6,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
@@ -17,6 +18,7 @@ import '../../../shared/design_system/fly_color_scheme.dart';
 import '../../../shared/design_system/workspace_folder_tree.dart';
 import '../../files/data/managed_file_repository.dart';
 import '../../files/presentation/file_providers.dart';
+import '../../knowledge/presentation/knowledge_providers.dart';
 import '../../tasks/presentation/task_providers.dart';
 import '../domain/note_block.dart';
 import '../domain/note_document_codec.dart';
@@ -731,11 +733,36 @@ class _NoteDocumentState extends ConsumerState<_NoteDocument> {
                 final note = snapshot.data;
                 if (note == null) return const SizedBox.shrink();
                 final format = DateFormat('yyyy-MM-dd HH:mm');
+                final sourceId = note.linkedKnowledgeArticleId;
+                final source = sourceId == null
+                    ? null
+                    : ref
+                          .watch(knowledgeCatalogProvider)
+                          .valueOrNull
+                          ?.article(sourceId);
                 return Align(
                   alignment: Alignment.centerLeft,
-                  child: Text(
-                    '${context.l10n.t('noteCreated')}: ${format.format(note.createdAt)}  ·  ${context.l10n.t('fileModified')}: ${format.format(note.updatedAt)}',
-                    style: Theme.of(context).textTheme.bodySmall,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${context.l10n.t('noteCreated')}: ${format.format(note.createdAt)}  ·  ${context.l10n.t('fileModified')}: ${format.format(note.updatedAt)}',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                      if (source != null)
+                        TextButton.icon(
+                          onPressed: () => context.go(
+                            Uri(
+                              path: '/knowledge',
+                              queryParameters: {'article': source.id},
+                            ).toString(),
+                          ),
+                          icon: const Icon(Icons.menu_book_outlined, size: 16),
+                          label: Text(
+                            '${context.l10n.t('knowledgeFrom')}: ${source.title}',
+                          ),
+                        ),
+                    ],
                   ),
                 );
               },

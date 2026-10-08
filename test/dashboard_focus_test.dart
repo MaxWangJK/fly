@@ -1,7 +1,9 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,6 +13,7 @@ import 'package:fly/features/dashboard/data/dashboard_focus_repository.dart';
 import 'package:fly/features/dashboard/domain/dashboard_focus.dart';
 import 'package:fly/features/dashboard/presentation/dashboard_focus_board.dart';
 import 'package:fly/features/dashboard/presentation/dashboard_page.dart';
+import 'package:fly/features/tasks/presentation/task_focus_page.dart';
 import 'package:fly/features/tasks/presentation/task_providers.dart';
 import 'package:fly/l10n/fly_localizations.dart';
 import 'package:fly/shared/design_system/app_theme.dart';
@@ -27,6 +30,7 @@ void main() {
       final repository = DashboardFocusRepository(db);
       final empty = await repository.read(oct6);
       expect(empty.mainMission, isEmpty);
+      expect(empty.monthlyFocus, isEmpty);
       expect(empty.weeklyFocus, isEmpty);
       expect(empty.todayFocus, isEmpty);
       expect(await repository.history(), isEmpty);
@@ -117,6 +121,54 @@ void main() {
   );
 
   test(
+    'monthly focus persists independently and keeps replaced history',
+    () async {
+      final root = await Directory.systemTemp.createTemp('fly-monthly-focus-');
+      final file = File(p.join(root.path, 'fly.db'));
+      var db = AppDatabase(NativeDatabase(file));
+      try {
+        var repository = DashboardFocusRepository(db);
+        await repository.save(
+          type: DashboardFocusType.mainMission,
+          content: '长期方向',
+          day: oct6,
+        );
+        await repository.save(
+          type: DashboardFocusType.weeklyFocus,
+          content: '本周报价',
+          day: oct6,
+        );
+        await repository.save(
+          type: DashboardFocusType.monthlyFocus,
+          content: '本月开发客户',
+          day: oct6,
+        );
+        await repository.save(
+          type: DashboardFocusType.monthlyFocus,
+          content: '本月成交客户',
+          day: oct7,
+        );
+        await db.close();
+        db = AppDatabase(NativeDatabase(file));
+        repository = DashboardFocusRepository(db);
+        final snapshot = await repository.read(oct7);
+        expect(snapshot.mainMission, '长期方向');
+        expect(snapshot.monthlyFocus, '本月成交客户');
+        expect(snapshot.weeklyFocus, '本周报价');
+        expect(
+          (await repository.history())
+              .where((entry) => entry.type == DashboardFocusType.monthlyFocus)
+              .map((entry) => entry.content),
+          ['本月开发客户'],
+        );
+      } finally {
+        await db.close();
+        await root.delete(recursive: true);
+      }
+    },
+  );
+
+  test(
     'dashboard_daily_focus_test: different days remain independent',
     () async {
       final db = AppDatabase(NativeDatabase.memory());
@@ -180,6 +232,7 @@ void main() {
           );
           expect(find.text('My Focus'), findsOneWidget);
           expect(find.text('Main Mission'), findsOneWidget);
+          expect(find.text('Monthly Focus'), findsOneWidget);
           expect(find.text('Weekly Focus'), findsOneWidget);
           expect(find.text("Today's Focus"), findsOneWidget);
           expect(tester.takeException(), isNull);
@@ -210,7 +263,34 @@ void main() {
         locale: const Locale('zh', 'CN'),
       );
       expect(find.text('我的聚焦'), findsOneWidget);
+      expect(find.text('本月重点'), findsOneWidget);
       expect(find.text('点击这里写下你当前最重要的长期目标'), findsOneWidget);
+      expect(
+        tester
+            .getTopLeft(find.byKey(const ValueKey('focus-section-mainMission')))
+            .dy,
+        lessThan(
+          tester
+              .getTopLeft(
+                find.byKey(const ValueKey('focus-section-monthlyFocus')),
+              )
+              .dy,
+        ),
+      );
+      expect(
+        tester
+            .getTopLeft(
+              find.byKey(const ValueKey('focus-section-monthlyFocus')),
+            )
+            .dy,
+        lessThan(
+          tester
+              .getTopLeft(
+                find.byKey(const ValueKey('focus-section-weeklyFocus')),
+              )
+              .dy,
+        ),
+      );
       await tester.tap(find.byKey(const ValueKey('focus-content-mainMission')));
       await tester.pump();
       await tester.enterText(
@@ -222,6 +302,20 @@ void main() {
       expect(
         (await DashboardFocusRepository(db).read(oct6)).mainMission,
         '建立稳定客户池',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('focus-content-monthlyFocus')),
+      );
+      await tester.pump();
+      await tester.enterText(
+        find.byKey(const ValueKey('focus-editor-monthlyFocus')),
+        '本月新客户目标',
+      );
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+      expect(
+        (await DashboardFocusRepository(db).read(oct6)).monthlyFocus,
+        '本月新客户目标',
       );
       await tester.tap(find.byKey(const ValueKey('focus-content-weeklyFocus')));
       await tester.pump();
@@ -269,6 +363,8 @@ void main() {
       );
       expect(find.text('My Focus'), findsOneWidget);
       expect(find.text('建立稳定客户池'), findsOneWidget);
+      expect(find.text('Monthly Focus'), findsOneWidget);
+      expect(find.text('本月新客户目标'), findsOneWidget);
       expect(
         find.text('Write your most important long-term goal'),
         findsNothing,
@@ -278,67 +374,124 @@ void main() {
     },
   );
 
-  testWidgets('Dashboard history opens on the right without navigation', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1300, 820);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    final db = AppDatabase(NativeDatabase.memory());
-    addTearDown(db.close);
-    await db.ensureBuiltInData();
-    final repository = DashboardFocusRepository(db);
-    await repository.save(
-      type: DashboardFocusType.mainMission,
-      content: 'Old mission',
-      day: oct6,
-    );
-    await repository.save(
-      type: DashboardFocusType.mainMission,
-      content: 'New mission',
-      day: oct6,
-    );
-    final container = ProviderContainer(
-      overrides: [
-        databaseProvider.overrideWithValue(db),
-        localTodayProvider.overrideWith((ref) => oct6),
-      ],
-    );
-    await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: MaterialApp(
-          theme: FlyTheme.light(FlyPaletteId.mintCloud),
-          locale: const Locale('en'),
-          supportedLocales: FlyLocalizations.supportedLocales,
-          localizationsDelegates: const [
-            FlyLocalizationsDelegate(),
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
-          home: const DashboardPage(),
+  testWidgets(
+    'Task Focus keeps editing and history; Dashboard shows priorities',
+    (tester) async {
+      const capture = bool.fromEnvironment('FLY_CAPTURE_FOCUS_MOVE');
+      if (capture) await tester.runAsync(_loadCaptureFonts);
+      final focusBoundary = GlobalKey();
+      final dashboardBoundary = GlobalKey();
+      tester.view.physicalSize = const Size(1300, 820);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final db = AppDatabase(NativeDatabase.memory());
+      addTearDown(db.close);
+      await db.ensureBuiltInData();
+      final repository = DashboardFocusRepository(db);
+      await repository.save(
+        type: DashboardFocusType.mainMission,
+        content: 'Old mission',
+        day: oct6,
+      );
+      await repository.save(
+        type: DashboardFocusType.mainMission,
+        content: 'New mission',
+        day: oct6,
+      );
+      await repository.save(
+        type: DashboardFocusType.monthlyFocus,
+        content: 'Old monthly focus',
+        day: oct6,
+      );
+      await repository.save(
+        type: DashboardFocusType.monthlyFocus,
+        content: 'New monthly focus',
+        day: oct6,
+      );
+      final container = ProviderContainer(
+        overrides: [
+          databaseProvider.overrideWithValue(db),
+          localTodayProvider.overrideWith((ref) => oct6),
+        ],
+      );
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            theme: FlyTheme.light(FlyPaletteId.mintCloud),
+            locale: const Locale('en'),
+            supportedLocales: FlyLocalizations.supportedLocales,
+            localizationsDelegates: const [
+              FlyLocalizationsDelegate(),
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            home: RepaintBoundary(
+              key: focusBoundary,
+              child: const TaskFocusPage(),
+            ),
+          ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(find.text('New mission'), findsOneWidget);
-    expect(find.text('Current work overview'), findsNothing);
-    await tester.tap(find.byKey(const ValueKey('dashboard-focus-history')));
-    await tester.pumpAndSettle();
-    expect(find.text('Focus history'), findsOneWidget);
-    expect(find.text('Old mission'), findsOneWidget);
-    expect(find.text('Dashboard'), findsOneWidget);
-    await tester.tap(find.byTooltip('Close history'));
-    await tester.pumpAndSettle();
-    expect(find.text('Focus history'), findsNothing);
-    await tester.pumpWidget(const SizedBox.shrink());
-    container.dispose();
-    for (var index = 0; index < 12; index++) {
-      await tester.pump(const Duration(milliseconds: 100));
-    }
-  });
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('New mission'), findsOneWidget);
+      expect(find.text('Monthly Focus'), findsOneWidget);
+      expect(find.text('New monthly focus'), findsOneWidget);
+      expect(find.text('Current work overview'), findsNothing);
+      if (capture) {
+        await tester.runAsync(
+          () => _captureScreen(focusBoundary, 'build/visual/task-focus.png'),
+        );
+      }
+      await tester.tap(find.byKey(const ValueKey('dashboard-focus-history')));
+      await tester.pumpAndSettle();
+      expect(find.text('Focus history'), findsOneWidget);
+      expect(find.text('Old mission'), findsOneWidget);
+      expect(find.text('Old monthly focus'), findsOneWidget);
+      expect(find.text('New mission'), findsOneWidget);
+      await tester.tap(find.byTooltip('Close history'));
+      await tester.pumpAndSettle();
+      expect(find.text('Focus history'), findsNothing);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            theme: FlyTheme.light(FlyPaletteId.mintCloud),
+            locale: const Locale('en'),
+            supportedLocales: FlyLocalizations.supportedLocales,
+            localizationsDelegates: const [
+              FlyLocalizationsDelegate(),
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            home: RepaintBoundary(
+              key: dashboardBoundary,
+              child: const DashboardPage(),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Dashboard'), findsOneWidget);
+      expect(find.text('Current work overview'), findsOneWidget);
+      expect(find.text('Important & urgent'), findsOneWidget);
+      expect(find.text('My Focus'), findsNothing);
+      expect(find.text('New mission'), findsNothing);
+      if (capture) {
+        await tester.runAsync(
+          () => _captureScreen(dashboardBoundary, 'build/visual/dashboard.png'),
+        );
+      }
+      await tester.pumpWidget(const SizedBox.shrink());
+      container.dispose();
+      for (var index = 0; index < 12; index++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+    },
+  );
 
   testWidgets('Focus Board stays readable in a narrow workspace', (
     tester,
@@ -360,15 +513,59 @@ void main() {
       locale: const Locale('zh', 'CN'),
     );
     expect(find.text('人生主线'), findsOneWidget);
+    expect(find.text('本月重点'), findsOneWidget);
     expect(find.text('本周重点'), findsOneWidget);
     expect(find.text('今日提醒'), findsOneWidget);
     expect(tester.takeException(), isNull);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          theme: FlyTheme.light(FlyPaletteId.mintCloud),
+          locale: const Locale('zh', 'CN'),
+          supportedLocales: FlyLocalizations.supportedLocales,
+          localizationsDelegates: const [
+            FlyLocalizationsDelegate(),
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: const TaskFocusPage(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('我的聚焦'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          theme: FlyTheme.light(FlyPaletteId.mintCloud),
+          locale: const Locale('zh', 'CN'),
+          supportedLocales: FlyLocalizations.supportedLocales,
+          localizationsDelegates: const [
+            FlyLocalizationsDelegate(),
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: const DashboardPage(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('当前工作分布'), findsOneWidget);
+    expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
     container.dispose();
+    for (var index = 0; index < 12; index++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
   });
 
   test(
-    'schema 15 to 16 adds Focus tables without replacing business data',
+    'schema 15 to 17 adds Focus and Knowledge without replacing business data',
     () async {
       final root = await Directory.systemTemp.createTemp(
         'fly-focus-migration-',
@@ -381,16 +578,20 @@ void main() {
           "INSERT INTO app_settings (`key`, value, updated_at) VALUES ('focus-migration-marker', 'preserved', 1)",
         );
         for (final table in [
+          'knowledge_favorites',
           'dashboard_focus_histories',
           'dashboard_daily_focuses',
           'dashboard_focuses',
         ]) {
           await db.customStatement('DROP TABLE $table');
         }
+        await db.customStatement(
+          'ALTER TABLE workspace_notes DROP COLUMN linked_knowledge_article_id',
+        );
         await db.customStatement('PRAGMA user_version=15');
         await db.close();
         db = AppDatabase(NativeDatabase(file));
-        expect(db.schemaVersion, 16);
+        expect(db.schemaVersion, 17);
         expect(
           (await db
                   .customSelect(
@@ -412,6 +613,33 @@ void main() {
         await root.delete(recursive: true);
       }
     },
+  );
+}
+
+Future<void> _captureScreen(GlobalKey key, String path) async {
+  final boundary =
+      key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+  final image = await boundary.toImage(pixelRatio: 1);
+  final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+  image.dispose();
+  if (bytes == null) throw StateError('Unable to capture $path');
+  final file = File(path);
+  await file.parent.create(recursive: true);
+  await file.writeAsBytes(bytes.buffer.asUint8List(), flush: true);
+}
+
+Future<void> _loadCaptureFonts() async {
+  Future<void> load(String family, String path) async {
+    final bytes = await File(path).readAsBytes();
+    final loader = FontLoader(family)
+      ..addFont(Future.value(ByteData.sublistView(bytes)));
+    await loader.load();
+  }
+
+  await load('Microsoft YaHei UI', r'C:\Windows\Fonts\msyh.ttc');
+  await load(
+    'MaterialIcons',
+    r'D:\ProgramData\flutter\bin\cache\artifacts\material_fonts\MaterialIcons-Regular.otf',
   );
 }
 

@@ -10,6 +10,7 @@ import '../../../shared/search/fuzzy_match.dart';
 import '../domain/task.dart';
 import '../domain/task_date_range.dart';
 import '../domain/task_list.dart';
+import '../domain/task_order.dart';
 import 'task_providers.dart';
 import 'task_delete_action.dart';
 import 'widgets/task_components.dart';
@@ -182,7 +183,12 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                       ]),
                     )
                     .toList()
-                  ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+                  ..sort((a, b) {
+                    final priority = compareTaskPriority(a, b);
+                    return priority != 0
+                        ? priority
+                        : b.updatedAt.compareTo(a.updatedAt);
+                  });
             return matches;
           })
         : null;
@@ -213,7 +219,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                             ),
                           )
                           .toList()
-                        ..sort((a, b) => b.dueDate!.compareTo(a.dueDate!)))
+                        ..sort(_compareOverdueTasks))
                       .firstOrNull
             : loaded.firstOrNull;
         _initialSelectionPending = false;
@@ -467,6 +473,11 @@ class _TaskSearchResults extends ConsumerWidget {
   }
 }
 
+int _compareOverdueTasks(FlyTask first, FlyTask second) {
+  final priority = compareTaskPriority(first, second);
+  return priority != 0 ? priority : second.dueDate!.compareTo(first.dueDate!);
+}
+
 class _TaskRows extends ConsumerWidget {
   const _TaskRows({
     required this.tasks,
@@ -487,7 +498,7 @@ class _TaskRows extends ConsumerWidget {
       final today = tasks.where((t) => TaskDateRange.isToday(t, day)).toList();
       final overdue =
           tasks.where((t) => TaskDateRange.isOverdue(t, day)).toList()
-            ..sort((a, b) => b.dueDate!.compareTo(a.dueDate!));
+            ..sort(_compareOverdueTasks);
       return ListView(
         controller: scrollController,
         children: [

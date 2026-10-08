@@ -61,7 +61,7 @@ class AppShell extends ConsumerWidget {
                 child,
                 ref,
                 width,
-                isReview: path == '/tasks/review',
+                isTaskWide: path == '/tasks/review' || path == '/tasks/focus',
               ),
             ],
           ),
@@ -174,8 +174,8 @@ class AppShell extends ConsumerWidget {
                       label: context.l10n.t('navFiles'),
                     ),
                     NavigationDestination(
-                      icon: Icon(Icons.article_outlined),
-                      selectedIcon: Icon(Icons.article),
+                      icon: Icon(Icons.menu_book_outlined),
+                      selectedIcon: Icon(Icons.menu_book_rounded),
                       label: context.l10n.t('navNotes'),
                     ),
                     NavigationDestination(
@@ -213,13 +213,13 @@ class AppShell extends ConsumerWidget {
     Widget child,
     WidgetRef ref,
     double width, {
-    required bool isReview,
+    required bool isTaskWide,
   }) => switch (module) {
     PrimaryModule.dashboard => [Expanded(child: child)],
     PrimaryModule.tasks => [
       const SizedBox(width: FlyMetrics.taskSidebarWidth, child: TaskSidebar()),
       const VerticalDivider(width: 1),
-      if (isReview)
+      if (isTaskWide)
         Expanded(child: child)
       else ...[
         SizedBox(width: FlyMetrics.taskListWidth, child: child),
@@ -420,7 +420,7 @@ class AppShell extends ConsumerWidget {
       PrimaryModule.calendar => '/calendar',
       PrimaryModule.matrix => '/matrix',
       PrimaryModule.files => '/files',
-      PrimaryModule.notes => '/notes',
+      PrimaryModule.notes => '/knowledge',
       PrimaryModule.tools => '/tools/container-loading',
     });
   }

@@ -26753,6 +26753,17 @@ class $WorkspaceNotesTable extends WorkspaceNotes
       'REFERENCES note_folders (id)',
     ),
   );
+  static const VerificationMeta _linkedKnowledgeArticleIdMeta =
+      const VerificationMeta('linkedKnowledgeArticleId');
+  @override
+  late final GeneratedColumn<String> linkedKnowledgeArticleId =
+      GeneratedColumn<String>(
+        'linked_knowledge_article_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _titleMeta = const VerificationMeta('title');
   @override
   late final GeneratedColumn<String> title = GeneratedColumn<String>(
@@ -26842,6 +26853,7 @@ class $WorkspaceNotesTable extends WorkspaceNotes
     manualSortOrder,
     id,
     folderId,
+    linkedKnowledgeArticleId,
     title,
     isFavorite,
     createdAt,
@@ -26880,6 +26892,15 @@ class $WorkspaceNotesTable extends WorkspaceNotes
       context.handle(
         _folderIdMeta,
         folderId.isAcceptableOrUnknown(data['folder_id']!, _folderIdMeta),
+      );
+    }
+    if (data.containsKey('linked_knowledge_article_id')) {
+      context.handle(
+        _linkedKnowledgeArticleIdMeta,
+        linkedKnowledgeArticleId.isAcceptableOrUnknown(
+          data['linked_knowledge_article_id']!,
+          _linkedKnowledgeArticleIdMeta,
+        ),
       );
     }
     if (data.containsKey('title')) {
@@ -26954,6 +26975,10 @@ class $WorkspaceNotesTable extends WorkspaceNotes
         DriftSqlType.string,
         data['${effectivePrefix}folder_id'],
       ),
+      linkedKnowledgeArticleId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}linked_knowledge_article_id'],
+      ),
       title: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}title'],
@@ -26996,6 +27021,7 @@ class WorkspaceNoteRecord extends DataClass
   final int? manualSortOrder;
   final String id;
   final String? folderId;
+  final String? linkedKnowledgeArticleId;
   final String title;
   final bool isFavorite;
   final DateTime createdAt;
@@ -27007,6 +27033,7 @@ class WorkspaceNoteRecord extends DataClass
     this.manualSortOrder,
     required this.id,
     this.folderId,
+    this.linkedKnowledgeArticleId,
     required this.title,
     required this.isFavorite,
     required this.createdAt,
@@ -27024,6 +27051,11 @@ class WorkspaceNoteRecord extends DataClass
     map['id'] = Variable<String>(id);
     if (!nullToAbsent || folderId != null) {
       map['folder_id'] = Variable<String>(folderId);
+    }
+    if (!nullToAbsent || linkedKnowledgeArticleId != null) {
+      map['linked_knowledge_article_id'] = Variable<String>(
+        linkedKnowledgeArticleId,
+      );
     }
     map['title'] = Variable<String>(title);
     map['is_favorite'] = Variable<bool>(isFavorite);
@@ -27048,6 +27080,9 @@ class WorkspaceNoteRecord extends DataClass
       folderId: folderId == null && nullToAbsent
           ? const Value.absent()
           : Value(folderId),
+      linkedKnowledgeArticleId: linkedKnowledgeArticleId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(linkedKnowledgeArticleId),
       title: Value(title),
       isFavorite: Value(isFavorite),
       createdAt: Value(createdAt),
@@ -27071,6 +27106,9 @@ class WorkspaceNoteRecord extends DataClass
       manualSortOrder: serializer.fromJson<int?>(json['manualSortOrder']),
       id: serializer.fromJson<String>(json['id']),
       folderId: serializer.fromJson<String?>(json['folderId']),
+      linkedKnowledgeArticleId: serializer.fromJson<String?>(
+        json['linkedKnowledgeArticleId'],
+      ),
       title: serializer.fromJson<String>(json['title']),
       isFavorite: serializer.fromJson<bool>(json['isFavorite']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -27087,6 +27125,9 @@ class WorkspaceNoteRecord extends DataClass
       'manualSortOrder': serializer.toJson<int?>(manualSortOrder),
       'id': serializer.toJson<String>(id),
       'folderId': serializer.toJson<String?>(folderId),
+      'linkedKnowledgeArticleId': serializer.toJson<String?>(
+        linkedKnowledgeArticleId,
+      ),
       'title': serializer.toJson<String>(title),
       'isFavorite': serializer.toJson<bool>(isFavorite),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -27101,6 +27142,7 @@ class WorkspaceNoteRecord extends DataClass
     Value<int?> manualSortOrder = const Value.absent(),
     String? id,
     Value<String?> folderId = const Value.absent(),
+    Value<String?> linkedKnowledgeArticleId = const Value.absent(),
     String? title,
     bool? isFavorite,
     DateTime? createdAt,
@@ -27114,6 +27156,9 @@ class WorkspaceNoteRecord extends DataClass
         : this.manualSortOrder,
     id: id ?? this.id,
     folderId: folderId.present ? folderId.value : this.folderId,
+    linkedKnowledgeArticleId: linkedKnowledgeArticleId.present
+        ? linkedKnowledgeArticleId.value
+        : this.linkedKnowledgeArticleId,
     title: title ?? this.title,
     isFavorite: isFavorite ?? this.isFavorite,
     createdAt: createdAt ?? this.createdAt,
@@ -27131,6 +27176,9 @@ class WorkspaceNoteRecord extends DataClass
           : this.manualSortOrder,
       id: data.id.present ? data.id.value : this.id,
       folderId: data.folderId.present ? data.folderId.value : this.folderId,
+      linkedKnowledgeArticleId: data.linkedKnowledgeArticleId.present
+          ? data.linkedKnowledgeArticleId.value
+          : this.linkedKnowledgeArticleId,
       title: data.title.present ? data.title.value : this.title,
       isFavorite: data.isFavorite.present
           ? data.isFavorite.value
@@ -27151,6 +27199,7 @@ class WorkspaceNoteRecord extends DataClass
           ..write('manualSortOrder: $manualSortOrder, ')
           ..write('id: $id, ')
           ..write('folderId: $folderId, ')
+          ..write('linkedKnowledgeArticleId: $linkedKnowledgeArticleId, ')
           ..write('title: $title, ')
           ..write('isFavorite: $isFavorite, ')
           ..write('createdAt: $createdAt, ')
@@ -27167,6 +27216,7 @@ class WorkspaceNoteRecord extends DataClass
     manualSortOrder,
     id,
     folderId,
+    linkedKnowledgeArticleId,
     title,
     isFavorite,
     createdAt,
@@ -27182,6 +27232,7 @@ class WorkspaceNoteRecord extends DataClass
           other.manualSortOrder == this.manualSortOrder &&
           other.id == this.id &&
           other.folderId == this.folderId &&
+          other.linkedKnowledgeArticleId == this.linkedKnowledgeArticleId &&
           other.title == this.title &&
           other.isFavorite == this.isFavorite &&
           other.createdAt == this.createdAt &&
@@ -27195,6 +27246,7 @@ class WorkspaceNotesCompanion extends UpdateCompanion<WorkspaceNoteRecord> {
   final Value<int?> manualSortOrder;
   final Value<String> id;
   final Value<String?> folderId;
+  final Value<String?> linkedKnowledgeArticleId;
   final Value<String> title;
   final Value<bool> isFavorite;
   final Value<DateTime> createdAt;
@@ -27207,6 +27259,7 @@ class WorkspaceNotesCompanion extends UpdateCompanion<WorkspaceNoteRecord> {
     this.manualSortOrder = const Value.absent(),
     this.id = const Value.absent(),
     this.folderId = const Value.absent(),
+    this.linkedKnowledgeArticleId = const Value.absent(),
     this.title = const Value.absent(),
     this.isFavorite = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -27220,6 +27273,7 @@ class WorkspaceNotesCompanion extends UpdateCompanion<WorkspaceNoteRecord> {
     this.manualSortOrder = const Value.absent(),
     required String id,
     this.folderId = const Value.absent(),
+    this.linkedKnowledgeArticleId = const Value.absent(),
     required String title,
     this.isFavorite = const Value.absent(),
     required DateTime createdAt,
@@ -27236,6 +27290,7 @@ class WorkspaceNotesCompanion extends UpdateCompanion<WorkspaceNoteRecord> {
     Expression<int>? manualSortOrder,
     Expression<String>? id,
     Expression<String>? folderId,
+    Expression<String>? linkedKnowledgeArticleId,
     Expression<String>? title,
     Expression<bool>? isFavorite,
     Expression<DateTime>? createdAt,
@@ -27249,6 +27304,8 @@ class WorkspaceNotesCompanion extends UpdateCompanion<WorkspaceNoteRecord> {
       if (manualSortOrder != null) 'manual_sort_order': manualSortOrder,
       if (id != null) 'id': id,
       if (folderId != null) 'folder_id': folderId,
+      if (linkedKnowledgeArticleId != null)
+        'linked_knowledge_article_id': linkedKnowledgeArticleId,
       if (title != null) 'title': title,
       if (isFavorite != null) 'is_favorite': isFavorite,
       if (createdAt != null) 'created_at': createdAt,
@@ -27264,6 +27321,7 @@ class WorkspaceNotesCompanion extends UpdateCompanion<WorkspaceNoteRecord> {
     Value<int?>? manualSortOrder,
     Value<String>? id,
     Value<String?>? folderId,
+    Value<String?>? linkedKnowledgeArticleId,
     Value<String>? title,
     Value<bool>? isFavorite,
     Value<DateTime>? createdAt,
@@ -27277,6 +27335,8 @@ class WorkspaceNotesCompanion extends UpdateCompanion<WorkspaceNoteRecord> {
       manualSortOrder: manualSortOrder ?? this.manualSortOrder,
       id: id ?? this.id,
       folderId: folderId ?? this.folderId,
+      linkedKnowledgeArticleId:
+          linkedKnowledgeArticleId ?? this.linkedKnowledgeArticleId,
       title: title ?? this.title,
       isFavorite: isFavorite ?? this.isFavorite,
       createdAt: createdAt ?? this.createdAt,
@@ -27299,6 +27359,11 @@ class WorkspaceNotesCompanion extends UpdateCompanion<WorkspaceNoteRecord> {
     }
     if (folderId.present) {
       map['folder_id'] = Variable<String>(folderId.value);
+    }
+    if (linkedKnowledgeArticleId.present) {
+      map['linked_knowledge_article_id'] = Variable<String>(
+        linkedKnowledgeArticleId.value,
+      );
     }
     if (title.present) {
       map['title'] = Variable<String>(title.value);
@@ -27333,6 +27398,7 @@ class WorkspaceNotesCompanion extends UpdateCompanion<WorkspaceNoteRecord> {
           ..write('manualSortOrder: $manualSortOrder, ')
           ..write('id: $id, ')
           ..write('folderId: $folderId, ')
+          ..write('linkedKnowledgeArticleId: $linkedKnowledgeArticleId, ')
           ..write('title: $title, ')
           ..write('isFavorite: $isFavorite, ')
           ..write('createdAt: $createdAt, ')
@@ -27340,6 +27406,225 @@ class WorkspaceNotesCompanion extends UpdateCompanion<WorkspaceNoteRecord> {
           ..write('deletedAt: $deletedAt, ')
           ..write('deletionBatch: $deletionBatch, ')
           ..write('revision: $revision, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $KnowledgeFavoritesTable extends KnowledgeFavorites
+    with TableInfo<$KnowledgeFavoritesTable, KnowledgeFavorite> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $KnowledgeFavoritesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _articleIdMeta = const VerificationMeta(
+    'articleId',
+  );
+  @override
+  late final GeneratedColumn<String> articleId = GeneratedColumn<String>(
+    'article_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [articleId, createdAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'knowledge_favorites';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<KnowledgeFavorite> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('article_id')) {
+      context.handle(
+        _articleIdMeta,
+        articleId.isAcceptableOrUnknown(data['article_id']!, _articleIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_articleIdMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {articleId};
+  @override
+  KnowledgeFavorite map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return KnowledgeFavorite(
+      articleId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}article_id'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $KnowledgeFavoritesTable createAlias(String alias) {
+    return $KnowledgeFavoritesTable(attachedDatabase, alias);
+  }
+}
+
+class KnowledgeFavorite extends DataClass
+    implements Insertable<KnowledgeFavorite> {
+  final String articleId;
+  final DateTime createdAt;
+  const KnowledgeFavorite({required this.articleId, required this.createdAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['article_id'] = Variable<String>(articleId);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  KnowledgeFavoritesCompanion toCompanion(bool nullToAbsent) {
+    return KnowledgeFavoritesCompanion(
+      articleId: Value(articleId),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory KnowledgeFavorite.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return KnowledgeFavorite(
+      articleId: serializer.fromJson<String>(json['articleId']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'articleId': serializer.toJson<String>(articleId),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  KnowledgeFavorite copyWith({String? articleId, DateTime? createdAt}) =>
+      KnowledgeFavorite(
+        articleId: articleId ?? this.articleId,
+        createdAt: createdAt ?? this.createdAt,
+      );
+  KnowledgeFavorite copyWithCompanion(KnowledgeFavoritesCompanion data) {
+    return KnowledgeFavorite(
+      articleId: data.articleId.present ? data.articleId.value : this.articleId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('KnowledgeFavorite(')
+          ..write('articleId: $articleId, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(articleId, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is KnowledgeFavorite &&
+          other.articleId == this.articleId &&
+          other.createdAt == this.createdAt);
+}
+
+class KnowledgeFavoritesCompanion extends UpdateCompanion<KnowledgeFavorite> {
+  final Value<String> articleId;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const KnowledgeFavoritesCompanion({
+    this.articleId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  KnowledgeFavoritesCompanion.insert({
+    required String articleId,
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  }) : articleId = Value(articleId),
+       createdAt = Value(createdAt);
+  static Insertable<KnowledgeFavorite> custom({
+    Expression<String>? articleId,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (articleId != null) 'article_id': articleId,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  KnowledgeFavoritesCompanion copyWith({
+    Value<String>? articleId,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return KnowledgeFavoritesCompanion(
+      articleId: articleId ?? this.articleId,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (articleId.present) {
+      map['article_id'] = Variable<String>(articleId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('KnowledgeFavoritesCompanion(')
+          ..write('articleId: $articleId, ')
+          ..write('createdAt: $createdAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -28467,6 +28752,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $FileTagLinksTable fileTagLinks = $FileTagLinksTable(this);
   late final $NoteFoldersTable noteFolders = $NoteFoldersTable(this);
   late final $WorkspaceNotesTable workspaceNotes = $WorkspaceNotesTable(this);
+  late final $KnowledgeFavoritesTable knowledgeFavorites =
+      $KnowledgeFavoritesTable(this);
   late final $NoteBlocksTable noteBlocks = $NoteBlocksTable(this);
   late final $NoteTagLinksTable noteTagLinks = $NoteTagLinksTable(this);
   late final $DailyReviewsTable dailyReviews = $DailyReviewsTable(this);
@@ -28518,6 +28805,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     fileTagLinks,
     noteFolders,
     workspaceNotes,
+    knowledgeFavorites,
     noteBlocks,
     noteTagLinks,
     dailyReviews,
@@ -49821,6 +50109,7 @@ typedef $$WorkspaceNotesTableCreateCompanionBuilder =
       Value<int?> manualSortOrder,
       required String id,
       Value<String?> folderId,
+      Value<String?> linkedKnowledgeArticleId,
       required String title,
       Value<bool> isFavorite,
       required DateTime createdAt,
@@ -49835,6 +50124,7 @@ typedef $$WorkspaceNotesTableUpdateCompanionBuilder =
       Value<int?> manualSortOrder,
       Value<String> id,
       Value<String?> folderId,
+      Value<String?> linkedKnowledgeArticleId,
       Value<String> title,
       Value<bool> isFavorite,
       Value<DateTime> createdAt,
@@ -49928,6 +50218,11 @@ class $$WorkspaceNotesTableFilterComposer
 
   ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get linkedKnowledgeArticleId => $composableBuilder(
+    column: $table.linkedKnowledgeArticleId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -50059,6 +50354,11 @@ class $$WorkspaceNotesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get linkedKnowledgeArticleId => $composableBuilder(
+    column: $table.linkedKnowledgeArticleId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get title => $composableBuilder(
     column: $table.title,
     builder: (column) => ColumnOrderings(column),
@@ -50134,6 +50434,11 @@ class $$WorkspaceNotesTableAnnotationComposer
 
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get linkedKnowledgeArticleId => $composableBuilder(
+    column: $table.linkedKnowledgeArticleId,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get title =>
       $composableBuilder(column: $table.title, builder: (column) => column);
@@ -50271,6 +50576,7 @@ class $$WorkspaceNotesTableTableManager
                 Value<int?> manualSortOrder = const Value.absent(),
                 Value<String> id = const Value.absent(),
                 Value<String?> folderId = const Value.absent(),
+                Value<String?> linkedKnowledgeArticleId = const Value.absent(),
                 Value<String> title = const Value.absent(),
                 Value<bool> isFavorite = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -50283,6 +50589,7 @@ class $$WorkspaceNotesTableTableManager
                 manualSortOrder: manualSortOrder,
                 id: id,
                 folderId: folderId,
+                linkedKnowledgeArticleId: linkedKnowledgeArticleId,
                 title: title,
                 isFavorite: isFavorite,
                 createdAt: createdAt,
@@ -50297,6 +50604,7 @@ class $$WorkspaceNotesTableTableManager
                 Value<int?> manualSortOrder = const Value.absent(),
                 required String id,
                 Value<String?> folderId = const Value.absent(),
+                Value<String?> linkedKnowledgeArticleId = const Value.absent(),
                 required String title,
                 Value<bool> isFavorite = const Value.absent(),
                 required DateTime createdAt,
@@ -50309,6 +50617,7 @@ class $$WorkspaceNotesTableTableManager
                 manualSortOrder: manualSortOrder,
                 id: id,
                 folderId: folderId,
+                linkedKnowledgeArticleId: linkedKnowledgeArticleId,
                 title: title,
                 isFavorite: isFavorite,
                 createdAt: createdAt,
@@ -50437,6 +50746,162 @@ typedef $$WorkspaceNotesTableProcessedTableManager =
         bool noteBlocksRefs,
         bool noteTagLinksRefs,
       })
+    >;
+typedef $$KnowledgeFavoritesTableCreateCompanionBuilder =
+    KnowledgeFavoritesCompanion Function({
+      required String articleId,
+      required DateTime createdAt,
+      Value<int> rowid,
+    });
+typedef $$KnowledgeFavoritesTableUpdateCompanionBuilder =
+    KnowledgeFavoritesCompanion Function({
+      Value<String> articleId,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+
+class $$KnowledgeFavoritesTableFilterComposer
+    extends Composer<_$AppDatabase, $KnowledgeFavoritesTable> {
+  $$KnowledgeFavoritesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get articleId => $composableBuilder(
+    column: $table.articleId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$KnowledgeFavoritesTableOrderingComposer
+    extends Composer<_$AppDatabase, $KnowledgeFavoritesTable> {
+  $$KnowledgeFavoritesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get articleId => $composableBuilder(
+    column: $table.articleId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$KnowledgeFavoritesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $KnowledgeFavoritesTable> {
+  $$KnowledgeFavoritesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get articleId =>
+      $composableBuilder(column: $table.articleId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$KnowledgeFavoritesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $KnowledgeFavoritesTable,
+          KnowledgeFavorite,
+          $$KnowledgeFavoritesTableFilterComposer,
+          $$KnowledgeFavoritesTableOrderingComposer,
+          $$KnowledgeFavoritesTableAnnotationComposer,
+          $$KnowledgeFavoritesTableCreateCompanionBuilder,
+          $$KnowledgeFavoritesTableUpdateCompanionBuilder,
+          (
+            KnowledgeFavorite,
+            BaseReferences<
+              _$AppDatabase,
+              $KnowledgeFavoritesTable,
+              KnowledgeFavorite
+            >,
+          ),
+          KnowledgeFavorite,
+          PrefetchHooks Function()
+        > {
+  $$KnowledgeFavoritesTableTableManager(
+    _$AppDatabase db,
+    $KnowledgeFavoritesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$KnowledgeFavoritesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$KnowledgeFavoritesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$KnowledgeFavoritesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> articleId = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => KnowledgeFavoritesCompanion(
+                articleId: articleId,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String articleId,
+                required DateTime createdAt,
+                Value<int> rowid = const Value.absent(),
+              }) => KnowledgeFavoritesCompanion.insert(
+                articleId: articleId,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$KnowledgeFavoritesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $KnowledgeFavoritesTable,
+      KnowledgeFavorite,
+      $$KnowledgeFavoritesTableFilterComposer,
+      $$KnowledgeFavoritesTableOrderingComposer,
+      $$KnowledgeFavoritesTableAnnotationComposer,
+      $$KnowledgeFavoritesTableCreateCompanionBuilder,
+      $$KnowledgeFavoritesTableUpdateCompanionBuilder,
+      (
+        KnowledgeFavorite,
+        BaseReferences<
+          _$AppDatabase,
+          $KnowledgeFavoritesTable,
+          KnowledgeFavorite
+        >,
+      ),
+      KnowledgeFavorite,
+      PrefetchHooks Function()
     >;
 typedef $$NoteBlocksTableCreateCompanionBuilder = NoteBlocksCompanion Function({
   required String id,
@@ -51443,6 +51908,8 @@ class $AppDatabaseManager {
       $$NoteFoldersTableTableManager(_db, _db.noteFolders);
   $$WorkspaceNotesTableTableManager get workspaceNotes =>
       $$WorkspaceNotesTableTableManager(_db, _db.workspaceNotes);
+  $$KnowledgeFavoritesTableTableManager get knowledgeFavorites =>
+      $$KnowledgeFavoritesTableTableManager(_db, _db.knowledgeFavorites);
   $$NoteBlocksTableTableManager get noteBlocks =>
       $$NoteBlocksTableTableManager(_db, _db.noteBlocks);
   $$NoteTagLinksTableTableManager get noteTagLinks =>

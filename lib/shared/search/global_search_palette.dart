@@ -112,8 +112,15 @@ class _GlobalSearchPaletteState extends ConsumerState<GlobalSearchPalette> {
       case SearchResultType.workspaceNote:
         context.go(
           Uri(
-            path: '/notes',
-            queryParameters: {'id': result.entityId},
+            path: '/knowledge',
+            queryParameters: {'view': 'notes', 'id': result.entityId},
+          ).toString(),
+        );
+      case SearchResultType.knowledge:
+        context.go(
+          Uri(
+            path: '/knowledge',
+            queryParameters: {'article': result.entityId},
           ).toString(),
         );
       case SearchResultType.customer:
@@ -270,6 +277,9 @@ class _GlobalSearchPaletteState extends ConsumerState<GlobalSearchPalette> {
                                 child: Text(
                                   result.type == SearchResultType.tag
                                       ? _text('searchTag')
+                                      : result.type ==
+                                            SearchResultType.knowledge
+                                      ? context.l10n.t('knowledgeTitle')
                                       : context.crmCopy(
                                           _groupLabel(result.type),
                                         ),
@@ -330,6 +340,7 @@ String _groupLabel(SearchResultType type) => switch (type) {
   SearchResultType.tag => '标签',
   SearchResultType.file => '文件',
   SearchResultType.workspaceNote => '笔记',
+  SearchResultType.knowledge => '资料库',
   SearchResultType.customer => '客户',
   SearchResultType.order => '订单',
   SearchResultType.task => '任务',
@@ -341,6 +352,7 @@ IconData _icon(SearchResultType type) => switch (type) {
   SearchResultType.tag => Icons.tag_outlined,
   SearchResultType.file => Icons.folder_outlined,
   SearchResultType.workspaceNote => Icons.article_outlined,
+  SearchResultType.knowledge => Icons.menu_book_outlined,
   SearchResultType.customer => Icons.person_outline,
   SearchResultType.order => Icons.receipt_long_outlined,
   SearchResultType.task => Icons.check_box_outlined,

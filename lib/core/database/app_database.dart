@@ -61,6 +61,7 @@ const _databaseName = String.fromEnvironment(
     FileTagLinks,
     NoteFolders,
     WorkspaceNotes,
+    KnowledgeFavorites,
     NoteBlocks,
     NoteTagLinks,
     DailyReviews,
@@ -83,7 +84,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 16;
+  int get schemaVersion => 17;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -377,6 +378,18 @@ class AppDatabase extends _$AppDatabase {
           await migrator.createTable(dashboardFocuses);
           await migrator.createTable(dashboardFocusHistories);
           await migrator.createTable(dashboardDailyFocuses);
+        }
+        if (from < 17) {
+          if (!await _columnExists(
+            'workspace_notes',
+            'linked_knowledge_article_id',
+          )) {
+            await migrator.addColumn(
+              workspaceNotes,
+              workspaceNotes.linkedKnowledgeArticleId,
+            );
+          }
+          await migrator.createTable(knowledgeFavorites);
         }
         await _createIndexes();
         final violations = await customSelect('PRAGMA foreign_key_check').get();

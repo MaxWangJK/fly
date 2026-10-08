@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../../config/feature_flags.dart';
 import '../../l10n/fly_localizations.dart';
 import 'local_license_service.dart';
+import '../../features/knowledge/presentation/knowledge_workspace.dart';
 
 class LocalLicenseGate extends StatefulWidget {
   const LocalLicenseGate({super.key, required this.child});
@@ -25,6 +26,7 @@ class _LocalLicenseGateState extends State<LocalLicenseGate>
   Timer? _timer;
   bool _busy = false;
   bool _showActivation = false;
+  bool _showFreeKnowledge = false;
   String? _error;
   @override
   void initState() {
@@ -103,76 +105,115 @@ class _LocalLicenseGateState extends State<LocalLicenseGate>
         if (locked)
           Positioned.fill(
             child: Scaffold(
-              body: Center(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 520),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+              body: _showFreeKnowledge && !allowed
+                  ? Column(
                       children: [
-                        Text(
-                          t(allowed ? 'licenseActivate' : 'licenseLocked'),
-                          style: Theme.of(context).textTheme.headlineSmall,
-                        ),
-                        const SizedBox(height: 12),
-                        Text(t('licenseDataSafe')),
-                        const SizedBox(height: 20),
-                        Text(t('licenseMachine')),
-                        SelectableText(_service.machineCode),
-                        TextButton.icon(
-                          onPressed: _service.machineCode.isEmpty
-                              ? null
-                              : () => Clipboard.setData(
-                                  ClipboardData(text: _service.machineCode),
-                                ),
-                          icon: const Icon(Icons.copy_outlined),
-                          label: Text(t('licenseCopyMachine')),
-                        ),
-                        TextField(
-                          controller: _input,
-                          minLines: 3,
-                          maxLines: 6,
-                          enabled: !_busy,
-                          decoration: InputDecoration(
-                            labelText: t('licenseKey'),
-                          ),
-                          onSubmitted: (_) => _refresh(activate: true),
-                        ),
-                        if (_error != null)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            child: Text(
-                              t(_error!),
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.error,
+                        Material(
+                          child: SafeArea(
+                            bottom: false,
+                            child: ListTile(
+                              leading: const Icon(Icons.menu_book_outlined),
+                              title: Text(t('knowledgeTitle')),
+                              trailing: TextButton(
+                                onPressed: () =>
+                                    setState(() => _showFreeKnowledge = false),
+                                child: Text(t('licenseActivate')),
                               ),
                             ),
                           ),
-                        const SizedBox(height: 12),
-                        FilledButton(
-                          onPressed: _busy
-                              ? null
-                              : () => _refresh(activate: true),
-                          child: Text(t('licenseActivate')),
                         ),
-                        TextButton(
-                          onPressed: _busy ? null : () => _refresh(),
-                          child: Text(t('licenseRetry')),
+                        const Expanded(
+                          child: KnowledgeWorkspace(standalone: true),
                         ),
-                        if (allowed)
-                          TextButton(
-                            onPressed: () =>
-                                setState(() => _showActivation = false),
-                            child: Text(t('licenseContinue')),
-                          ),
-                        if (_busy) const LinearProgressIndicator(),
                       ],
+                    )
+                  : Center(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(24),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 520),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(
+                                t(
+                                  allowed ? 'licenseActivate' : 'licenseLocked',
+                                ),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineSmall,
+                              ),
+                              const SizedBox(height: 12),
+                              Text(t('licenseDataSafe')),
+                              const SizedBox(height: 20),
+                              Text(t('licenseMachine')),
+                              SelectableText(_service.machineCode),
+                              TextButton.icon(
+                                onPressed: _service.machineCode.isEmpty
+                                    ? null
+                                    : () => Clipboard.setData(
+                                        ClipboardData(
+                                          text: _service.machineCode,
+                                        ),
+                                      ),
+                                icon: const Icon(Icons.copy_outlined),
+                                label: Text(t('licenseCopyMachine')),
+                              ),
+                              TextField(
+                                controller: _input,
+                                minLines: 3,
+                                maxLines: 6,
+                                enabled: !_busy,
+                                decoration: InputDecoration(
+                                  labelText: t('licenseKey'),
+                                ),
+                                onSubmitted: (_) => _refresh(activate: true),
+                              ),
+                              if (_error != null)
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                  child: Text(
+                                    t(_error!),
+                                    style: TextStyle(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .error,
+                                    ),
+                                  ),
+                                ),
+                              const SizedBox(height: 12),
+                              FilledButton(
+                                onPressed: _busy
+                                    ? null
+                                    : () => _refresh(activate: true),
+                                child: Text(t('licenseActivate')),
+                              ),
+                              TextButton(
+                                onPressed: _busy ? null : () => _refresh(),
+                                child: Text(t('licenseRetry')),
+                              ),
+                              if (allowed)
+                                TextButton(
+                                  onPressed: () =>
+                                      setState(() => _showActivation = false),
+                                  child: Text(t('licenseContinue')),
+                                ),
+                              if (!allowed)
+                                TextButton.icon(
+                                  onPressed: () =>
+                                      setState(() => _showFreeKnowledge = true),
+                                  icon: const Icon(Icons.menu_book_outlined),
+                                  label: Text(t('knowledgeTitle')),
+                                ),
+                              if (_busy) const LinearProgressIndicator(),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              ),
             ),
           ),
         if (!locked && _state!.isTrial)

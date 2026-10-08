@@ -1,18 +1,21 @@
-enum DashboardFocusType { mainMission, weeklyFocus, todayFocus }
+enum DashboardFocusType { mainMission, monthlyFocus, weeklyFocus, todayFocus }
 
 class DashboardFocusSnapshot {
   const DashboardFocusSnapshot({
     required this.mainMission,
+    required this.monthlyFocus,
     required this.weeklyFocus,
     required this.todayFocus,
   });
 
   final String mainMission;
+  final String monthlyFocus;
   final String weeklyFocus;
   final String todayFocus;
 
   String content(DashboardFocusType type) => switch (type) {
     DashboardFocusType.mainMission => mainMission,
+    DashboardFocusType.monthlyFocus => monthlyFocus,
     DashboardFocusType.weeklyFocus => weeklyFocus,
     DashboardFocusType.todayFocus => todayFocus,
   };

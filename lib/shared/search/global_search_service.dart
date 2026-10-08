@@ -3,6 +3,7 @@ import 'dart:convert';
 import '../../core/database/app_database.dart';
 import '../../features/customers/domain/customer.dart';
 import '../../features/files/data/file_browser_query.dart';
+import '../../features/knowledge/data/knowledge_repository.dart';
 import 'fuzzy_match.dart';
 
 import 'package:drift/drift.dart';
@@ -15,6 +16,7 @@ enum SearchResultType {
   followUp,
   file,
   workspaceNote,
+  knowledge,
   tag,
 }
 
@@ -39,9 +41,10 @@ class FlySearchResult {
 }
 
 class GlobalSearchService {
-  GlobalSearchService(this._db);
+  GlobalSearchService(this._db, {this.knowledge});
 
   final AppDatabase _db;
+  final KnowledgeRepository? knowledge;
 
   static String _tagName(String name) =>
       name.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
@@ -364,6 +367,31 @@ class GlobalSearchService {
             score: 240 + match.score,
           ),
         );
+      }
+    }
+    if (knowledge != null) {
+      try {
+        for (final article in await knowledge!.search(term, limit: perGroup)) {
+          final match = _bestMatch(term, [
+            article.title,
+            article.summary,
+            ...article.tags,
+            ...article.keywords,
+            article.plainText,
+          ]);
+          results.add(
+            FlySearchResult(
+              type: SearchResultType.knowledge,
+              entityId: article.id,
+              title: article.title,
+              subtitle: article.summary,
+              matchedText: match?.value ?? article.title,
+              score: 260 + (match?.score ?? 0),
+            ),
+          );
+        }
+      } catch (_) {
+        // An unavailable official pack must not hide CRM or personal results.
       }
     }
     for (final group in (await _taggedEntities()).entries) {

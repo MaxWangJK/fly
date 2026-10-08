@@ -94,6 +94,12 @@ class TaskSidebar extends ConsumerWidget {
                 selected: path == '/tasks/review',
                 onTap: () => _navigate(context, ref, '/tasks/review'),
               ),
+              _SidebarItem(
+                label: context.l10n.isZh ? '我的聚焦' : 'My Focus',
+                icon: Icons.center_focus_strong_outlined,
+                selected: path == '/tasks/focus',
+                onTap: () => _navigate(context, ref, '/tasks/focus'),
+              ),
               const Divider(height: 1),
               Padding(
                 padding: const EdgeInsets.only(

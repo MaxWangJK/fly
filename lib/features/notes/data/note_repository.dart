@@ -233,41 +233,45 @@ class NoteRepository {
     }
   }
 
-  Future<String> create(String title, {String? folderId}) =>
-      db.transaction(() async {
-        await _folder(folderId);
-        final name = title.trim();
-        if (name.isEmpty || name.length > 500) {
-          throw ArgumentError('请输入 1–500 字笔记标题');
-        }
-        final id = const Uuid().v7();
-        final now = DateTime.now();
-        await db
-            .into(db.workspaceNotes)
-            .insert(
-              WorkspaceNotesCompanion.insert(
-                id: id,
-                folderId: Value(folderId),
-                title: name,
-                createdAt: now,
-                updatedAt: now,
-              ),
-            );
-        await db
-            .into(db.noteBlocks)
-            .insert(
-              NoteBlocksCompanion.insert(
-                id: const Uuid().v7(),
-                noteId: id,
-                type: 'paragraph',
-                sortOrder: 0,
-                contentJson: '{"text":""}',
-                createdAt: now,
-                updatedAt: now,
-              ),
-            );
-        return id;
-      });
+  Future<String> create(
+    String title, {
+    String? folderId,
+    String? linkedKnowledgeArticleId,
+  }) => db.transaction(() async {
+    await _folder(folderId);
+    final name = title.trim();
+    if (name.isEmpty || name.length > 500) {
+      throw ArgumentError('请输入 1–500 字笔记标题');
+    }
+    final id = const Uuid().v7();
+    final now = DateTime.now();
+    await db
+        .into(db.workspaceNotes)
+        .insert(
+          WorkspaceNotesCompanion.insert(
+            id: id,
+            folderId: Value(folderId),
+            linkedKnowledgeArticleId: Value(linkedKnowledgeArticleId),
+            title: name,
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+    await db
+        .into(db.noteBlocks)
+        .insert(
+          NoteBlocksCompanion.insert(
+            id: const Uuid().v7(),
+            noteId: id,
+            type: 'paragraph',
+            sortOrder: 0,
+            contentJson: '{"text":""}',
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+    return id;
+  });
   Future<int> save(
     String id, {
     required String title,

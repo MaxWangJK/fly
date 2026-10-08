@@ -94,6 +94,13 @@ class DashboardFocusBoard extends ConsumerWidget {
                   ),
                   Divider(height: 22, color: colors.divider),
                   _FocusSection(
+                    key: const ValueKey('focus-section-monthlyFocus'),
+                    type: DashboardFocusType.monthlyFocus,
+                    content: snapshot.monthlyFocus,
+                    day: day,
+                  ),
+                  Divider(height: 22, color: colors.divider),
+                  _FocusSection(
                     key: const ValueKey('focus-section-weeklyFocus'),
                     type: DashboardFocusType.weeklyFocus,
                     content: snapshot.weeklyFocus,
@@ -150,6 +157,7 @@ class _FocusSectionState extends ConsumerState<_FocusSection> {
   String _label(BuildContext context) =>
       context.focusCopy(switch (widget.type) {
         DashboardFocusType.mainMission => '人生主线',
+        DashboardFocusType.monthlyFocus => '本月重点',
         DashboardFocusType.weeklyFocus => '本周重点',
         DashboardFocusType.todayFocus => '今日提醒',
       });
@@ -157,6 +165,7 @@ class _FocusSectionState extends ConsumerState<_FocusSection> {
   String _placeholder(BuildContext context) =>
       context.focusCopy(switch (widget.type) {
         DashboardFocusType.mainMission => '点击这里写下你当前最重要的长期目标',
+        DashboardFocusType.monthlyFocus => '这个月最重要的成果是什么？',
         DashboardFocusType.weeklyFocus => '这周最重要的一件事是什么？',
         DashboardFocusType.todayFocus => '今天必须完成什么？',
       });
@@ -227,7 +236,8 @@ class _FocusSectionState extends ConsumerState<_FocusSection> {
             ?.copyWith(
               fontSize: prominent
                   ? 21
-                  : type == DashboardFocusType.weeklyFocus
+                  : type == DashboardFocusType.monthlyFocus ||
+                        type == DashboardFocusType.weeklyFocus
                   ? 17
                   : 16,
               fontWeight: prominent ? FontWeight.w600 : FontWeight.w500,
@@ -409,6 +419,7 @@ class DashboardFocusHistoryPanel extends ConsumerWidget {
                         final entry = entries[index];
                         final label = context.focusCopy(switch (entry.type) {
                           DashboardFocusType.mainMission => '人生主线',
+                          DashboardFocusType.monthlyFocus => '本月重点',
                           DashboardFocusType.weeklyFocus => '本周重点',
                           DashboardFocusType.todayFocus => '今日提醒',
                         });

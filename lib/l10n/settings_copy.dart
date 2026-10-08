@@ -46,6 +46,7 @@ const settingsEnglish = <String, String>{
   '立即备份': 'Back up now',
   '关闭': 'Close',
   '常规': 'General',
+  '资料库': 'Knowledge Hub',
   '外观': 'Appearance',
   '导航': 'Navigation',
   '提醒': 'Reminders',

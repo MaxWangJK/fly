@@ -6,6 +6,7 @@ import 'fly_localizations.dart';
 const dashboardFocusEnglish = <String, String>{
   '我的聚焦': 'My Focus',
   '人生主线': 'Main Mission',
+  '本月重点': 'Monthly Focus',
   '本周重点': 'Weekly Focus',
   '今日提醒': "Today's Focus",
   '历史': 'History',
@@ -14,6 +15,7 @@ const dashboardFocusEnglish = <String, String>{
   '关闭历史': 'Close history',
   '暂无历史': 'No history yet',
   '点击这里写下你当前最重要的长期目标': 'Write your most important long-term goal',
+  '这个月最重要的成果是什么？': 'What result matters most this month?',
   '这周最重要的一件事是什么？': 'What matters most this week?',
   '今天必须完成什么？': 'What must be done today?',
   '点击即可编辑': 'Click to edit',

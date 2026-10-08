@@ -6,6 +6,7 @@ import 'package:fly/core/database/app_database.dart';
 import 'package:fly/core/storage/data_root_service.dart';
 import 'package:fly/features/dashboard/data/dashboard_focus_repository.dart';
 import 'package:fly/features/dashboard/domain/dashboard_focus.dart';
+import 'package:fly/features/knowledge/data/knowledge_repository.dart';
 import 'package:fly/main.dart' show FlyBootstrap;
 import 'package:path/path.dart' as p;
 
@@ -34,6 +35,10 @@ Future<void> main() async {
   final database = AppDatabase.atDataRoot(dataRoot);
   try {
     await database.ensureBuiltInData();
+    final knowledge = await loadBundledKnowledge();
+    if (knowledge.articles.length != 14) {
+      throw StateError('Bundled Knowledge catalog is incomplete.');
+    }
     final navigation = NavigationSettingsController(database);
     await navigation.ready;
     await navigation.update(const NavigationSettings(dashboardVisible: true));

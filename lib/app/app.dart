@@ -15,10 +15,11 @@ import '../features/customers/domain/customer.dart';
 import '../features/customers/presentation/customer_list_page.dart';
 import '../features/matrix/presentation/matrix_page.dart';
 import '../features/files/presentation/files_workspace.dart';
-import '../features/notes/presentation/notes_workspace.dart';
+import '../features/knowledge/presentation/knowledge_workspace.dart';
 import '../features/orders/domain/order.dart';
 import '../features/orders/presentation/order_list_page.dart';
 import '../features/tasks/presentation/task_detail_panel.dart';
+import '../features/tasks/presentation/task_focus_page.dart';
 import '../features/tasks/presentation/task_list_page.dart';
 import '../features/tasks/presentation/task_providers.dart';
 import '../features/tools/container_loading/presentation/workspace/container_loading_page.dart';
@@ -76,9 +77,23 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/notes',
-            builder: (context, state) => NotesWorkspace(
-              key: ValueKey(state.uri.queryParameters['id']),
+            redirect: (context, state) {
+              final id = state.uri.queryParameters['id'];
+              final parameters = <String, String>{'view': 'notes'};
+              if (id != null) parameters['id'] = id;
+              return Uri(
+                path: '/knowledge',
+                queryParameters: parameters,
+              ).toString();
+            },
+          ),
+          GoRoute(
+            path: '/knowledge',
+            builder: (context, state) => KnowledgeWorkspace(
+              key: ValueKey(state.uri.toString()),
+              initialArticleId: state.uri.queryParameters['article'],
               initialNoteId: state.uri.queryParameters['id'],
+              showNotes: state.uri.queryParameters['view'] == 'notes',
             ),
           ),
           GoRoute(
@@ -163,6 +178,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/tasks/review',
             builder: (context, state) => const DailyReviewPage(),
+          ),
+          GoRoute(
+            path: '/tasks/focus',
+            builder: (context, state) => const TaskFocusPage(),
           ),
           GoRoute(
             path: '/tasks/inbox',

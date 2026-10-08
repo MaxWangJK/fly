@@ -126,6 +126,8 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('primary-notes')));
     await _pumpUi(tester);
+    await tester.tap(find.text('我的笔记').first);
+    await _pumpUi(tester);
     expect(find.text('客户开发方法'), findsOneWidget);
     await tester.tap(find.text('客户开发方法'));
     await _pumpUi(tester);

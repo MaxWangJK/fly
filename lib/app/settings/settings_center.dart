@@ -15,6 +15,7 @@ import '../../l10n/settings_copy.dart';
 import '../../core/storage/data_root_providers.dart';
 import '../../features/tasks/presentation/task_providers.dart';
 import '../../features/customers/import/customer_import_dialog.dart';
+import '../../features/knowledge/presentation/knowledge_providers.dart';
 import '../../shared/design_system/fly_color_scheme.dart';
 import '../../shared/backup/backup_settings_dialog.dart';
 import '../../shared/notifications/reminder_settings_dialog.dart';
@@ -39,11 +40,13 @@ class _SettingsCenterState extends ConsumerState<SettingsCenter> {
     '数据与备份',
     '文件与存储',
     '导入与导出',
+    '资料库',
     '关于',
   ];
   int selected = 0;
   bool busy = false;
   String? error;
+  String? knowledgeImportSummary;
   Future<void> _run(Future<void> Function() action) async {
     setState(() {
       busy = true;
@@ -405,6 +408,64 @@ class _SettingsCenterState extends ConsumerState<SettingsCenter> {
               child: Text(tr('导入客户')),
             ),
           ),
+        ];
+      case 7:
+        final catalog = ref.watch(knowledgeCatalogProvider);
+        final repository = ref.watch(knowledgeRepositoryProvider);
+        return [
+          _heading(context.l10n.t('knowledgeHub')),
+          _row(
+            context.l10n.isZh ? '当前内容版本' : 'Current content version',
+            catalog.when(
+              data: (value) => value.packVersion,
+              loading: () => '…',
+              error: (error, _) => '$error',
+            ),
+          ),
+          _row(
+            context.l10n.isZh ? '文章数量' : 'Articles',
+            catalog.when(
+              data: (value) => '${value.articles.length}',
+              loading: () => '…',
+              error: (_, _) => '—',
+            ),
+          ),
+          const Divider(),
+          _row(
+            context.l10n.isZh ? '导入官方资料包' : 'Import official pack',
+            context.l10n.isZh ? '仅接受签名有效且版本更新的 .flykb 文件；失败不会替换当前内容。' : 'Only newer, validly signed .flykb packs are accepted. Failed imports leave current content unchanged.',
+            control: TextButton.icon(
+              onPressed: busy || repository.publicKey.length != 32
+                  ? null
+                  : () => _run(() async {
+                      final file = await openFile(
+                        acceptedTypeGroups: [
+                          XTypeGroup(
+                            label: 'Fly Knowledge Pack',
+                            extensions: ['flykb'],
+                          ),
+                        ],
+                      );
+                      if (file == null) return;
+                      final bytes = await File(file.path).readAsBytes();
+                      final result = await repository.importPack(bytes);
+                      ref.invalidate(knowledgeCatalogProvider);
+                      if (mounted) {
+                        setState(
+                          () => knowledgeImportSummary =
+                              '${result.version} · +${result.added} / ↻${result.updated} / −${result.archived}',
+                        );
+                      }
+                    }),
+              icon: const Icon(Icons.file_upload_outlined),
+              label: Text(context.l10n.isZh ? '选择资料包' : 'Choose pack'),
+            ),
+          ),
+          if (repository.publicKey.length != 32)
+            Text(
+              context.l10n.isZh ? '此构建未配置官方验签公钥，资料包导入已禁用。内置资料仍可阅读。' : 'This build has no official verification key. Import is disabled; bundled articles remain readable.',
+            ),
+          if (knowledgeImportSummary != null) Text(knowledgeImportSummary!),
         ];
       default:
         return [

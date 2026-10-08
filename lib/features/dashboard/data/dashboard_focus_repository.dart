@@ -21,6 +21,7 @@ class DashboardFocusRepository {
     )..where((row) => row.dayKey.equals(dayKey(day)))).getSingleOrNull();
     return DashboardFocusSnapshot(
       mainMission: values[DashboardFocusType.mainMission.name] ?? '',
+      monthlyFocus: values[DashboardFocusType.monthlyFocus.name] ?? '',
       weeklyFocus: values[DashboardFocusType.weeklyFocus.name] ?? '',
       todayFocus: daily?.content ?? '',
     );

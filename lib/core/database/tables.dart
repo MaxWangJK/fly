@@ -94,6 +94,8 @@ class WorkspaceNotes extends Table {
   IntColumn get manualSortOrder => integer().nullable()();
   TextColumn get id => text()();
   TextColumn get folderId => text().nullable().references(NoteFolders, #id)();
+  // Official articles live in signed packs, not in this user-owned table.
+  TextColumn get linkedKnowledgeArticleId => text().nullable()();
   TextColumn get title => text().withLength(min: 1, max: 500)();
   BoolColumn get isFavorite => boolean().withDefault(const Constant(false))();
   DateTimeColumn get createdAt => dateTime()();
@@ -103,6 +105,13 @@ class WorkspaceNotes extends Table {
   IntColumn get revision => integer().withDefault(const Constant(1))();
   @override
   Set<Column<Object>> get primaryKey => {id};
+}
+
+class KnowledgeFavorites extends Table {
+  TextColumn get articleId => text()();
+  DateTimeColumn get createdAt => dateTime()();
+  @override
+  Set<Column<Object>> get primaryKey => {articleId};
 }
 
 @DataClassName('NoteBlockRecord')
