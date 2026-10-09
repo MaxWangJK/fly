@@ -148,7 +148,18 @@ class _FocusSectionState extends ConsumerState<_FocusSection> {
   String? error;
 
   @override
+  void initState() {
+    super.initState();
+    focusNode.addListener(_onFocusChanged);
+  }
+
+  void _onFocusChanged() {
+    if (!focusNode.hasFocus) _save();
+  }
+
+  @override
   void dispose() {
+    focusNode.removeListener(_onFocusChanged);
     controller.dispose();
     focusNode.dispose();
     super.dispose();
@@ -182,11 +193,11 @@ class _FocusSectionState extends ConsumerState<_FocusSection> {
 
   void _cancel() {
     if (saving) return;
-    focusNode.unfocus();
     setState(() {
       editing = false;
       error = null;
     });
+    focusNode.unfocus();
   }
 
   Future<void> _save() async {
@@ -297,7 +308,6 @@ class _FocusSectionState extends ConsumerState<_FocusSection> {
             if (editing)
               CallbackShortcuts(
                 bindings: {
-                  const SingleActivator(LogicalKeyboardKey.enter): _save,
                   const SingleActivator(
                     LogicalKeyboardKey.enter,
                     control: true,
@@ -308,15 +318,19 @@ class _FocusSectionState extends ConsumerState<_FocusSection> {
                   key: ValueKey('focus-editor-${type.name}'),
                   controller: controller,
                   focusNode: focusNode,
-                  maxLines: 3,
+                  minLines: 1,
+                  maxLines: null,
                   maxLength: 800,
+                  readOnly: saving,
                   textInputAction: TextInputAction.newline,
                   onTapOutside: (_) => _save(),
                   decoration: InputDecoration(
                     hintText: _placeholder(context),
                     isDense: true,
                     errorText: error,
-                    helperText: saving ? context.focusCopy('保存中…') : null,
+                    helperText: context.focusCopy(
+                      saving ? '保存中…' : '回车换行，离开编辑框自动保存',
+                    ),
                     counterText: '',
                   ),
                 ),
@@ -335,8 +349,6 @@ class _FocusSectionState extends ConsumerState<_FocusSection> {
                       widget.content.isEmpty
                           ? _placeholder(context)
                           : widget.content,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
                       style: widget.content.isEmpty
                           ? contentStyle?.copyWith(
                               color: colors.textSecondary,

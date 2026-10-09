@@ -20,6 +20,8 @@ const dashboardFocusEnglish = <String, String>{
   '今天必须完成什么？': 'What must be done today?',
   '点击即可编辑': 'Click to edit',
   '保存中…': 'Saving…',
+  '回车换行，离开编辑框自动保存':
+      'Enter for a new line. Leave the field to save automatically.',
   '保存失败，请重试': 'Could not save. Please try again.',
   '聚焦内容读取失败': 'Unable to load focus',
   '重试': 'Retry',

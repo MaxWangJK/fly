@@ -300,6 +300,13 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
       await tester.pumpAndSettle();
       expect(
+        find.byKey(const ValueKey('focus-editor-mainMission')),
+        findsOneWidget,
+      );
+      expect((await DashboardFocusRepository(db).read(oct6)).mainMission, '');
+      await tester.tap(find.byKey(const ValueKey('dashboard-focus-history')));
+      await tester.pumpAndSettle();
+      expect(
         (await DashboardFocusRepository(db).read(oct6)).mainMission,
         '建立稳定客户池',
       );
@@ -311,7 +318,12 @@ void main() {
         find.byKey(const ValueKey('focus-editor-monthlyFocus')),
         '本月新客户目标',
       );
-      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      tester
+          .widget<TextField>(
+            find.byKey(const ValueKey('focus-editor-monthlyFocus')),
+          )
+          .focusNode!
+          .unfocus();
       await tester.pumpAndSettle();
       expect(
         (await DashboardFocusRepository(db).read(oct6)).monthlyFocus,
@@ -373,6 +385,95 @@ void main() {
       container.dispose();
     },
   );
+
+  testWidgets('Focus fields grow and preserve multiline edits on blur', (
+    tester,
+  ) async {
+    const capture = bool.fromEnvironment('FLY_CAPTURE_FOCUS_MOVE');
+    if (capture) await tester.runAsync(_loadCaptureFonts);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final db = AppDatabase(NativeDatabase.memory());
+    addTearDown(db.close);
+    final container = ProviderContainer(
+      overrides: [databaseProvider.overrideWithValue(db)],
+    );
+    final outsideFocus = FocusNode();
+    addTearDown(outsideFocus.dispose);
+    for (final width in [900.0, 360.0]) {
+      for (final dark in [false, true]) {
+        tester.view.physicalSize = Size(width, 900);
+        await _pumpBoard(
+          tester,
+          container,
+          day: oct6,
+          palette: FlyPaletteId.sageMist,
+          dark: dark,
+          locale: const Locale('zh', 'CN'),
+        );
+        for (final type in DashboardFocusType.values) {
+          final content = find.byKey(ValueKey('focus-content-${type.name}'));
+          await tester.ensureVisible(content);
+          await tester.tap(content);
+          await tester.pump();
+          final editor = find.byKey(ValueKey('focus-editor-${type.name}'));
+          await tester.enterText(editor, '短内容');
+          await tester.pump();
+          final shortHeight = tester.getSize(editor).height;
+          final text = List.generate(
+            8,
+            (index) => '${index + 1}、${type.name}：逐步整理客户资料与本周计划。',
+          ).join('\n');
+          await tester.enterText(editor, text);
+          await tester.pump();
+          expect(tester.widget<TextField>(editor).maxLines, isNull);
+          expect(tester.getSize(editor).height, greaterThan(shortHeight + 80));
+          await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+          await tester.pump();
+          expect(editor, findsOneWidget);
+          // Restore an exact multiline draft independently of platform key input.
+          await tester.enterText(editor, text);
+          FocusScope.of(tester.element(editor)).requestFocus(outsideFocus);
+          await tester.pumpAndSettle();
+          final snapshot = await DashboardFocusRepository(db).read(oct6);
+          final saved = switch (type) {
+            DashboardFocusType.mainMission => snapshot.mainMission,
+            DashboardFocusType.monthlyFocus => snapshot.monthlyFocus,
+            DashboardFocusType.weeklyFocus => snapshot.weeklyFocus,
+            DashboardFocusType.todayFocus => snapshot.todayFocus,
+          };
+          expect(saved, text);
+          final displayed = tester.widget<Text>(
+            find.descendant(of: content, matching: find.byType(Text)),
+          );
+          expect(displayed.data, text);
+          expect(displayed.maxLines, isNull);
+          expect(displayed.overflow, isNull);
+          expect(tester.takeException(), isNull);
+        }
+        if (capture) {
+          await tester.runAsync(() async {
+            final boundary = tester.renderObject<RenderRepaintBoundary>(
+              find.byType(RepaintBoundary).first,
+            );
+            final image = await boundary.toImage(pixelRatio: 1);
+            final bytes = await image.toByteData(
+              format: ui.ImageByteFormat.png,
+            );
+            image.dispose();
+            final file = File(
+              'build/visual/focus-multiline-${width.toInt()}-${dark ? 'dark' : 'light'}.png',
+            );
+            await file.parent.create(recursive: true);
+            await file.writeAsBytes(bytes!.buffer.asUint8List());
+          });
+        }
+      }
+    }
+    await tester.pumpWidget(const SizedBox.shrink());
+    container.dispose();
+  });
 
   testWidgets(
     'Task Focus keeps editing and history; Dashboard shows priorities',
