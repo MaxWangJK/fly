@@ -63,6 +63,37 @@ def test_auth_normalization_and_rotation(client):
     assert client.post('/api/auth/refresh', json={'refreshToken': fresh.json()['refreshToken']}).status_code == 401
 
 
+def test_websocket_idle_heartbeat_and_following_change(client, monkeypatch):
+    import app.main as main_module
+    monkeypatch.setattr(main_module, 'WS_POLL_SECONDS', 0.01)
+    monkeypatch.setattr(main_module, 'WS_HEARTBEAT_SECONDS', 0.03)
+    account = register(client)
+    with client.websocket_connect('/api/ws') as socket:
+        socket.send_text(account['accessToken'])
+        initial = socket.receive_json()
+        assert initial == {'type': 'sync_available', 'latest_cursor': 0}
+        assert socket.receive_json() == {'type': 'heartbeat'}
+        push(client, account, mutation())
+        for _ in range(30):
+            event = socket.receive_json()
+            if event['type'] == 'sync_available':
+                assert event['latest_cursor'] > 0
+                break
+        else:
+            pytest.fail('No change notification after heartbeat')
+
+
+def test_server_addresses_allow_ip_domain_ipv6_and_custom_ports(client):
+    settings = client.app.state.settings.model_copy(update={
+        'allowed_hosts': ' 198.51.100.10, sync.example.com, 2001:db8::1, localhost, testserver '
+    })
+    with TestClient(create_app(settings, client.app.state.engine)) as configured:
+        for host in ['198.51.100.10:8080', 'sync.example.com:8443', '[2001:db8::1]:8080', 'localhost']:
+            assert configured.get('/api/health', headers={'Host': host}).status_code == 200
+        assert configured.get('/api/health', headers={'Host': 'untrusted.example.com'}).status_code == 400
+        assert configured.get('/api/health', headers={'Host': 'www.sync.example.com'}).status_code == 400
+
+
 def test_auth_hashes_and_invalid_expired_tokens(client):
     session = register(client)
     from sqlalchemy.orm import Session

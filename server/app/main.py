@@ -22,6 +22,9 @@ from .schemas import Credentials, PushInput, RefreshInput, UploadInput
 from .storage import LocalDiskBlobStorage
 from .sync import accept, record_json
 
+WS_POLL_SECONDS = 2
+WS_HEARTBEAT_SECONDS = 30
+
 
 class BodyLimit:
     def __init__(self, app, limit):
@@ -72,7 +75,11 @@ def create_app(settings=None, engine=None):
     dummy_hash = password_hasher.hash(secrets.token_urlsafe(32))
     app = FastAPI(title='Fly Sync', version='2.0.0')
     app.state.engine, app.state.settings = engine, settings
-    app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts.split(','))
+    allowed_hosts = [host.strip() for host in settings.allowed_hosts.split(',') if host.strip()]
+    # Host headers retain brackets around IPv6 literals; configuration may omit them.
+    allowed_hosts = [f'[{host}]' if ':' in host and not host.startswith('[') else host
+                     for host in allowed_hosts]
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts, www_redirect=False)
     app.add_middleware(CORSMiddleware, allow_origins=[o for o in settings.cors_origins.split(',') if o],
                        allow_credentials=False, allow_methods=['GET', 'POST', 'PUT'], allow_headers=['Authorization', 'Content-Type'])
     app.add_middleware(BodyLimit, limit=settings.max_request_bytes)
@@ -366,6 +373,7 @@ def create_app(settings=None, engine=None):
             if len(token) > 4096:
                 raise HTTPException(401)
             cursor = -1
+            last_sent = 0.0
             while True:
                 with sessions() as db:
                     device = token_device(token, db)
@@ -373,7 +381,11 @@ def create_app(settings=None, engine=None):
                 if latest != cursor:
                     await ws.send_json({'type': 'sync_available', 'latest_cursor': latest})
                     cursor = latest
-                await asyncio.sleep(2)
+                    last_sent = time.monotonic()
+                elif time.monotonic() - last_sent >= WS_HEARTBEAT_SECONDS:
+                    await ws.send_json({'type': 'heartbeat'})
+                    last_sent = time.monotonic()
+                await asyncio.sleep(WS_POLL_SECONDS)
         except (WebSocketDisconnect, HTTPException, asyncio.TimeoutError, RuntimeError):
             try:
                 await ws.close(code=1008)

@@ -47,6 +47,7 @@ class _SyncSettingsPanelState extends ConsumerState<SyncSettingsPanel> {
     TextEditingController controller,
     String label, {
     bool secret = false,
+    String? helperText,
   }) => Padding(
     padding: const EdgeInsets.only(bottom: 12),
     child: TextField(
@@ -54,7 +55,11 @@ class _SyncSettingsPanelState extends ConsumerState<SyncSettingsPanel> {
       obscureText: secret,
       enableSuggestions: !secret,
       autocorrect: !secret,
-      decoration: InputDecoration(labelText: label),
+      decoration: InputDecoration(
+        labelText: label,
+        helperText: helperText,
+        helperMaxLines: 3,
+      ),
     ),
   );
 
@@ -196,7 +201,14 @@ class _SyncSettingsPanelState extends ConsumerState<SyncSettingsPanel> {
                   await c.setCloud(value);
                 },
         ),
-        input(endpoint, tr('服务器地址', 'Server URL')),
+        input(
+          endpoint,
+          tr('服务器地址', 'Server URL'),
+          helperText: tr(
+            '支持 HTTP/HTTPS、IP/域名和端口；省略协议时使用 HTTP，省略 /api 时自动补齐。HTTP 不加密，公网建议 HTTPS。',
+            'Supports HTTP/HTTPS, IPs/domains and ports. Missing scheme uses HTTP; /api is added automatically. HTTP is unencrypted; prefer HTTPS online.',
+          ),
+        ),
         Wrap(
           spacing: 12,
           runSpacing: 8,

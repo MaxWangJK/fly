@@ -4,6 +4,45 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fly/features/sync/services/sync_notification_service.dart';
 
 void main() {
+  test(
+    'heartbeats and malformed messages do not wake record synchronization',
+    () {
+      expect(
+        SyncNotificationService.isSyncNotification('{"type":"sync_available"}'),
+        isTrue,
+      );
+      for (final message in [
+        '{"type":"heartbeat"}',
+        'invalid JSON',
+        '[]',
+        'null',
+        <int>[1],
+      ]) {
+        expect(SyncNotificationService.isSyncNotification(message), isFalse);
+      }
+    },
+  );
+
+  test('notification connections support IPv6 loopback', () async {
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv6, 0);
+    server.listen((request) async {
+      final socket = await WebSocketTransformer.upgrade(request);
+      socket.listen((message) => socket.add(message));
+    });
+    WebSocket? socket;
+    try {
+      socket = await SyncNotificationService.openSocket(
+        'http://[::1]:${server.port}',
+      );
+      final response = socket.first;
+      socket.add('ipv6');
+      expect(await response.timeout(const Duration(seconds: 3)), 'ipv6');
+    } finally {
+      await socket?.close();
+      await server.close(force: true);
+    }
+  });
+
   test('notification socket stays usable after the HTTP handshake', () async {
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     server.listen((request) async {

@@ -16,7 +16,7 @@
 	<string>Fly 使用本地网络与已配对的设备同步数据和文件。</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
-		<key>NSAllowsLocalNetworking</key>
+		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
 	<key>CFBundleName</key>

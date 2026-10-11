@@ -234,7 +234,7 @@ void main() {
     expect(saved.read<int>('resolved'), 1);
   });
 
-  test('server configuration rejects insecure public URLs and credentials', () {
+  test('server configuration accepts HTTP/HTTPS and rejects invalid URLs', () {
     expect(
       SyncServerConfig.validate('https://world-workshop.cn/api').host,
       'world-workshop.cn',
@@ -244,10 +244,8 @@ void main() {
       8765,
     );
     for (final url in [
-      'http://1.2.3.4:8000/api',
       'ftp://example.com/api',
       'https://a:b@example.com/api',
-      'https://example.com/',
       'https://example.com/api?q=x',
     ]) {
       expect(() => SyncServerConfig.validate(url), throwsFormatException);

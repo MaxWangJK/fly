@@ -40,7 +40,7 @@ container_sections section_cargo_entries
 跨分页外键引用写入 `sync_incoming` 后才推进游标，父记录到达后重试。未能应用的外键/唯一值冲突会显示同步失败，不静默丢弃记录。
 同字段冲突存两个候选；同笔记块创建另一份块副本；同附件二进制保留 canonical 与冲突文件副本。设置页可以选择保留当前、另一份或显式恢复。
 
-启动、恢复前台、登录启用、WebSocket 重连及每 20 秒重试会触发同步。业务修改延迟 1 秒合并网络请求。WebSocket 只是唤醒信号。
+启动、恢复前台、登录启用、WebSocket 重连及每 20 秒重试会触发同步。业务修改延迟 1 秒合并网络请求。WebSocket 只是唤醒信号，每 30 秒空闲心跳保持连接，心跳不触发数据拉取。
 
 ## 文件与局域网
 
@@ -95,3 +95,15 @@ chmod +x deploy/install.sh
 - 两客户端：两套独立 Flutter SQLite 数据库连接实际本机 FastAPI HTTP 服务，完成同账号注册/登录、Jack 新建及地址传播、离线 phone/address 自动合并、同字段候选保留、Tom 联合集合、删除优先、文件元数据独立同步以及启用内容后 SHA-256 文件可读取。此项包含在专项统计中。
 - Windows release：最终构建通过，包含 WebSocket 同源保护。程序为 `E:\workSpace\fly\build\windows\x64\runner\Release\fly.exe`；分发时需要整个 Release 目录的 DLL 和 data 资源，不可只复制 exe。
 - Docker/Compose/Ubuntu/真实 PostgreSQL/真实双设备验收仍列为待执行，未标记 PASS。
+
+## 后续：服务器地址兼容与资源规划
+
+支持公网/内网 HTTP、HTTPS、域名、IPv4、IPv6 和自定义端口；省略协议采用 HTTP，省略 `/api` 自动补齐。HTTPS 仍验证证书，HTTP 仍保持用户选择，不进行自动降级。自定义代理前缀须提供以 `/api` 结尾的实际路由。Apple ATS 已允许自定义 HTTP，但原生验收仍待执行。
+
+新增 `server/docker-compose.http.yml` 与 `server/deploy/nginx-http.conf` 提供无需证书的 IP/HTTP 部署；注册/登录保留限流，已登录会话刷新不共用该限流。服务器 Host 白名单支持 IP/域名/IPv6，拒绝未配置的主机。
+
+本次 Flutter 专项 38 项通过，静态检查 0 issues；覆盖地址归一化、默认端口、实际 IPv6 WebSocket、心跳忽略、设置界面和同步基础。更新后的 Windows release 构建通过。Apple plist 与两份 Compose YAML 结构检查通过，但未执行 Apple 实机或 Docker 部署。
+
+后端完整回归 15 项通过，新增空闲心跳后继续接收变更、IP/域名/IPv6/端口白名单检查。依赖一致性检查通过；测试客户端存在 Starlette 对 httpx 的弃用提示，无测试失败。
+
+真实 2 核 4 GB 服务器仍未压测。6 Mbps、约 20 MB 文件的理论带宽及设备规划见 `docs/fly_2_server_capacity.md`，50→100 台是验收目标，不能作为容量保证。

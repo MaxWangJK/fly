@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import '../../account/data/auth_service.dart';
@@ -21,19 +22,19 @@ class SyncNotificationService {
         if (uri.origin != base.origin) {
           throw StateError('WebSocket 服务器不允许跨源重定向');
         }
+        final hostname = uri.host.startsWith('[')
+            ? uri.host.substring(1, uri.host.length - 1)
+            : uri.host;
         if (uri.scheme == 'https' && proxyHost == null) {
-          return SecureSocket.startConnect(uri.host, uri.port);
+          return SecureSocket.startConnect(hostname, uri.port);
         }
         return Socket.startConnect(
-          proxyHost ?? uri.host,
+          proxyHost ?? hostname,
           proxyPort ?? uri.port,
         );
       };
     try {
-      final uri = base.replace(
-        scheme: base.scheme == 'https' ? 'wss' : 'ws',
-        path: '${base.path}/ws',
-      );
+      final uri = SyncServerConfig.websocketUrl(server);
       return await WebSocket.connect(
         '$uri',
         customClient: client,
@@ -41,6 +42,16 @@ class SyncNotificationService {
     } finally {
       // Upgraded sockets are detached from HttpClient and retain their lifetime.
       client.close(force: true);
+    }
+  }
+
+  static bool isSyncNotification(Object? message) {
+    if (message is! String) return false;
+    try {
+      final value = jsonDecode(message);
+      return value is Map && value['type'] == 'sync_available';
+    } on FormatException {
+      return false;
     }
   }
 
@@ -57,7 +68,9 @@ class SyncNotificationService {
       socket.add(await auth.accessToken());
       wake();
       socket.listen(
-        (_) => wake(),
+        (message) {
+          if (isSyncNotification(message)) wake();
+        },
         onError: (Object _) => _reconnect(),
         onDone: _reconnect,
         cancelOnError: true,

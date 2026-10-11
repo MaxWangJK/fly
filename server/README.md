@@ -2,7 +2,7 @@
 
 后端目录：`E:\workSpace\fly\server`。Ubuntu 建议放在 `/opt/fly/server`。
 
-Python 3.12 容器、FastAPI、SQLAlchemy 2、PostgreSQL 16、Alembic；Redis 不参与核心协议。
+Python 3.12 容器、FastAPI、SQLAlchemy 2、PostgreSQL 16、Alembic；Redis 不参与核心协议。Starlette 最低版本为 1.7，以采用可校验 IPv6 Host 的解析器。
 SQLite 仅用于隔离测试，不替代生产 PostgreSQL。
 
 ## 协议与存储
@@ -56,7 +56,7 @@ curl --fail https://world-workshop.cn/api/health
 docker compose ps
 ```
 
-`deploy/nginx.conf` 提供完整域名示例，HTTP 跳转 HTTPS，认证端点共享 IP 限流，WebSocket 转发，8 MiB 请求上限。
+`deploy/nginx.conf` 提供完整域名示例，HTTP 跳转 HTTPS，注册/登录共享 IP 限流，WebSocket 转发，8 MiB 请求上限。会话刷新不与密码登录共用此限流，避免同一办公出口下的已登录设备重连受到影响。
 
 完成 Docker、DNS 和 `.env` 配置后，也可用安装脚本完成构建、首次证书签发和健康检查：
 
@@ -79,6 +79,32 @@ docker run --rm \
 docker compose exec nginx nginx -s reload
 ```
 
+## IP、域名、自定义端口与 HTTP
+
+客户端支持 `http://IP:端口`、`https://IP:端口`、HTTP/HTTPS 域名、IPv6（例如 `http://[::1]:8080`）。省略 `/api` 会自动补齐；仅填 `IP:端口` 或域名时采用 HTTP。反向代理前缀可以填写完整的 `https://域名/前缀/api`。实际服务必须提供相应路由。
+
+HTTP 使用 `ws` 通知连接，HTTPS 使用 `wss`；默认端口分别为 80/443。HTTPS 使用系统证书校验，IP 访问需要证书包含该 IP，自签证书需由设备信任，不会自动绕过证书错误。HTTP 密码、令牌和业务数据不加密，公网建议 HTTPS；客户端保留用户选择。
+
+纯 HTTP/IP 部署无需证书，可以使用独立 compose 文件：
+
+```bash
+cd /opt/fly/server
+# 在已经填写数据库密码与 JWT 随机密钥的 .env 中追加/修改：
+nano .env
+# HTTP_PORT=8080
+# ALLOWED_HOSTS=你的真实服务器IP,你的域名,localhost,127.0.0.1
+# 主机名不带协议、路径或端口；IPv6 白名单填写无方括号的实际地址。
+docker compose -f docker-compose.http.yml config --quiet
+docker compose -f docker-compose.http.yml up -d --build
+curl --fail http://127.0.0.1:8080/api/health
+```
+
+在防火墙/安全组开放所选 TCP 端口。客户端填 `http://真实IP:8080` 即可。此配置仍只发布 Nginx；数据库和 API 保持内部端口。不要同时启动同一项目的 HTTPS 与 HTTP 两套 compose 文件；选择一套。
+
+HTTPS 自定义端口可将原 compose 的 `443:443` 改为 `8443:443`，客户端使用 `https://域名:8443`；若保留 HTTP 重定向，将 Nginx 跳转地址相应改为 `https://$host:8443$request_uri`。域名和 IP 同时访问时，须将两者加入 `ALLOWED_HOSTS`，并满足相应证书要求。客户端不会携带认证跟随重定向，应填写最终 API 地址。
+
+Apple 平台的 ATS 配置已允许用户自定义 HTTP（原生实机与发布审核仍待验收）；Android 已配置明文连接。服务器资源规划见仓库的 `docs/fly_2_server_capacity.md`。
+
 ## 数据、备份、升级
 
 数据库使用 `pgdata` 卷。blob 使用 `blobs` 卷，在 API 内为 `/var/lib/fly/storage/<user UUID>/<SHA-256>`；本地存储适配器预留独立 BlobStorage 接口。
@@ -89,7 +115,7 @@ chmod +x deploy/backup.sh
 ./deploy/backup.sh /opt/fly-backups
 ```
 
-脚本暂停 API 写入，将 PostgreSQL 自定义格式 dump 和 blob 压缩包一起备份，然后恢复 API。备份属于敏感用户数据，应限制权限、加密离机保存、定期在独立环境演练恢复。
+脚本暂停 API 写入，将 PostgreSQL 自定义格式 dump 和 blob 压缩包一起备份，然后恢复 API。HTTP 部署的管理命令选择 `-f docker-compose.http.yml`；备份脚本通过 `COMPOSE_FILE=docker-compose.http.yml ./deploy/backup.sh /opt/fly-backups` 选择同一套配置。备份属于敏感用户数据，应限制权限、加密离机保存、定期在独立环境演练恢复。
 
 恢复到新的空环境，启动 postgres 后使用 `pg_restore`；blob 包在 API 停止时解压到同一个存储卷，并恢复 uid 10001 所有权。不要把数据库和 blob 从不同时间点的备份混用。
 

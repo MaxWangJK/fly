@@ -3,7 +3,10 @@ import 'dart:convert';
 class SyncServerConfig {
   static const defaultBaseUrl = 'https://world-workshop.cn/api';
   static Uri validate(String input) {
-    final uri = Uri.tryParse(input.trim());
+    final address = input.trim();
+    final uri = Uri.tryParse(
+      address.contains('://') ? address : 'http://$address',
+    );
     if (uri == null ||
         !{'https', 'http'}.contains(uri.scheme) ||
         uri.host.isEmpty ||
@@ -12,13 +15,29 @@ class SyncServerConfig {
         uri.hasFragment ||
         uri.port < 1 ||
         uri.port > 65535 ||
-        uri.path.replaceFirst(RegExp(r'/$'), '') != '/api') {
-      throw const FormatException('服务器地址须包含有效协议、主机、端口和 /api');
+        address.isEmpty ||
+        RegExp(
+          r'/(?:\.|%2e){1,2}(?:/|$)',
+          caseSensitive: false,
+        ).hasMatch(address)) {
+      throw const FormatException('请填写有效的 HTTP/HTTPS 域名或 IP，可包含端口');
     }
-    if (uri.scheme == 'http' && !isPrivateHost(uri.host)) {
-      throw const FormatException('公网服务器必须使用 HTTPS');
+    final path = uri.path.replaceFirst(RegExp(r'/+$'), '');
+    if (path.isNotEmpty &&
+        (uri.pathSegments.any((part) => part == '.' || part == '..') ||
+            !path.endsWith('/api'))) {
+      throw const FormatException('自定义 API 路径须以 /api 结尾');
     }
-    return uri.replace(path: '/api');
+    return uri.replace(path: path.isEmpty ? '/api' : path);
+  }
+
+  static Uri websocketUrl(String input) {
+    final base = validate(input);
+    return base.replace(
+      scheme: base.scheme == 'https' ? 'wss' : 'ws',
+      port: base.port,
+      path: '${base.path}/ws',
+    );
   }
 
   static bool isPrivateHost(String host) {
