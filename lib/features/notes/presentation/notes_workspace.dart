@@ -11,6 +11,7 @@ import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../config/feature_flags.dart';
 import '../../../l10n/fly_localizations.dart';
 import '../../../shared/attachments/attachment_providers.dart';
 import '../../../shared/data/workspace_folder_repository.dart';
@@ -734,7 +735,7 @@ class _NoteDocumentState extends ConsumerState<_NoteDocument> {
                 if (note == null) return const SizedBox.shrink();
                 final format = DateFormat('yyyy-MM-dd HH:mm');
                 final sourceId = note.linkedKnowledgeArticleId;
-                final source = sourceId == null
+                final source = !enableKnowledgeHub || sourceId == null
                     ? null
                     : ref
                           .watch(knowledgeCatalogProvider)

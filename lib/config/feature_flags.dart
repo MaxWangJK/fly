@@ -6,3 +6,9 @@ const enableLocalLicense = bool.fromEnvironment(
 const localLicensePublicKey = String.fromEnvironment(
   'LOCAL_LICENSE_PUBLIC_KEY',
 );
+
+/// Reserved for the 2.0 release. Keep stored knowledge data in 1.0.
+const enableKnowledgeHub = bool.fromEnvironment(
+  'ENABLE_KNOWLEDGE_HUB',
+  defaultValue: false,
+);

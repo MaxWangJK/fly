@@ -40,7 +40,7 @@ class _SettingsCenterState extends ConsumerState<SettingsCenter> {
     '数据与备份',
     '文件与存储',
     '导入与导出',
-    '资料库',
+    if (enableKnowledgeHub) '资料库',
     '关于',
   ];
   int selected = 0;
@@ -230,7 +230,7 @@ class _SettingsCenterState extends ConsumerState<SettingsCenter> {
   List<Widget> _content() {
     final nav = ref.watch(navigationSettingsProvider);
     final root = ref.watch(dataRootPathProvider);
-    switch (selected) {
+    switch (!enableKnowledgeHub && selected >= 7 ? selected + 1 : selected) {
       case 0:
         return [
           _heading('语言'),

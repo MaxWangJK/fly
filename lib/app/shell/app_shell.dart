@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../config/feature_flags.dart';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -420,7 +422,7 @@ class AppShell extends ConsumerWidget {
       PrimaryModule.calendar => '/calendar',
       PrimaryModule.matrix => '/matrix',
       PrimaryModule.files => '/files',
-      PrimaryModule.notes => '/knowledge',
+      PrimaryModule.notes => enableKnowledgeHub ? '/knowledge' : '/notes',
       PrimaryModule.tools => '/tools/container-loading',
     });
   }

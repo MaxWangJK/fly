@@ -10,6 +10,7 @@ import 'package:fly/core/storage/data_root_providers.dart';
 import 'package:fly/features/tasks/presentation/task_providers.dart';
 import 'package:fly/features/notes/data/note_repository.dart';
 import 'package:fly/features/knowledge/presentation/knowledge_providers.dart';
+import 'package:fly/config/feature_flags.dart';
 import 'package:fly/features/files/data/managed_file_repository.dart';
 import 'package:fly/features/files/data/managed_file_storage.dart';
 import 'package:fly/features/files/data/file_browser_query.dart';
@@ -232,9 +233,13 @@ void main() {
     await capture(tester, 'files');
     debugPrint('V9 test: files ready');
     await tester.tap(find.byKey(const ValueKey('primary-notes')));
-    await tester.runAsync(() => container.read(knowledgeCatalogProvider.future));
-    await settle(tester);
-    await tester.tap(find.byKey(const ValueKey('knowledge-sidebar-notes')));
+    if (enableKnowledgeHub) {
+      await tester.runAsync(
+        () => container.read(knowledgeCatalogProvider.future),
+      );
+      await settle(tester);
+      await tester.tap(find.byKey(const ValueKey('knowledge-sidebar-notes')));
+    }
     await settle(tester);
     await tester.enterText(
       find.byKey(const ValueKey('new-note-title')),

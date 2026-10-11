@@ -105,7 +105,7 @@ class _LocalLicenseGateState extends State<LocalLicenseGate>
         if (locked)
           Positioned.fill(
             child: Scaffold(
-              body: _showFreeKnowledge && !allowed
+              body: enableKnowledgeHub && _showFreeKnowledge && !allowed
                   ? Column(
                       children: [
                         Material(
@@ -201,7 +201,7 @@ class _LocalLicenseGateState extends State<LocalLicenseGate>
                                       setState(() => _showActivation = false),
                                   child: Text(t('licenseContinue')),
                                 ),
-                              if (!allowed)
+                              if (enableKnowledgeHub && !allowed)
                                 TextButton.icon(
                                   onPressed: () =>
                                       setState(() => _showFreeKnowledge = true),
