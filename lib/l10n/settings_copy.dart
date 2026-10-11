@@ -1,6 +1,7 @@
 /// Settings-specific copy. Keys are the existing Chinese UI phrases, never
 /// user-entered content or persisted setting values.
 const settingsEnglish = <String, String>{
+  '同步': 'Sync',
   'Fly 默认': 'Fly Default',
   '青霭雅灰': 'Sage Mist',
   '暖沙': 'Warm Sand',

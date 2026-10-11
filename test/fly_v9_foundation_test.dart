@@ -1,3 +1,5 @@
+import 'support/legacy_database_fixture.dart';
+
 import 'dart:io';
 
 import 'package:drift/drift.dart' as drift;
@@ -262,6 +264,7 @@ void main() {
                 updatedAt: now,
               ),
             );
+        await removeSyncSchema(old);
         for (final table in [
           'note_blocks',
           'workspace_notes',

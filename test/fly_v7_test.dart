@@ -1,3 +1,5 @@
+import 'support/legacy_database_fixture.dart';
+
 import 'dart:io';
 
 import 'package:drift/drift.dart' as drift;
@@ -447,6 +449,7 @@ void main() {
                 updatedAt: now,
               ),
             );
+        await removeSyncSchema(legacy);
         await legacy.customStatement('DROP TABLE attachments');
         await legacy.customStatement('DROP TABLE notification_delivery_logs');
         await legacy.customStatement(

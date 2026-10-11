@@ -1,3 +1,5 @@
+import 'support/legacy_database_fixture.dart';
+
 import 'dart:io';
 
 import 'package:archive/archive.dart';
@@ -329,6 +331,7 @@ void main() {
         productName: 'Migration Product',
         factoryCost: 880000,
       );
+      await removeSyncSchema(legacy);
       await legacy.customStatement(
         'ALTER TABLE orders DROP COLUMN tax_refund_currency',
       );

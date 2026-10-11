@@ -1,3 +1,5 @@
+import 'support/legacy_database_fixture.dart';
+
 import 'dart:io';
 
 import 'package:drift/native.dart';
@@ -368,6 +370,7 @@ void main() {
             1,
           ],
         );
+        await removeSyncSchema(db);
         await db.customStatement('DROP TABLE section_cargo_entries');
         await db.customStatement('DROP TABLE container_sections');
         for (final column in [

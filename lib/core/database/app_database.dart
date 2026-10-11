@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import 'tables.dart';
+import '../../features/sync/data/sync_schema.dart';
 
 part 'app_database.g.dart';
 
@@ -84,13 +85,14 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 17;
+  int get schemaVersion => 18;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (migrator) async {
       await migrator.createAll();
       await _createIndexes();
+      await createSyncSchema(this);
     },
     onUpgrade: (migrator, from, to) async {
       await customStatement('PRAGMA foreign_keys = OFF');
@@ -391,6 +393,7 @@ class AppDatabase extends _$AppDatabase {
           }
           await migrator.createTable(knowledgeFavorites);
         }
+        if (from < 18) await createSyncSchema(this);
         await _createIndexes();
         final violations = await customSelect('PRAGMA foreign_key_check').get();
         if (violations.isNotEmpty) {

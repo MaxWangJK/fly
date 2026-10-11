@@ -73,6 +73,16 @@ class FilePreviewPane extends StatelessWidget {
               ),
             ),
           const SizedBox(height: 12),
+          FutureBuilder<bool>(
+            future: File(path).exists(),
+            builder: (context, snapshot) => snapshot.data == false
+                ? Text(
+                    l.isZh
+                        ? '文件内容仅存在于其它设备'
+                        : 'File content is only available on another device',
+                  )
+                : const SizedBox.shrink(),
+          ),
           SelectableText(
             entry.name,
             style: Theme.of(context).textTheme.titleSmall,

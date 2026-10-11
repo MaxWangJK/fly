@@ -1,3 +1,5 @@
+import 'support/legacy_database_fixture.dart';
+
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -678,6 +680,7 @@ void main() {
         await db.customStatement(
           "INSERT INTO app_settings (`key`, value, updated_at) VALUES ('focus-migration-marker', 'preserved', 1)",
         );
+        await removeSyncSchema(db);
         for (final table in [
           'knowledge_favorites',
           'dashboard_focus_histories',
@@ -692,7 +695,7 @@ void main() {
         await db.customStatement('PRAGMA user_version=15');
         await db.close();
         db = AppDatabase(NativeDatabase(file));
-        expect(db.schemaVersion, 17);
+        expect(db.schemaVersion, 18);
         expect(
           (await db
                   .customSelect(

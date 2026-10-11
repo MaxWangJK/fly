@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../config/feature_flags.dart';
+import '../features/sync/presentation/sync_runtime.dart';
 import '../shared/licensing/local_license_gate.dart';
 
 import '../features/reviews/presentation/daily_review_page.dart';
@@ -296,9 +297,11 @@ class FlyApp extends ConsumerWidget {
         final content = enableLocalLicense
             ? LocalLicenseGate(child: child ?? const SizedBox.shrink())
             : child ?? const SizedBox.shrink();
-        return startupBackupFailed
-            ? _StartupBackupWarning(child: content)
-            : content;
+        return SyncRuntime(
+          child: startupBackupFailed
+              ? _StartupBackupWarning(child: content)
+              : content,
+        );
       },
     );
   }

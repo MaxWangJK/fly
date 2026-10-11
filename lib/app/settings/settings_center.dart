@@ -21,6 +21,7 @@ import '../../shared/backup/backup_settings_dialog.dart';
 import '../../shared/notifications/reminder_settings_dialog.dart';
 import '../../shared/export/fly_excel_export_service.dart';
 import 'navigation_settings.dart';
+import '../../features/sync/presentation/sync_settings_panel.dart';
 
 class SettingsCenter extends ConsumerStatefulWidget {
   const SettingsCenter({super.key});
@@ -41,6 +42,7 @@ class _SettingsCenterState extends ConsumerState<SettingsCenter> {
     '文件与存储',
     '导入与导出',
     if (enableKnowledgeHub) '资料库',
+    '同步',
     '关于',
   ];
   int selected = 0;
@@ -228,6 +230,7 @@ class _SettingsCenterState extends ConsumerState<SettingsCenter> {
   );
 
   List<Widget> _content() {
+    if (categories[selected] == '同步') return [const SyncSettingsPanel()];
     final nav = ref.watch(navigationSettingsProvider);
     final root = ref.watch(dataRootPathProvider);
     switch (!enableKnowledgeHub && selected >= 7 ? selected + 1 : selected) {
