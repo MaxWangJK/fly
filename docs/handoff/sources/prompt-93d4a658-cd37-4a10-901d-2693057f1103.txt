@@ -1,0 +1,1758 @@
+[2026-10-14 整理说明：品牌名称已改为通用功能说明；本副本不再是逐字原始附件。]
+
+# Fly V1 UI/UX 重构任务
+
+当前 Fly V1 已经完成：
+
+* Flutter 3.47.2
+* Windows Build PASS
+* Riverpod
+* Drift
+* SQLite
+* Todo
+* Task Detail
+* Calendar Month View
+* Eisenhower Matrix
+* Release build
+* Tests
+
+现在不要继续增加功能。
+
+## 本阶段唯一目标：
+
+# 深度重构 Fly 的 UI 与交互体验
+
+让它从“功能 Demo”变成：
+
+# 一个真正好用、视觉舒服、交互快速的桌面任务管理工具。
+
+任务管理软件 / 任务管理软件是重要参考对象。
+
+注意：
+
+不是复制 任务管理软件 源码、品牌、Logo、资源或像素级界面。
+
+而是：
+
+* 学习成熟交互
+* 学习信息架构
+* 学习尺寸比例
+* 学习留白
+* 学习状态反馈
+* 学习任务完成后的视觉逻辑
+* 学习快速新增任务的方法
+* 学习桌面端三栏结构
+* 学习 Calendar 与 Matrix 的信息密度
+
+---
+
+# 一、先停止新功能开发
+
+本阶段禁止增加：
+
+* AI
+* CRM
+* 云同步
+* 团队
+* 插件
+* Obsidian
+* 邮件
+* Android
+* macOS
+* iOS
+
+现在只做：
+
+* UI
+* UX
+* Interaction
+* Layout
+* Localization
+* Visual State
+* Keyboard flow
+
+---
+
+# 二、默认语言改为中文
+
+当前 Fly 默认英文，这是不符合要求的。
+
+从现在开始：
+
+# 默认语言：简体中文
+
+同时保留：
+
+# English
+
+设置中允许：
+
+```text
+语言
+├── 简体中文
+└── English
+```
+
+默认：
+
+```text
+简体中文
+```
+
+所有当前英文 UI 文案全部接入 localization。
+
+不要在 Widget 中写死：
+
+```dart
+Text("Today")
+```
+
+改为统一国际化资源。
+
+第一阶段至少支持：
+
+```text
+zh-CN
+en
+```
+
+---
+
+# 三、主界面重新设计
+
+重点参考 任务管理软件 桌面端成熟的信息架构。
+
+主页面不是普通两栏。
+
+而是：
+
+# 左侧导航 + 中间任务列表 + 右侧任务详情
+
+结构：
+
+```text
+┌───────────────────────────────────────────────────────────────┐
+│ Fly                                                           │
+├─────────────┬─────────────────────────────┬───────────────────┤
+│ Navigation  │ Task List                   │ Task Detail       │
+│             │                             │                   │
+│ 今天        │ 今天                        │ Task Details      │
+│ 最近7天     │                             │                   │
+│ 收集箱      │ + 添加任务                  │ 标题              │
+│             │                             │                   │
+│ 清单        │ □ Task A                    │ 备注              │
+│ + 新建清单  │ □ Task B                    │                   │
+│             │ □ Task C                    │ 日期              │
+│ 工作任务    │                             │ 提醒              │
+│ 个人备忘    │                             │ 优先级            │
+│ 学习安排    │                             │ 标签              │
+│             │                             │                   │
+│ 已完成      │                             │                   │
+│ 垃圾桶      │                             │                   │
+└─────────────┴─────────────────────────────┴───────────────────┘
+```
+
+---
+
+# 四、左侧导航重新设计
+
+左侧不是单纯 icon sidebar。
+
+参考 任务管理软件：
+
+第一级：
+
+```text
+今天
+最近7天
+收集箱
+```
+
+然后：
+
+```text
+清单
+```
+
+清单标题右边：
+
+```text
++
+```
+
+点击：
+
+# 新建清单
+
+例如：
+
+```text
+欢迎
+工作任务
+个人备忘
+购物清单
+学习安排
+锻炼计划
+心愿清单
+```
+
+这些只是演示。
+
+用户可以自行创建、重命名、删除清单。
+
+---
+
+# 五、清单行为
+
+当用户点击：
+
+```text
+欢迎
+```
+
+中间区域必须只显示：
+
+```text
+欢迎清单
+```
+
+下的任务。
+
+点击：
+
+```text
+工作任务
+```
+
+显示：
+
+```text
+工作任务
+```
+
+中的任务。
+
+不要继续混合所有 Task。
+
+Task 与 List 必须是真实数据库关系。
+
+---
+
+# 六、主界面的视觉尺寸
+
+当前 Fly 的 UI 太像开发 Demo。
+
+重新设计尺寸比例。
+
+桌面宽屏建议起点：
+
+```text
+Navigation:
+220 ~ 250
+
+Task List:
+440 ~ 520
+
+Task Detail:
+Remaining
+```
+
+实际根据窗口动态计算。
+
+原则：
+
+# 左侧紧凑
+
+# 中间是主要操作区
+
+# 右侧是详情阅读区
+
+不要三个区域平均分。
+
+---
+
+# 七、视觉基调
+
+主背景：
+
+# 白色
+
+或者非常轻微：
+
+```text
+#FAFAFA
+```
+
+避免大面积彩色背景。
+
+分割线：
+
+非常轻。
+
+例如：
+
+```text
+rgba black 6% ~ 10%
+```
+
+不要粗线。
+
+---
+
+# 八、任务列表重新设计
+
+Task Row 必须紧凑。
+
+不要大 Card。
+
+参考成熟 Todo 软件。
+
+类似：
+
+```text
+□  给客户发送报价               10:30
+────────────────────────────────────
+□  跟进 Jack                    明天
+────────────────────────────────────
+□  准备样品
+```
+
+建议：
+
+```text
+Row Height:
+40 ~ 48px
+```
+
+不要：
+
+```text
+70
+80
+100px
+```
+
+---
+
+# 九、任务点击
+
+点击 Task：
+
+右侧打开：
+
+# Task Detail
+
+不要弹大 Dialog。
+
+右侧详情保持。
+
+例如：
+
+```text
+标题
+
+备注
+
+日期
+提醒
+优先级
+重要
+紧急
+标签
+
+Checklist
+```
+
+---
+
+# 十、Task 选中状态
+
+当前选择的 Task：
+
+背景变成非常浅的灰色：
+
+```text
+selected background
+```
+
+不要高饱和彩色背景。
+
+类似：
+
+```text
+#F3F3F3
+```
+
+或者基于 Theme Token。
+
+---
+
+# 十一、任务完成行为必须重做
+
+这是非常重要的 UX。
+
+当用户点击：
+
+```text
+☑
+```
+
+任务完成以后：
+
+不要立刻从页面消失。
+
+而是：
+
+# 1
+
+Checkbox 进入 Completed 状态。
+
+# 2
+
+Title：
+
+```text
+中划线
+```
+
+例如：
+
+```text
+~~给 Jack 发报价~~
+```
+
+# 3
+
+文字颜色变灰。
+
+# 4
+
+Task Row 背景可以轻微变灰。
+
+# 5
+
+该任务移动到：
+
+# 当前任务列表最后面
+
+例如原顺序：
+
+```text
+Task A
+Task B
+Task C
+Task D
+```
+
+完成：
+
+```text
+Task B
+```
+
+变为：
+
+```text
+Task A
+Task C
+Task D
+
+Task B ✓
+```
+
+不要删除。
+
+不要隐藏。
+
+除非用户设置：
+
+```text
+隐藏已完成
+```
+
+---
+
+# 十二、完成任务的排序逻辑必须进 Domain
+
+不要只在 UI 临时排序。
+
+Repository Query 应支持类似：
+
+```text
+unfinished
+↓
+completed
+```
+
+Completed Task 在下面。
+
+同组内部：
+
+保持：
+
+```text
+sortOrder
+```
+
+或：
+
+```text
+completedAt
+```
+
+合理排序。
+
+---
+
+# 十三、取消完成
+
+如果用户再次点击已完成任务：
+
+恢复：
+
+```text
+未完成
+```
+
+然后：
+
+* 删除中划线
+* 恢复文字颜色
+* 重新进入未完成区域
+
+排序按合理规则恢复。
+
+---
+
+# 十四、新增 Task 必须极快
+
+任务管理软件 好用的重要原因：
+
+# 点击输入
+
+# 输入内容
+
+# Enter
+
+就创建。
+
+Fly 也必须如此。
+
+顶部：
+
+```text
++ 添加任务
+```
+
+点击后进入输入。
+
+例如：
+
+```text
+┌───────────────────────────────┐
+│ 输入任务内容...               │
+└───────────────────────────────┘
+```
+
+输入：
+
+```text
+给 Jack 发报价
+```
+
+按：
+
+```text
+Enter
+```
+
+立即创建。
+
+光标继续保留。
+
+可以继续：
+
+```text
+跟进菲律宾客户
+Enter
+```
+
+再次创建。
+
+不要：
+
+```text
+输入
+↓
+点保存
+↓
+关闭窗口
+```
+
+这种低效率交互。
+
+---
+
+# 十五、Enter 是核心交互
+
+在快速输入框：
+
+```text
+Enter
+```
+
+必须：
+
+# Create Task
+
+如果输入为空：
+
+不创建。
+
+创建后：
+
+Input 清空。
+
+Focus 保留。
+
+---
+
+# 十六、Escape
+
+输入状态：
+
+```text
+Esc
+```
+
+取消输入。
+
+不要强迫鼠标点击取消。
+
+---
+
+# 十七、Task Detail 自动保存
+
+右侧 Task Detail：
+
+用户修改：
+
+```text
+Title
+Description
+Date
+Priority
+```
+
+不要要求：
+
+```text
+保存
+```
+
+默认：
+
+# Auto Save
+
+可以 debounce：
+
+例如：
+
+```text
+300 ~ 600ms
+```
+
+避免每个字符写 SQLite。
+
+---
+
+# 十八、Calendar 月视图重新设计
+
+当前 Calendar 页面必须重新参考成熟月历软件。
+
+核心关键词：
+
+# 紧凑
+
+# 清晰
+
+# 高信息密度
+
+# 极少装饰
+
+顶部：
+
+```text
+9月
+```
+
+右上：
+
+```text
++   月∨   <   今天   >   ...
+```
+
+不要做巨大 Header。
+
+---
+
+# 十九、Calendar 网格
+
+Month Grid 占据页面主体。
+
+七列：
+
+```text
+周日
+周一
+周二
+周三
+周四
+周五
+周六
+```
+
+格子必须：
+
+```text
+等宽
+合理高度
+非常轻的边框
+```
+
+不要过大间距。
+
+---
+
+# 二十、Calendar 日期
+
+每个 Date Cell：
+
+左上或右上显示日期。
+
+例如：
+
+```text
+6
+```
+
+今天：
+
+使用轻量 Accent。
+
+不要巨大圆形。
+
+---
+
+# 二十一、Calendar Task 视觉
+
+Task 在月历里：
+
+必须紧凑。
+
+类似：
+
+```text
+□ 晨跑        8:00
+```
+
+整行高度约：
+
+```text
+20 ~ 26px
+```
+
+不要大 Card。
+
+不同任务可以使用：
+
+# 非常柔和的淡色背景
+
+例如：
+
+```text
+light blue
+light green
+light pink
+light yellow
+light purple
+```
+
+但必须：
+
+# 低饱和
+
+不要霓虹。
+
+---
+
+# 二十二、Calendar 快速新增 Task
+
+这是必须实现的重点。
+
+当用户点击：
+
+```text
+某一天
+```
+
+例如：
+
+```text
+Sep 6
+```
+
+在该日期附近：
+
+弹出一个：
+
+# 小型快速输入框
+
+不是大 Dialog。
+
+类似：
+
+```text
+┌─────────────────────────────┐
+│ □ 输入任务...               │
+└─────────────────────────────┘
+```
+
+输入：
+
+```text
+跟进 Jack
+```
+
+然后：
+
+```text
+Enter
+```
+
+立即新增。
+
+自动：
+
+```text
+dueDate = Sep 6
+```
+
+---
+
+# 二十三、Calendar 新增 Task 后
+
+新增任务：
+
+立即显示：
+
+```text
+□ 跟进 Jack
+```
+
+在当天 Cell。
+
+不要刷新整个页面。
+
+通过 Drift reactive stream 自动更新。
+
+---
+
+# 二十四、Calendar 完成任务
+
+点击：
+
+```text
+□
+```
+
+变：
+
+```text
+☑
+```
+
+同时：
+
+* 灰色
+* 中划线
+* 放到当天任务列表最后
+
+这一行为必须与 Todo List 一致。
+
+不要 Calendar 有一套状态规则，Todo 又一套。
+
+---
+
+# 二十五、Calendar Task Detail
+
+点击 Calendar Task：
+
+右侧：
+
+```text
+Task Detail
+```
+
+或者 Context Panel。
+
+不要打开完全不同的编辑页面。
+
+保持：
+
+# Interaction Consistency
+
+---
+
+# 二十六、Calendar 月份切换
+
+支持：
+
+```text
+<
+>
+今天
+```
+
+切换过程可以轻微动画。
+
+不要复杂。
+
+---
+
+# 二十七、四象限页面重新设计
+
+当前 Fly 的 Matrix 视觉不好。
+
+重新设计。
+
+页面标题：
+
+```text
+四象限
+```
+
+主体：
+
+```text
+2 × 2
+```
+
+---
+
+# 二十八、四象限布局
+
+类似：
+
+```text
+┌────────────────────────┬────────────────────────┐
+│ ① 重要且紧急          │ ② 重要不紧急          │
+│                        │                        │
+│ Task                   │ Task                   │
+│ Task                   │                        │
+│                        │                        │
+├────────────────────────┼────────────────────────┤
+│ ③ 紧急不重要          │ ④ 不重要不紧急        │
+│                        │                        │
+│                        │ Task                   │
+│                        │ Task                   │
+└────────────────────────┴────────────────────────┘
+```
+
+---
+
+# 二十九、四象限颜色
+
+参考成熟视觉：
+
+Quadrant 1：
+
+# 红
+
+但只用于：
+
+```text
+Title / Number / Accent
+```
+
+不要整个卡片红色。
+
+Quadrant 2：
+
+# 橙 / 黄
+
+Quadrant 3：
+
+# 蓝
+
+Quadrant 4：
+
+# 绿
+
+具体颜色必须：
+
+```text
+柔和
+低饱和
+舒服
+```
+
+---
+
+# 三十、Matrix 背景
+
+整体：
+
+```text
+#FAFAFA
+```
+
+每个象限：
+
+```text
+#FFFFFF
+```
+
+Radius：
+
+轻微：
+
+```text
+8 ~ 12
+```
+
+不要巨大圆角。
+
+间距：
+
+```text
+12 ~ 16
+```
+
+---
+
+# 三十一、Matrix Task Row
+
+不要用大卡片。
+
+类似：
+
+```text
+□ 今天新任务
+──────────────────
+□ 给客户报价
+──────────────────
+□ 跟进样品
+```
+
+右侧可显示：
+
+```text
+List
+Date
+```
+
+但保持克制。
+
+---
+
+# 三十二、Matrix Drag & Drop
+
+原有：
+
+```text
+Drag & Drop
+```
+
+保留。
+
+拖动以后：
+
+真正修改：
+
+```text
+importance
+urgency
+```
+
+并即时刷新。
+
+---
+
+# 三十三、统一 Interaction
+
+Todo：
+
+```text
+Task
+```
+
+Calendar：
+
+```text
+Task
+```
+
+Matrix：
+
+```text
+Task
+```
+
+必须使用：
+
+# 同一套 Task Visual State
+
+例如：
+
+未完成：
+
+```text
+□ Task
+```
+
+已完成：
+
+```text
+☑ Task
+```
+
+同时：
+
+```text
+gray
++
+strikethrough
+```
+
+---
+
+# 三十四、统一组件
+
+不要三个页面各写一套 Task Widget。
+
+建立：
+
+```text
+TaskCheckbox
+TaskTitle
+TaskRow
+CompactTaskRow
+TaskMeta
+```
+
+合理共享。
+
+但不要为了强行复用造成 UI 不自然。
+
+---
+
+# 三十五、Focus / Hover
+
+这是桌面软件必须补的。
+
+Mouse Hover：
+
+Task Row：
+
+非常轻的背景变化。
+
+例如：
+
+```text
+transparent
+↓
+#F7F7F7
+```
+
+Selected：
+
+```text
+#EFEFEF
+```
+
+Completed：
+
+```text
+gray
+```
+
+三种状态必须不同。
+
+---
+
+# 三十六、Context Menu
+
+右键 Task：
+
+第一阶段至少：
+
+```text
+完成 / 取消完成
+编辑
+移动到清单
+删除
+```
+
+如果现有代码很容易支持：
+
+再加入：
+
+```text
+设置优先级
+```
+
+---
+
+# 三十七、Keyboard
+
+至少支持：
+
+```text
+Enter
+Create
+
+Esc
+Cancel
+
+Delete
+Delete Selected Task
+```
+
+如果不会与输入冲突。
+
+支持：
+
+```text
+↑
+↓
+
+Task Selection
+```
+
+优先保证输入体验。
+
+---
+
+# 三十八、滚动体验
+
+Task List：
+
+独立滚动。
+
+Task Detail：
+
+独立滚动。
+
+Sidebar：
+
+需要时独立滚动。
+
+不要：
+
+一个滚轮拖整个页面。
+
+---
+
+# 三十九、Scrollbar
+
+Windows 桌面：
+
+Scrollbar 可以：
+
+```text
+默认淡化
+Hover 显示
+```
+
+不要巨大。
+
+---
+
+# 四十、中文字体
+
+优先使用系统中文字体。
+
+Windows：
+
+```text
+Microsoft YaHei UI
+Segoe UI
+```
+
+根据 Flutter 跨平台策略设置合理 fallback。
+
+不要因为自定义字体造成中文发虚。
+
+---
+
+# 四十一、字号
+
+桌面效率软件：
+
+不要巨大字体。
+
+建议起点：
+
+Page Title：
+
+```text
+20 ~ 24
+```
+
+Section：
+
+```text
+14 ~ 16
+```
+
+Task：
+
+```text
+14 ~ 15
+```
+
+Meta：
+
+```text
+11 ~ 13
+```
+
+实际根据 DPI 调整。
+
+---
+
+# 四十二、Spacing
+
+统一 Scale：
+
+例如：
+
+```text
+4
+8
+12
+16
+24
+32
+```
+
+不要随机：
+
+```text
+13
+17
+19
+23
+```
+
+除非视觉确实需要。
+
+---
+
+# 四十三、避免 Material Demo 感
+
+这是重点。
+
+当前 Flutter 项目很容易出现：
+
+```text
+Card
+ElevatedButton
+FloatingActionButton
+Huge AppBar
+```
+
+然后看起来像 Flutter Tutorial。
+
+Fly 不要这样。
+
+Fly 是：
+
+# Desktop Productivity App
+
+尽量使用：
+
+```text
+Flat
+Subtle
+Compact
+```
+
+布局。
+
+---
+
+# 四十四、不要大量阴影
+
+只在：
+
+```text
+Popup
+Dropdown
+Quick Add
+Context Menu
+```
+
+使用轻微 Shadow。
+
+主区域：
+
+基本无 Shadow。
+
+依赖：
+
+```text
+Whitespace
+Border
+Background
+```
+
+建立层次。
+
+---
+
+# 四十五、参考提供的 UI02.pdf
+
+继续遵循之前提供的视觉参考：
+
+主要学习：
+
+# 色彩分区
+
+# 模块化布局
+
+# 留白
+
+# 清晰层级
+
+但是不要复制其具体图片或组件。
+
+---
+
+# 四十六、创建 UI/UX 文档
+
+建立：
+
+```text
+docs/design/
+```
+
+更新：
+
+```text
+design_system.md
+desktop_layout.md
+interaction_spec.md
+task_visual_states.md
+calendar_spec.md
+matrix_spec.md
+localization.md
+```
+
+---
+
+# 四十七、Task Visual State 文档
+
+明确写：
+
+```text
+Default
+Hover
+Selected
+Completed
+Focused
+Disabled
+```
+
+例如：
+
+```text
+Default:
+white
+
+Hover:
+light gray
+
+Selected:
+gray
+
+Completed:
+gray text
+strikethrough
+move to bottom
+```
+
+---
+
+# 四十八、做视觉 Demo 数据
+
+Development Mode 建立一组类似真实生产场景的数据。
+
+中文：
+
+```text
+今天
+├── 跟进菲律宾客户 Jack
+├── 给 Ahmed 发报价
+├── 准备 WPC 样品
+├── 更新独立站产品
+└── 整理客户资料
+```
+
+Calendar：
+
+分布在整个月。
+
+Matrix：
+
+四象限都有任务。
+
+目的是：
+
+# 验证真实信息密度
+
+不要只有两条 Task。
+
+---
+
+# 四十九、截图验收
+
+完成以后：
+
+实际：
+
+```text
+flutter run -d windows --release
+```
+
+启动 Fly。
+
+分别截图：
+
+```text
+Todo
+Calendar
+Matrix
+```
+
+保存到：
+
+```text
+docs/screenshots/
+```
+
+例如：
+
+```text
+todo_v2.png
+calendar_v2.png
+matrix_v2.png
+```
+
+---
+
+# 五十、对比分析
+
+完成以后建立：
+
+```text
+docs/design/ui_review_v2.md
+```
+
+自己回答：
+
+## Todo
+
+和成熟 任务管理软件 类产品相比：
+
+* 信息密度
+* 留白
+* 操作步数
+* 清晰度
+* 任务新增速度
+* 任务完成反馈
+
+分别怎么样？
+
+## Calendar
+
+* 是否紧凑？
+* 是否能快速新增？
+* 是否显示足够多任务？
+* 是否一眼能扫完整个月？
+
+## Matrix
+
+* 是否舒服？
+* 是否颜色克制？
+* 是否四象限明确？
+* 是否任务可快速识别？
+
+不要只写：
+
+```text
+Looks good
+```
+
+必须具体评价。
+
+---
+
+# 五十一、最后验证
+
+完成 UI 重构以后：
+
+必须：
+
+```bash
+flutter analyze
+```
+
+PASS。
+
+然后：
+
+```bash
+flutter test
+```
+
+PASS。
+
+然后：
+
+```bash
+flutter build windows --release
+```
+
+PASS。
+
+然后：
+
+```bash
+flutter run -d windows --release
+```
+
+实际打开验证。
+
+---
+
+# 五十二、不要破坏数据层
+
+当前：
+
+```text
+Riverpod
+TaskRepository
+Drift
+SQLite
+```
+
+架构已经合理。
+
+本阶段：
+
+不要为了 UI 重构大规模重写数据库。
+
+除非：
+
+交互需求确实需要。
+
+比如：
+
+```text
+completedAt
+sortOrder
+```
+
+缺失。
+
+这种可以做 migration。
+
+---
+
+# 五十三、最终验收标准
+
+Fly V1 UI/UX V2 必须做到：
+
+# Todo
+
+* 默认中文
+* 三栏桌面结构
+* 左侧清单导航
+* 可新建清单
+* 点击清单切换任务
+* 快速 Enter 新增 Task
+* Task 完成后灰色
+* 中划线
+* 移动到最后
+* 点击 Task 右侧显示详情
+* Auto Save
+
+# Calendar
+
+* 紧凑 Month View
+* 页面清晰
+* 每天可显示多个 Task
+* 点击日期快速弹出小输入框
+* Enter 创建
+* Checkbox 完成
+* Completed 灰色 + 中划线
+* 排到当天最后
+
+# Matrix
+
+* 2×2
+* 红 / 橙 / 蓝 / 绿轻量视觉标记
+* 白色主背景
+* Task Row 紧凑
+* Drag & Drop
+* 完成状态一致
+
+# Global
+
+* 中文默认
+* 英文可切换
+* Windows Desktop 风格
+* 不像 Flutter Demo
+* 不臃肿
+* 不花哨
+* 高信息密度
+* 低视觉疲劳
+* 快速操作
+
+---
+
+# 最重要原则
+
+不要问：
+
+```text
+功能有没有？
+```
+
+现在要问：
+
+# 用户愿不愿意每天打开它？
+
+# 能不能不思考就快速操作？
+
+# 连续使用 8 小时会不会视觉疲劳？
+
+# 创建一个任务是不是只需要“点击 → 输入 → Enter”？
+
+# 完成一个 Task 后，用户是否立即理解状态已经改变？
+
+这才是本阶段的验收标准。
+
+现在直接执行。
+
+不要继续给设计建议。
+
+修改真实 Fly 项目：
+
+```text
+E:\workSpace\fly
+```
+
+完成 UI/UX V2。

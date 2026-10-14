@@ -57,7 +57,7 @@ Status: in development; not a release acceptance report.
 - Full regression output: `artifacts/v9-regression.log`.
 - Windows Release build passed on 2026-09-09 (latest: 188.0 seconds), explicitly targeting
   `lib/main.dart`, with native transfer and normal-close adapters. This is build
-  evidence, not Explorer/WeChat drag-and-drop or close-handshake acceptance.
+  evidence, not Explorer/通讯应用 drag-and-drop or close-handshake acceptance.
 - Rendered and visually inspected isolated-data screenshots with real Chinese
   and Material fonts: `artifacts/v9-files.png`, `artifacts/v9-notes.png`.
 - Launched the latest normal-entry Release executable directly from the project;
@@ -71,7 +71,7 @@ Status: in development; not a release acceptance report.
    normal-close platform behavior still needs desktop interaction acceptance.
 2. Audit large-library performance and complete end-user acceptance of logical
    folder disk-location picking; native multi-file selection is not implemented.
-3. Windows native drag-out and file clipboard; actual Explorer and WeChat checks
+3. Windows native drag-out and file clipboard; actual Explorer and 通讯应用 checks
    must be recorded, not inferred from source or unit tests.
 4. End-to-end migration/backup workflow, rendered UI checks, final release build,
    installer and launch after all required functionality passes.

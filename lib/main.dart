@@ -56,6 +56,17 @@ class _FlyBootstrapState extends State<FlyBootstrap> {
 
   Future<void> _load() async {
     try {
+      if (widget.dataRootService.isMobile) {
+        if (mounted) {
+          setState(() {
+            _loading = true;
+            _error = null;
+          });
+        }
+        final root = await widget.dataRootService.initializeMobile();
+        if (mounted) await _startRuntime(root);
+        return;
+      }
       final saved = await widget.dataRootService.loadDataRoot();
       final recommended = await widget.dataRootService.recommendedDataRoot();
       if (!mounted) return;
@@ -279,6 +290,33 @@ class _FlyBootstrapState extends State<FlyBootstrap> {
       darkTheme: FlyTheme.dark(),
       home: _loading
           ? const _BootstrapLoading()
+          : widget.dataRootService.isMobile
+          ? Scaffold(
+              body: SafeArea(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.folder_outlined, size: 48),
+                        const SizedBox(height: 16),
+                        Text(
+                          _error ?? '无法访问 Fly 数据目录',
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        FilledButton(
+                          key: const ValueKey('mobile-storage-retry'),
+                          onPressed: _load,
+                          child: const Text('重新授权并重试'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            )
           : FlyFirstRunPage(
               service: widget.dataRootService,
               recommendedRoot: _recommendedRoot ?? '',

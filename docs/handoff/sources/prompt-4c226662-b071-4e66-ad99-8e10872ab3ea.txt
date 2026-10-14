@@ -1,0 +1,1849 @@
+# Fly V7 — Data Safety / Global Search / Reminder / CRM Next Action / Dashboard / Import / Unified Attachments
+# 项目目录：E:\workSpace\fly
+
+当前 Fly 已经完成并且需要保留现有功能、状态和整体 UI 风格：
+
+- 客户管理
+- 订单管理
+- 任务
+- 日历
+- 四象限
+- 客户备注 / 跟进记录
+- Next Action
+- 订单财务
+- 收款 / 成本
+- 文件管理
+- Excel 导出
+- 配色方案
+- Windows Installer
+- 初始演示数据
+- 装柜工具（如果当前分支已存在）
+- 当前 Primary Rail / Secondary Sidebar / List / Detail / Extension Panel 设计
+
+本轮不要推倒重来。
+
+本轮目标：
+
+1. 修正财务汇率与汇总展示
+2. 自动备份与恢复
+3. 全局搜索 Ctrl+K
+4. Windows 原生提醒
+5. CRM Next Action 状态化
+6. 轻量 Dashboard
+7. Excel 客户导入
+8. 统一附件架构，并支持客户附件
+
+==================================================
+PART A — 财务信息微调
+==================================================
+
+一、汇率只保留两位小数
+
+订单财务：
+
+USD → RMB 汇率
+
+UI 输入和显示都只保留：
+
+2 位小数
+
+例如：
+
+7.1234
+
+保存 / 展示：
+
+7.12
+
+推荐：
+
+内部可以继续 Decimal / double
+
+但 UI 和业务计算统一 round 到 2 decimals。
+
+不要显示：
+
+7.123456
+
+--------------------------------------------------
+二、汇率输入限制
+
+输入允许：
+
+7
+7.1
+7.12
+
+最多两位小数。
+
+例如：
+
+7.123
+
+用户输入后：
+
+自动变：
+
+7.12
+
+或者阻止第三位小数。
+
+保持 Desktop 输入自然。
+
+--------------------------------------------------
+三、收入 Summary 不显示 RMB 换算
+
+当前页面：
+
+已收合计
+USD 1,000
+折合 RMB 7,120
+
+未收合计
+USD 4,000
+折合 RMB 28,480
+
+这种展示需要修改。
+
+要求：
+
+# 收入区域只展示原始币种数据。
+
+例如订单币种为 USD：
+
+已收合计
+USD 1,000
+
+未收合计
+USD 4,000
+
+不要额外显示：
+
+折合人民币
+RMB equivalent
+
+--------------------------------------------------
+四、多币种收款
+
+如果一个订单真的存在：
+
+USD Payments
+RMB Payments
+
+则允许：
+
+已收合计
+
+USD 1,000
+RMB 5,000
+
+但：
+
+不要再额外展示：
+
+折合 RMB 总额
+
+因为用户这里的需求是：
+
+# 汇总显示原始记录数据即可。
+
+--------------------------------------------------
+五、未收合计
+
+未收合计：
+
+优先以：
+
+订单销售币种
+
+显示。
+
+例如：
+
+订单金额：
+USD 5,000
+
+已收：
+USD 1,000
+
+则：
+
+未收合计：
+USD 4,000
+
+如果存在跨币种 Payment：
+
+仍然可以内部使用汇率计算业务结果，
+
+但当前 Summary UI 不展示额外 RMB 对应值。
+
+如果算法存在歧义：
+
+保持当前内部逻辑，
+只简化 UI 展示。
+
+--------------------------------------------------
+六、成本合计同样简化
+
+当前：
+
+成本合计
+RMB 50,000
+折合 USD ...
+或者：
+USD ...
+折合 RMB ...
+
+改成：
+
+# 只展示原始币种汇总。
+
+例如：
+
+成本合计
+
+RMB 50,000
+
+如果同时存在 USD 成本：
+
+成本合计
+
+RMB 50,000
+USD 1,000
+
+不显示换算后的第二层数字。
+
+--------------------------------------------------
+七、利润仍然统一 RMB
+
+注意：
+
+以上只是：
+
+# Summary UI 简化
+
+不是删除汇率和 RMB 利润计算。
+
+最终：
+
+预计利润
+
+继续：
+
+RMB xxx
+
+因为利润需要统一核算币种。
+
+--------------------------------------------------
+八、财务内部模型保持
+
+不要因为 UI 去掉 RMB 换算展示：
+
+删除：
+
+exchangeRate
+currency
+toRmb
+profit calculation
+
+这些仍然需要。
+
+只是：
+
+已收合计
+未收合计
+成本合计
+
+UI 不显示额外换算值。
+
+==================================================
+PART B — 自动备份与恢复
+==================================================
+
+九、这是本轮第一优先级
+
+Fly 目前已经存储：
+
+客户
+订单
+任务
+备注
+跟进记录
+付款
+成本
+PI / CI / PL / CO
+客户附件
+截图
+PDF
+其它文件
+
+必须建立可靠：
+
+# Backup & Restore
+
+--------------------------------------------------
+十、备份范围
+
+至少包含：
+
+fly.db
+
+attachments/
+
+orders/
+
+customers/
+
+以及当前 FlyData 下所有业务数据目录。
+
+不要只备份 SQLite。
+
+--------------------------------------------------
+十一、Backup Package
+
+建议生成：
+
+.flybackup
+
+或者：
+
+.zip
+
+例如：
+
+FlyBackup-2026-09-05-1900.zip
+
+内容：
+
+fly.db
+attachments/
+orders/
+customers/
+metadata.json
+
+--------------------------------------------------
+十二、metadata.json
+
+至少：
+
+backupVersion
+appVersion
+databaseSchemaVersion
+createdAt
+dataRootPath optional
+
+不要保存敏感机器信息。
+
+--------------------------------------------------
+十三、自动备份
+
+Settings：
+
+增加：
+
+数据备份
+
+选项：
+
+自动备份
+[ 开 / 关 ]
+
+频率：
+
+每天
+
+保留策略：
+
+[ 7天 ]
+[ 30天 ]
+
+默认推荐：
+
+每天
+保留 7 天
+
+--------------------------------------------------
+十四、自动备份时机
+
+推荐：
+
+每天第一次启动 Fly 后
+
+如果：
+
+lastBackupDate < today
+
+执行一次。
+
+不要每小时重复。
+
+--------------------------------------------------
+十五、Backup Directory
+
+默认：
+
+FlyData/backups/
+
+例如：
+
+D:\FlyData\backups\
+
+用户可以修改：
+
+备份位置。
+
+--------------------------------------------------
+十六、自动清理旧备份
+
+如果：
+
+Retention = 7 days
+
+删除：
+
+createdAt < today - 7 days
+
+如果 30：
+
+同理。
+
+必须只删除 Fly 自己生成的 backup package。
+
+--------------------------------------------------
+十七、手动立即备份
+
+Settings：
+
+[ 立即备份 ]
+
+点击：
+
+立即生成。
+
+完成后显示：
+
+备份成功
+文件：
+D:\FlyData\backups\...
+
+并提供：
+
+打开文件夹
+
+--------------------------------------------------
+十八、恢复
+
+Settings：
+
+[ 恢复备份 ]
+
+让用户选择：
+
+Fly backup package
+
+--------------------------------------------------
+十九、恢复前强制安全备份
+
+恢复之前：
+
+先自动创建：
+
+pre-restore backup
+
+例如：
+
+PreRestore-2026-09-05-1900.zip
+
+如果恢复失败：
+
+可以回滚。
+
+--------------------------------------------------
+二十、恢复流程
+
+1. validate package
+2. verify database
+3. close DB
+4. backup current data
+5. extract to temp
+6. verify
+7. replace business data
+8. reopen DB
+9. run migrations if necessary
+10. refresh Riverpod state
+
+--------------------------------------------------
+二十一、版本兼容
+
+Backup metadata：
+
+必须记录：
+
+schemaVersion
+appVersion
+
+如果备份来自：
+
+更高版本 schema
+
+当前版本无法恢复：
+
+明确提示。
+
+不要强行打开损坏 DB。
+
+--------------------------------------------------
+二十二、恢复必须安全失败
+
+任何一步失败：
+
+保持原数据。
+
+不能出现：
+
+旧数据已删
+新数据恢复一半
+
+这种情况。
+
+使用：
+
+temp directory
+atomic replace
+
+或安全 copy strategy。
+
+--------------------------------------------------
+二十三、用户数据不可静默覆盖
+
+恢复前：
+
+提示：
+
+恢复备份将替换当前 Fly 数据。
+
+当前数据会先自动备份。
+
+[取消]
+[继续恢复]
+
+==================================================
+PART C — 全局搜索 Ctrl+K
+==================================================
+
+二十四、全局搜索
+
+实现：
+
+Ctrl + K
+
+打开：
+
+# Global Search Palette
+
+类似 Command Palette。
+
+--------------------------------------------------
+二十五、搜索范围
+
+必须支持：
+
+Customer:
+- 客户名
+- 公司
+- WhatsApp
+- Email
+- Facebook
+
+Order:
+- 订单号
+- 客户名
+- 产品
+- 工厂
+
+CRM:
+- Customer Notes
+- Follow-up Content
+- Next Action
+
+Task:
+- Task title
+- Task description
+
+--------------------------------------------------
+二十六、Global Search UI
+
+中央浮层：
+
+搜索 Fly...
+
+输入：
+
+Jack
+
+结果分组：
+
+客户
+Jack
+Jack Trading
+
+订单
+SO-2026-001 · Jack
+
+备注
+Jack · 客户月底确认数量
+
+任务
+跟进 Jack
+
+--------------------------------------------------
+二十七、搜索结果分组
+
+建议：
+
+客户
+订单
+任务
+备注 / 跟进
+
+不要混成一长串。
+
+--------------------------------------------------
+二十八、键盘操作
+
+Ctrl+K
+打开
+
+Esc
+关闭
+
+↑ ↓
+选择
+
+Enter
+打开结果
+
+--------------------------------------------------
+二十九、搜索结果直接跳转
+
+Customer：
+
+进入：
+
+Customers Workspace
+选中对应 Customer
+
+Order：
+
+Orders Workspace
+选中对应 Order
+
+Task：
+
+Tasks Workspace
+打开 Task
+
+Customer Note / FollowUp：
+
+打开 Customer
+并自动打开：
+
+Notes / FollowUp Extension
+
+如果能定位具体条目：
+
+更好。
+
+--------------------------------------------------
+三十、不要 Widget 直接搜索数据库
+
+建立：
+
+GlobalSearchService
+
+返回：
+
+SearchResult
+
+字段例如：
+
+type
+entityId
+title
+subtitle
+matchedText
+score
+
+--------------------------------------------------
+三十一、搜索性能
+
+数据量几千级：
+
+输入时 debounce：
+
+150~250ms
+
+搜索不要卡 UI。
+
+--------------------------------------------------
+三十二、Search Ranking
+
+优先：
+
+exact name
+prefix match
+contains
+
+例如：
+
+Jack
+
+客户名称 Jack
+
+应该高于：
+
+备注中出现 Jack。
+
+==================================================
+PART D — Windows 原生提醒
+==================================================
+
+三十三、提醒对象
+
+至少：
+
+Task
+Customer Follow-up
+Order Delivery
+
+--------------------------------------------------
+三十四、提醒例子
+
+Task：
+
+“更新报价单 今天到期”
+
+Customer：
+
+“Jack 今天需要跟进”
+
+Order：
+
+“SO-2026-001 明天交货”
+
+--------------------------------------------------
+三十五、Settings
+
+增加：
+
+提醒
+
+总开关：
+
+[ 开 / 关 ]
+
+提醒时间：
+
+[ 到期时 ]
+[ 提前1小时 ]
+[ 提前1天 ]
+
+允许多选或单选。
+
+建议第一版：
+
+支持：
+
+到期时
+提前1小时
+提前1天
+
+
+--------------------------------------------------
+三十六、对象级提醒
+
+Task 已有 Reminder：
+
+复用。
+
+Customer：
+
+根据：
+
+nextFollowUpDate
+
+Order：
+
+根据：
+
+deliveryDate
+
+--------------------------------------------------
+三十七、Windows Notification
+
+使用：
+
+Windows native toast notification
+
+必须：
+
+Release Installer 安装后可工作。
+
+不要只在 Debug 正常。
+
+--------------------------------------------------
+三十八、点击通知
+
+Customer：
+
+点击通知：
+
+打开 Fly
+→ Customer
+→ 对应 Customer
+
+Order：
+
+打开对应 Order
+
+Task：
+
+打开对应 Task
+
+--------------------------------------------------
+三十九、重复通知避免
+
+建立：
+
+NotificationDeliveryLog
+
+防止：
+
+每次启动都重复提醒同一个事件。
+
+至少记录：
+
+entityType
+entityId
+scheduledTime
+deliveredAt
+
+--------------------------------------------------
+四十、跨午夜刷新
+
+Fly 长时间运行：
+
+跨过午夜后：
+
+客户 Today
+Task Today
+Reminder Schedule
+
+需要刷新。
+
+可以：
+
+定时检查 day change
+或 app focus 时检查。
+
+==================================================
+PART E — CRM Next Action 状态
+==================================================
+
+四十一、Next Action 当前已有文本
+
+现在升级为：
+
+# Next Action Type + free text
+
+不要删除现有 nextAction 文本。
+
+--------------------------------------------------
+四十二、默认 Next Action 类型
+
+提供：
+
+等客户回复
+发报价
+寄样
+催付款
+再联系
+确认订单
+其它
+
+--------------------------------------------------
+四十三、不要做复杂状态机
+
+这个字段只是：
+
+帮助销售扫列表。
+
+不是 Workflow Engine。
+
+--------------------------------------------------
+四十四、CustomerFollowUp
+
+增加或复用：
+
+nextActionType
+
+例如：
+
+waiting_reply
+send_quote
+send_sample
+payment_followup
+contact_again
+confirm_order
+other
+
+--------------------------------------------------
+四十五、Customer Detail
+
+Follow-up 新建：
+
+记录本次跟进
+[................]
+
+下一步类型
+[ 等客户回复 ▼ ]
+
+下一步内容
+[ 周五再问一次 ]
+
+--------------------------------------------------
+四十六、Next Action 可以只选类型
+
+允许：
+
+nextActionType != null
+nextAction text empty
+
+例如：
+
+催付款
+
+也可以保存。
+
+--------------------------------------------------
+四十七、Customer List 展示
+
+Customer List：
+
+建议在：
+
+客户名 / 状态 / 上次跟进
+
+之外，
+
+右下或 Secondary Metadata：
+
+显示：
+
+下一步：催付款
+
+或者 Capsule：
+
+[催付款]
+
+保持轻量。
+
+--------------------------------------------------
+四十八、颜色
+
+不同 Next Action：
+
+可以轻量颜色。
+
+但不要每一种强色。
+
+例如：
+
+催付款：
+soft orange
+
+寄样：
+soft blue
+
+等回复：
+soft gray
+
+--------------------------------------------------
+四十九、筛选
+
+V1 不要求增加 Sidebar 分类。
+
+但 Customer Filter Popover：
+
+可以加入：
+
+下一步类型
+
+以后使用。
+
+==================================================
+PART F — Dashboard
+==================================================
+
+五十、增加一级 Dashboard / 首页
+
+Primary Rail：
+
+最上方客户之前：
+
+增加：
+
+Dashboard Icon
+
+或者使用 Home。
+
+--------------------------------------------------
+五十一、Dashboard 要非常克制
+
+只显示五块：
+
+1. 今天需跟进客户
+2. 今天任务
+3. 待收款订单
+4. 紧急订单
+5. 本月利润
+
+不要：
+
+大量图表
+漏斗
+地图
+排行榜墙
+ERP 大屏
+
+--------------------------------------------------
+五十二、Dashboard Layout
+
+Desktop：
+
+可以：
+
+第一行：
+
+今天需跟进客户
+今天任务
+
+第二行：
+
+待收款订单
+紧急订单
+本月利润
+
+或者：
+
+Responsive Grid。
+
+--------------------------------------------------
+五十三、每块都是入口
+
+点击：
+
+今天需跟进客户
+
+→ Customers / Today
+
+点击：
+
+今天任务
+
+→ Tasks / Today
+
+待收款订单
+
+→ Orders filtered outstanding > 0
+
+紧急订单
+
+→ Orders urgent
+
+本月利润
+
+→ Orders current month / financial summary
+
+--------------------------------------------------
+五十四、Dashboard 数据
+
+今天需跟进客户：
+
+count
+top 3
+
+今天任务：
+
+count
+top 3
+
+待收款订单：
+
+count
+outstanding amount
+
+紧急订单：
+
+count
+top 3
+
+本月利润：
+
+RMB total
+
+--------------------------------------------------
+五十五、本月利润
+
+只统计：
+
+orderDate / createdAt
+
+当前月。
+
+具体口径：
+
+使用订单日期优先。
+
+必须写 docs。
+
+--------------------------------------------------
+五十六、利润存在缺失汇率
+
+如果某订单：
+
+涉及 USD
+但没有汇率
+
+Dashboard：
+
+不要把它错误计算。
+
+显示：
+
+已统计 RMB xxx
+另有 X 个订单缺少汇率
+
+==================================================
+PART G — Excel 导入客户
+==================================================
+
+五十七、Customer Workspace
+
+增加：
+
+导入 Excel
+
+--------------------------------------------------
+五十八、支持文件
+
+.xlsx
+
+.csv 如果成本低可以一起支持。
+
+V1 最少：
+
+.xlsx
+
+--------------------------------------------------
+五十九、导入流程
+
+系统设计一个导入模版，导入之前，让用户下载模版，填入客户
+
+Step 1：
+选择 Excel
+
+Step 2：
+选择 Sheet
+
+Step 3：
+字段映射
+
+Step 4：
+预览
+
+Step 5：
+重复检查
+
+Step 6：
+导入
+
+--------------------------------------------------
+六十、字段映射
+
+例如 Excel：
+
+Name
+Company
+Country
+WhatsApp
+
+映射：
+
+Name → 客户名称
+Company → 公司
+Country → 国家
+WhatsApp → WhatsApp
+
+--------------------------------------------------
+六十一、Customer Import Fields
+
+至少支持：
+
+客户名称
+公司
+国家
+城市
+WhatsApp
+Email
+Facebook
+客户状态
+客户来源
+优先级
+下次跟进
+备注
+Tags
+
+--------------------------------------------------
+六十二、自动字段识别
+
+常见：
+
+Name
+Customer Name
+客户名称
+
+自动猜测：
+
+Customer.name
+
+但用户可以修改。
+
+--------------------------------------------------
+六十三、Tag 导入
+
+如果 Excel：
+
+Tags
+
+例如：
+
+菲律宾,WPC,A级
+
+支持：
+
+逗号
+分号
+
+解析。
+
+不存在的 Tag：
+
+自动创建。
+
+--------------------------------------------------
+六十四、重复检测
+
+导入前检查：
+
+Email
+WhatsApp
+Phone
+
+normalized exact match。
+
+如果重复：
+
+标记：
+
+可能重复
+
+用户选择：
+
+跳过
+覆盖
+仍然新增
+
+--------------------------------------------------
+六十五、不要默认覆盖
+
+默认：
+
+Skip duplicates
+
+最安全。
+
+--------------------------------------------------
+六十六、导入预览
+
+显示前：
+
+20 rows
+
+并标记：
+
+正常
+缺少名称
+重复
+格式错误
+
+--------------------------------------------------
+六十七、失败行
+
+导入结束：
+
+成功 95
+跳过 3
+失败 2
+
+提供：
+
+导出失败记录
+
+或者显示原因。
+
+==================================================
+PART H — 统一附件架构
+==================================================
+
+六十八、当前问题
+
+Order 已经有：
+
+OrderFile
+
+Customer 以后也需要：
+
+样品图片
+报价单
+客户名片
+聊天截图
+PDF
+
+不要客户再做另一套完全独立文件系统。
+
+--------------------------------------------------
+六十九、建立统一 FileRepository
+
+建议：
+
+Attachment
+
+字段：
+
+id
+ownerType
+ownerId
+
+fileName
+originalName
+relativePath
+mimeType
+fileSize
+
+documentType
+
+createdAt
+updatedAt
+deletedAt
+
+--------------------------------------------------
+七十、ownerType
+
+支持：
+
+customer
+order
+payment
+cost
+task future
+
+--------------------------------------------------
+七十一、不要急着删除旧 OrderFile
+
+如果当前已有：
+
+order_files
+
+优先：
+
+建立 Migration
+迁移到统一 attachments
+
+或者：
+
+先建立 Adapter
+
+不要破坏已有文件。
+
+--------------------------------------------------
+七十二、Customer Attachment
+
+Customer Detail：
+
+基本信息 / 订单区域下面：
+
+增加：
+
+附件
+
+--------------------------------------------------
+七十三、Customer 附件类型
+
+允许：
+
+样品
+报价
+名片
+聊天截图
+合同
+图片
+PDF
+其它
+
+类型允许用户自由输入或简单分类。
+
+--------------------------------------------------
+七十四、上传方式
+
+点击上传
+Drag & Drop
+
+--------------------------------------------------
+七十五、Storage
+
+统一：
+
+FlyData/attachments/
+
+建议：
+
+attachments/
+customers/<customerId>/
+orders/<orderId>/
+
+DB 保存：
+
+relativePath
+
+--------------------------------------------------
+七十六、点击打开
+
+使用系统默认程序。
+
+--------------------------------------------------
+七十七、删除附件
+
+默认：
+
+删除数据库链接
+
+并删除物理文件。
+
+提示：
+
+确定删除附件？
+
+如果未来需要回收站：
+
+可以后续实现。
+
+==================================================
+PART I — 数据与架构要求
+==================================================
+
+七十八、不要制造多份事实源
+
+Dashboard：
+
+是 Query Projection
+
+不是保存 Dashboard 数据。
+
+Search：
+
+只查询现有实体。
+
+Reminder：
+
+只引用现有日期。
+
+Next Action：
+
+属于 FollowUp / Customer 数据。
+
+--------------------------------------------------
+七十九、Repository
+
+新增：
+
+BackupService
+GlobalSearchService
+NotificationService
+CustomerImportService
+AttachmentRepository
+
+不要把逻辑写在 Widgets。
+
+--------------------------------------------------
+八十、数据库 Migration
+
+可能新增：
+
+notification_delivery_logs
+attachments
+customer_followup.nextActionType
+app backup settings
+import history optional
+
+使用 Drift Migration。
+
+不能删除用户数据。
+
+==================================================
+PART J — Tests
+==================================================
+
+八十一、FX Round Test
+
+Input:
+
+7.126
+
+Expected UI/save:
+
+7.13
+
+Input:
+
+7.124
+
+Expected:
+
+7.12
+
+--------------------------------------------------
+八十二、Financial Summary UI Test
+
+Payments:
+
+USD 1000
+
+Order:
+
+USD 5000
+
+Expected:
+
+已收合计 USD 1000
+未收合计 USD 4000
+
+UI 不出现：
+
+折合 RMB
+
+--------------------------------------------------
+八十三、Cost Summary UI Test
+
+Costs:
+
+RMB 50000
+
+Expected:
+
+成本合计 RMB 50000
+
+UI 不显示：
+
+折合 USD/RMB extra line
+
+--------------------------------------------------
+八十四、Backup Test
+
+Create:
+
+Customer
+Order
+Attachment
+
+Backup
+
+Delete data
+
+Restore
+
+Expected:
+
+Customer restored
+Order restored
+Attachment opens
+
+--------------------------------------------------
+八十五、Backup Failure Test
+
+Corrupted backup
+
+Expected:
+
+restore rejected
+
+original current data unchanged
+
+--------------------------------------------------
+八十六、Global Search Test
+
+Customer:
+
+Jack
+
+Order:
+
+SO-001
+
+Note:
+
+报价
+
+Task:
+
+跟进 Jack
+
+Search each:
+
+correct result returned
+
+--------------------------------------------------
+八十七、Notification Test
+
+Customer:
+
+nextFollowUp today
+
+Expected:
+
+notification scheduled / delivered once
+
+--------------------------------------------------
+八十八、Next Action Test
+
+FollowUp:
+
+type = 催付款
+text = 周五再次提醒
+
+Customer List:
+
+shows 催付款
+
+--------------------------------------------------
+八十九、Dashboard Test
+
+Today customers:
+3
+
+Today tasks:
+5
+
+Urgent orders:
+2
+
+Expected counts exact.
+
+--------------------------------------------------
+九十、Import Test
+
+Excel:
+
+3 rows
+
+1 new
+1 duplicate
+1 invalid
+
+Expected:
+
+preview statuses correct
+
+--------------------------------------------------
+九十一、Attachment Test
+
+Upload Customer PDF
+
+Restart
+
+Click
+
+opens correct file.
+
+==================================================
+PART K — UI原则
+==================================================
+
+九十二、保持 Fly 现有视觉
+
+所有新增：
+
+Backup
+Search
+Dashboard
+Import
+Attachments
+
+都必须继续使用：
+
+Primary Rail
+Secondary Sidebar
+Flat Surface
+Compact Typography
+Low Saturation
+Apple-inspired simplicity
+
+--------------------------------------------------
+九十三、Dashboard 不能变 ERP
+
+不要：
+
+Pie Chart
+Gauge
+3D Chart
+大面积渐变
+大红大绿
+
+第一版：
+
+数字
+列表
+轻量 Summary
+
+足够。
+
+--------------------------------------------------
+九十四、Global Search 要像桌面工具
+
+Ctrl+K
+
+快捷
+清晰
+键盘友好
+
+不要做成普通 Search Page。
+
+==================================================
+PART L — 开发顺序
+==================================================
+
+STEP 1
+Financial UI fixes
+
+STEP 2
+Backup / Restore
+
+STEP 3
+Global Search
+
+STEP 4
+Windows Native Reminder
+
+STEP 5
+Next Action Type
+
+STEP 6
+Dashboard
+
+STEP 7
+Excel Customer Import
+
+STEP 8
+Unified Attachments
+
+STEP 9
+Migration / compatibility review
+
+STEP 10
+Tests
+
+STEP 11
+Windows Release Build
+
+==================================================
+PART M — 最终验证
+==================================================
+
+必须执行：
+
+flutter analyze
+PASS / 0 issues
+
+flutter test
+PASS
+
+flutter build windows --release
+PASS
+
+flutter run -d windows --release
+PASS
+
+==================================================
+PART N — 最终验收
+==================================================
+
+Financial：
+
+- 汇率最多2位小数
+- 已收合计只显示原始币种金额
+- 未收合计只显示原始币种金额
+- 成本合计只显示原始币种金额
+- 不显示额外 RMB 换算行
+- 利润继续统一 RMB
+
+Backup：
+
+- 每日自动备份
+- 7/30天保留
+- 手动立即备份
+- 一键恢复
+- 恢复前自动备份当前数据
+- 附件也恢复
+
+Search：
+
+- Ctrl+K
+- 客户/订单/任务/备注/跟进可搜
+- Enter 直接跳详情
+
+Reminder：
+
+- Windows 原生通知
+- Customer / Task / Order
+- 10分钟 / 1小时 / 1天
+- 点击通知跳详情
+
+CRM：
+
+- Next Action 有简单类型
+- Customer List 可看到下一步
+
+Dashboard：
+
+只展示：
+- 今天需跟进客户
+- 今天任务
+- 待收款订单
+- 紧急订单
+- 本月利润
+
+Import：
+
+- Excel 导入客户
+- 字段映射
+- 预览
+- 重复检测
+- 导入结果
+
+Attachment：
+
+- Customer 支持附件
+- Customer / Order 共用统一 FileRepository
+- 点击系统打开
+
+完成以上 V7 后停止，不要继续新增大型模块。

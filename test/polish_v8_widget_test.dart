@@ -205,8 +205,13 @@ void main() {
       await settle(tester);
       expect(
         find.byKey(const ValueKey('settings-category-selector')),
-        findsOneWidget,
+        findsNothing,
       );
+      await tester.tap(find.byKey(const ValueKey('settings-back')));
+      await settle(tester);
+      await tester.tap(find.byKey(const ValueKey('settings-category-1')));
+      await settle(tester);
+      expect(find.byKey(const ValueKey('settings-content-1')), findsOneWidget);
       expect(tester.takeException(), isNull);
       await shot('settings_narrow');
       await tester.tap(find.byTooltip('关闭设置'));

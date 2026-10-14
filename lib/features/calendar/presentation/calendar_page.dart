@@ -7,6 +7,8 @@ import 'package:go_router/go_router.dart';
 import '../../../l10n/fly_localizations.dart';
 import '../../../shared/design_system/design_tokens.dart';
 import '../../../shared/design_system/fly_color_scheme.dart';
+import '../../../shared/design_system/responsive_layout.dart';
+import 'mobile_calendar_workspace.dart';
 import '../../tasks/domain/task.dart';
 import '../../tasks/domain/task_date_range.dart';
 import '../../tasks/presentation/task_providers.dart';
@@ -94,12 +96,17 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
     final selectedDate = ref.watch(selectedDateProvider);
     final tasks = ref.watch(allTasksProvider);
     final today = ref.watch(localTodayProvider);
-    final first = _week ? month : DateTime(month.year, month.month);
+    final compact = useCompactLayout(context);
+    final first = _week && !compact ? month : DateTime(month.year, month.month);
     final gridStart = first.subtract(Duration(days: first.weekday - 1));
     final days = List.generate(
-      _week ? 7 : 42,
+      _week && !compact ? 7 : 42,
       (index) => gridStart.add(Duration(days: index)),
     );
+
+    if (compact) {
+      return const MobileCalendarWorkspace();
+    }
 
     return Listener(
       key: const ValueKey('calendar-scroll-surface'),
@@ -334,9 +341,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
 
 class _WeekHeader extends StatelessWidget {
   const _WeekHeader({required this.labels});
-
   final List<String> labels;
-
   @override
   Widget build(BuildContext context) => SizedBox(
     height: 26,
@@ -597,66 +602,66 @@ class _CalendarQuickAddDialogState extends State<_CalendarQuickAddDialog> {
         borderRadius: BorderRadius.circular(FlyRadius.lg),
       ),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 410, minHeight: 230),
-        child: Padding(
-          padding: const EdgeInsets.all(FlySpacing.md),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.calendar_month_outlined, size: 18),
-                  const SizedBox(width: FlySpacing.xs),
-                  Text(
-                    context.l10n.fullDate(widget.day),
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    tooltip: context.l10n.t('close'),
-                    visualDensity: VisualDensity.compact,
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close, size: 18),
-                  ),
-                ],
-              ),
-              const SizedBox(height: FlySpacing.md),
-              TextField(
-                controller: _controller,
-                autofocus: true,
-                style: Theme.of(context).textTheme.titleMedium,
-                decoration: InputDecoration(
-                  hintText: context.l10n.t('calendarAdd'),
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  contentPadding: EdgeInsets.zero,
-                ),
-                textInputAction: TextInputAction.done,
-                onSubmitted: (_) => _submit(),
-              ),
-              const SizedBox(height: 76),
-              const Divider(height: 1),
-              const SizedBox(height: FlySpacing.sm),
-              Row(
-                children: [
-                  const Icon(Icons.inbox_outlined, size: 17),
-                  const SizedBox(width: 6),
-                  Text(
-                    context.l10n.t('inbox'),
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  const Spacer(),
-                  Text(
-                    context.l10n.t('pressEnterToCreate'),
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+        constraints: const BoxConstraints(maxWidth: 410),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(FlySpacing.md),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.calendar_month_outlined, size: 18),
+                    const SizedBox(width: FlySpacing.xs),
+                    Text(
+                      context.l10n.fullDate(widget.day),
+                      style: Theme.of(context).textTheme.bodyMedium,
                     ),
+                    const Spacer(),
+                    IconButton(
+                      tooltip: context.l10n.t('close'),
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close, size: 18),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: FlySpacing.md),
+                TextField(
+                  controller: _controller,
+                  autofocus: true,
+                  style: Theme.of(context).textTheme.titleMedium,
+                  decoration: InputDecoration(
+                    hintText: context.l10n.t('calendarAdd'),
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    contentPadding: EdgeInsets.zero,
                   ),
-                ],
-              ),
-            ],
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => _submit(),
+                ),
+                SizedBox(height: useCompactLayout(context) ? 16 : 76),
+                const Divider(height: 1),
+                const SizedBox(height: FlySpacing.sm),
+                Row(
+                  children: [
+                    const Icon(Icons.inbox_outlined, size: 17),
+                    const SizedBox(width: 6),
+                    Text(
+                      context.l10n.t('inbox'),
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: _submit,
+                      child: Text(context.l10n.t('addTask')),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -37,6 +37,10 @@ migrate_working_dir/
 /coverage/
 /private_symbols/
 /license_tools/private/
+/web/config.php
+/web/log.txt
+/web/var/
+/web/.env
 
 # Symbolication related
 app.*.symbols
@@ -48,6 +52,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+/android/.kotlin/
 
 # Widget Preview related
 .widget_preview/

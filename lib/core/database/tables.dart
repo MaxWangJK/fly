@@ -148,6 +148,7 @@ class AppSettings extends Table {
 
 @DataClassName('TaskListRecord')
 class TaskLists extends Table {
+  TextColumn get parentId => text().nullable()();
   TextColumn get id => text()();
   TextColumn get name => text().withLength(min: 1, max: 120)();
   IntColumn get colorValue =>

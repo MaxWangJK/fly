@@ -1,0 +1,4 @@
+interface:
+  display_name: "Flutter Testing"
+  short_description: "Verify Flutter behavior and prevent regressions"
+  default_prompt: "Use $flutter-testing to add focused regression coverage and run the appropriate Flutter checks for this change."

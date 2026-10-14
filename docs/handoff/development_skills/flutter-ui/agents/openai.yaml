@@ -1,0 +1,4 @@
+interface:
+  display_name: "Flutter UI"
+  short_description: "Create responsive, accessible Flutter interfaces"
+  default_prompt: "Use $flutter-ui to implement this interface using the app's existing theme, responsive patterns, and accessibility conventions."

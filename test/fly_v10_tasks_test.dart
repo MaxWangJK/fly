@@ -58,7 +58,11 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, '确认'));
       await settle();
       expect(find.text('全部顺延到今天'), findsNothing);
-      expect(find.byType(ReorderableDragStartListener), findsNWidgets(3));
+      expect(find.byType(ReorderableDragStartListener), findsNothing);
+      expect(
+        tester.getTopLeft(find.text('最近过期')).dy,
+        lessThan(tester.getTopLeft(find.text('今天处理').first).dy),
+      );
       await tester.runAsync(
         () async => expect((await repo.watchTodayTasks(day).first).length, 3),
       );

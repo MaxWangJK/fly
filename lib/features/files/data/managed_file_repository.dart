@@ -139,10 +139,12 @@ class ManagedFileRepository {
           updatedAt: Value(DateTime.now()),
         ),
       );
-  Future<void> remove(String id) async {
+  Future<void> remove(String id, {bool allowBusinessAttachment = false}) async {
     final row = await find(id);
     if (row == null) throw StateError('文件不存在');
-    if (row.ownerType != 'library') throw StateError('业务附件请从所属客户或订单中删除');
+    if (row.ownerType != 'library' && !allowBusinessAttachment) {
+      throw StateError('业务附件请从所属客户或订单中删除');
+    }
     await (db.update(
       db.attachments,
     )..where((r) => r.id.equals(id) & r.deletedAt.isNull())).write(
@@ -156,7 +158,11 @@ class ManagedFileRepository {
 
   Future<void> restore(String id) => db.transaction(() async {
     final file = await find(id);
-    if (file == null || file.ownerType != 'library') throw StateError('文件无法恢复');
+    if (file == null ||
+        file.ownerType != 'library' ||
+        file.deletionBatch == 'permanent') {
+      throw StateError('文件无法恢复');
+    }
     final folder = file.folderId == null
         ? null
         : await (db.select(db.fileFolders)..where(

@@ -15,6 +15,14 @@ import 'package:fly/features/files/data/managed_file_storage.dart';
 import 'package:fly/features/files/presentation/file_entry_content.dart';
 import 'package:fly/features/tasks/presentation/task_providers.dart';
 import 'package:fly/shared/data/workspace_folder_repository.dart';
+import 'package:fly/shared/attachments/attachment_providers.dart';
+import 'package:fly/shared/attachments/attachment_storage.dart';
+
+class _Opener extends PlatformAttachmentOpener {
+  final paths = <String>[];
+  @override
+  Future<void> open(String path) async => paths.add(path);
+}
 
 Future<void> settle(WidgetTester tester) async {
   for (var i = 0; i < 12; i++) {
@@ -102,9 +110,11 @@ void main() {
           }
         }
       });
+      final opener = _Opener();
       final container = ProviderContainer(
         overrides: [
           databaseProvider.overrideWithValue(db),
+          attachmentOpenerProvider.overrideWithValue(opener),
           dataRootPathProvider.overrideWithValue(root.path),
         ],
       );
@@ -129,7 +139,7 @@ void main() {
         tester
             .widget<FileEntryContent>(find.byType(FileEntryContent).first)
             .mode,
-        FileViewMode.small,
+        FileViewMode.list,
       );
       await tester.tap(find.text('产品资料'));
       await settle(tester);
@@ -144,11 +154,24 @@ void main() {
       await tester.tap(find.byTooltip('收起'));
       await settle(tester);
       expect(find.text('室内产品'), findsNothing);
+      await tester.tap(find.byTooltip('视图模式'));
+      await settle(tester);
+      await tester.tap(
+        find.widgetWithText(CheckedPopupMenuItem<FileViewMode>, '小图标'),
+      );
+      await settle(tester);
+      expect(
+        tester
+            .widget<FileEntryContent>(find.byType(FileEntryContent).first)
+            .mode,
+        FileViewMode.small,
+      );
       await capture(tester, 'small');
       await tester.tap(find.text('产品价格表.pdf'));
       await settle(tester);
-      expect(find.byKey(const ValueKey('file-preview-price')), findsOneWidget);
-      expect(find.text('使用系统程序打开'), findsOneWidget);
+      expect(find.byKey(const ValueKey('file-preview-price')), findsNothing);
+      expect(opener.paths.single, endsWith('price.pdf'));
+      expect(find.text('使用系统程序打开'), findsNothing);
       await capture(tester, 'preview');
       await tester.tap(find.byTooltip('视图模式'));
       await settle(tester);
@@ -162,7 +185,7 @@ void main() {
             .mode,
         FileViewMode.medium,
       );
-      expect(find.byKey(const ValueKey('file-preview-price')), findsOneWidget);
+      expect(find.byKey(const ValueKey('file-preview-price')), findsNothing);
       await tester.tap(find.byTooltip('视图模式'));
       await settle(tester);
       await tester.tap(
@@ -187,11 +210,9 @@ void main() {
       await capture(tester, 'list');
       tester.view.physicalSize = const Size(440, 850);
       await settle(tester);
-      expect(find.byKey(const ValueKey('file-preview-price')), findsOneWidget);
+      expect(find.byKey(const ValueKey('file-preview-price')), findsNothing);
       expect(tester.takeException(), isNull);
       await capture(tester, 'narrow');
-      await tester.tap(find.byTooltip('关闭预览'));
-      await settle(tester);
       expect(find.byKey(const ValueKey('file-preview-price')), findsNothing);
       await tester.pumpWidget(const SizedBox.shrink());
       container.dispose();

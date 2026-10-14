@@ -12,7 +12,9 @@ import 'managed_file_storage.dart';
 class ThumbnailCache {
   ThumbnailCache(this.storage);
   final ManagedFileStorage storage;
-  final _pending = <String, Future<File?>>{};
+  static final _pending = <String, Future<File?>>{};
+  String _pendingKey(String key) =>
+      '${p.normalize(p.absolute(storage.root))}|$key';
   String _key(AttachmentRecord file) => sha256
       .convert(utf8.encode('${file.id}|${file.relativePath}|${file.fileSize}'))
       .toString();
@@ -21,9 +23,12 @@ class ThumbnailCache {
       return Future.value(null);
     }
     final key = _key(file);
+    final pendingKey = _pendingKey(key);
     return _pending.putIfAbsent(
-      key,
-      () => _create(file, key).whenComplete(() => _pending.remove(key)),
+      pendingKey,
+      () => _create(file, key).whenComplete(() {
+        _pending.remove(pendingKey);
+      }),
     );
   }
 
@@ -63,11 +68,10 @@ class ThumbnailCache {
   }
 
   Future<void> remove(AttachmentRecord file) async {
-    final pending = _pending[_key(file)];
+    final pending = _pending[_pendingKey(_key(file))];
     if (pending != null) await pending;
-    final cache = File(
-      storage.absolute(p.join('cache', 'thumbnails', '${_key(file)}.png')),
+    await storage.deleteOwned(
+      p.join('cache', 'thumbnails', '${_key(file)}.png'),
     );
-    if (await cache.exists()) await cache.delete();
   }
 }

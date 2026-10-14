@@ -16,6 +16,8 @@ import '../../customers/domain/customer.dart';
 import '../../customers/presentation/customer_providers.dart';
 import '../domain/order.dart';
 import 'order_providers.dart';
+import '../../../app/shell/mobile_details.dart';
+import '../../../shared/design_system/responsive_layout.dart';
 
 class OrderListPage extends ConsumerStatefulWidget {
   const OrderListPage({required this.projection, this.tagId, super.key});
@@ -117,42 +119,73 @@ class _OrderListPageState extends ConsumerState<OrderListPage> {
       OrderProjection.deleted => context.crmCopy('已删除'),
     };
     return SafeArea(
-      child: ColoredBox(
+      child: Material(
         color: Theme.of(context).colorScheme.surface,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+          padding: EdgeInsets.fromLTRB(
+            12,
+            isPhoneLayout(context) ? 0 : 20,
+            12,
+            0,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleLarge
-                          ?.copyWith(fontWeight: FontWeight.w700),
+              if (isPhoneLayout(context))
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      for (final item in [
+                        ('/orders/all', '全部'),
+                        for (final tag in allTags)
+                          ('/orders/tag/${tag.id}', tag.name),
+                      ])
+                        Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: ChoiceChip(
+                            label: Text(item.$2),
+                            selected:
+                                GoRouterState.of(context).uri.path == item.$1,
+                            onSelected: (_) => context.go(item.$1),
+                          ),
+                        ),
+                    ],
+                  ),
+                )
+              else ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: Theme.of(context).textTheme.titleLarge
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
                     ),
-                  ),
-                  IconButton(
-                    key: const ValueKey('export-orders'),
-                    tooltip: context.crmCopy('导出 Excel'),
-                    onPressed: () => showFlyExcelExport(
-                      context,
-                      ref,
-                      origin: FlyExportOrigin.orders,
-                      currentIds:
-                          orders.valueOrNull?.map((item) => item.id).toSet() ??
-                          <String>{},
+                    IconButton(
+                      key: const ValueKey('export-orders'),
+                      tooltip: context.crmCopy('导出 Excel'),
+                      onPressed: () => showFlyExcelExport(
+                        context,
+                        ref,
+                        origin: FlyExportOrigin.orders,
+                        currentIds:
+                            orders.valueOrNull
+                                ?.map((item) => item.id)
+                                .toSet() ??
+                            <String>{},
+                      ),
+                      icon: const Icon(Icons.file_download_outlined, size: 18),
                     ),
-                    icon: const Icon(Icons.file_download_outlined, size: 18),
-                  ),
-                  _OrderSortButton(
-                    value: ref.watch(orderSortProvider),
-                    onChanged: (value) =>
-                        ref.read(orderSortProvider.notifier).state = value,
-                  ),
-                ],
-              ),
+                    _OrderSortButton(
+                      value: ref.watch(orderSortProvider),
+                      onChanged: (value) =>
+                          ref.read(orderSortProvider.notifier).state = value,
+                    ),
+                  ],
+                ),
+              ],
               if (customerFilter != null) ...[
                 const SizedBox(height: 8),
                 Align(
@@ -211,6 +244,35 @@ class _OrderListPageState extends ConsumerState<OrderListPage> {
                           separatorBuilder: (_, _) => const SizedBox(height: 5),
                           itemBuilder: (context, index) {
                             final order = items[index];
+                            if (useCompactLayout(context)) {
+                              final customer = customers
+                                  .where((c) => c.id == order.customerId)
+                                  .firstOrNull;
+                              final status = statuses
+                                  .where((s) => s.id == order.statusId)
+                                  .firstOrNull;
+                              return ListTile(
+                                key: ValueKey('phone-order-${order.id}'),
+                                title: Text(order.orderNumber),
+                                subtitle: Text(
+                                  [
+                                    customer?.name,
+                                    status?.name,
+                                  ].nonNulls.join(' · '),
+                                ),
+                                trailing:
+                                    widget.projection == OrderProjection.deleted
+                                    ? IconButton(
+                                        icon: const Icon(Icons.restore),
+                                        onPressed: () => ref
+                                            .read(orderRepositoryProvider)
+                                            .restoreOrder(order.id),
+                                      )
+                                    : const Icon(Icons.chevron_right),
+                                onTap: () =>
+                                    showOrderDetailSheet(context, order.id),
+                              );
+                            }
                             return _OrderRow(
                               order: order,
                               customer: customers

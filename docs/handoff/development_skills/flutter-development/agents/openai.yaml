@@ -1,0 +1,4 @@
+interface:
+  display_name: "Flutter Development"
+  short_description: "Build and maintain production Flutter features"
+  default_prompt: "Use $flutter-development to implement this Flutter change and verify it against the existing project conventions."

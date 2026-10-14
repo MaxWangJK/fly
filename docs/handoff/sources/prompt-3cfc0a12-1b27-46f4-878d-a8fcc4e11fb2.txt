@@ -1,0 +1,1503 @@
+# Fly UI/UX V4 — 强制重构一级导航与任务二级导航
+
+当前项目：
+
+```text
+E:\workSpace\fly
+```
+
+上一轮 UI 重构没有正确理解我的信息架构要求。
+
+# 当前实现判定为错误
+
+现在 Fly 把以下内容全部放在同一个左侧导航层级：
+
+```text
+今天
+最近7天
+收集箱
+日历
+四象限
+清单
+已完成
+垃圾桶
+```
+
+这是错误的。
+
+不要继续在当前左侧栏上做微调。
+
+# 必须重构导航结构。
+
+---
+
+# 一、我需要的是“两级导航”
+
+Fly Desktop 必须明确分成：
+
+```text
+一级导航
++
+二级导航
++
+主内容区
++
+任务详情区
+```
+
+不是：
+
+```text
+一个 Sidebar 装全部功能
+```
+
+---
+
+# 二、一级导航：Primary Navigation Rail
+
+最左侧必须新增加一条：
+
+# Primary Navigation Rail
+
+这是一条非常窄的竖向图标栏。
+
+参考成熟桌面效率工具的布局思想。
+
+宽度建议：
+
+```text
+48 ~ 56 px
+```
+
+只显示图标。
+
+# 不显示：
+
+```text
+今天
+最近7天
+收集箱
+清单
+已完成
+垃圾桶
+```
+
+这些全部不属于一级导航。
+
+---
+
+# 三、Primary Navigation Rail 应包含
+
+从上到下，例如：
+
+```text
+头像
+
+任务
+日历
+四象限
+
+────────
+
+搜索
+
+────────
+
+设置 / 帮助
+```
+
+具体内容可适当调整。
+
+第一阶段最重要的是：
+
+```text
+头像
+任务
+日历
+四象限
+```
+
+---
+
+# 四、一级导航必须只使用图标
+
+例如视觉结构：
+
+```text
+┌──────┐
+│ 头像 │
+│      │
+│  ✓   │  ← 任务
+│      │
+│  ▦   │  ← 日历
+│      │
+│  ◉   │  ← 四象限
+│      │
+│  🔍  │
+│      │
+│  ⚙   │
+└──────┘
+```
+
+这里仅是结构示意。
+
+正式 UI：
+
+不要使用 Emoji。
+
+使用统一图标库。
+
+---
+
+# 五、一级导航的职责
+
+一级导航只负责切换：
+
+```text
+Tasks Workspace
+Calendar Workspace
+Matrix Workspace
+```
+
+例如：
+
+点击：
+
+```text
+任务
+```
+
+进入：
+
+```text
+Task Workspace
+```
+
+点击：
+
+```text
+日历
+```
+
+进入：
+
+```text
+Calendar Workspace
+```
+
+点击：
+
+```text
+四象限
+```
+
+进入：
+
+```text
+Matrix Workspace
+```
+
+---
+
+# 六、当一级导航选择“任务”时
+
+这时才出现：
+
+# Task Secondary Sidebar
+
+这就是第二级导航。
+
+它位于 Primary Navigation Rail 的右边。
+
+结构：
+
+```text
+┌────┬─────────────────┐
+│Rail│ Task Sidebar    │
+│    │                 │
+│ ✓  │ 今天            │
+│ ▦  │ 最近7天         │
+│ ◉  │ 收集箱          │
+│    │                 │
+│    │ 清单          + │
+│    │ 学习安排        │
+│    │ 锻炼计划        │
+│    │ 工作任务        │
+│    │                 │
+│    │ 已完成          │
+│    │ 垃圾桶          │
+└────┴─────────────────┘
+```
+
+---
+
+# 七、任务二级导航中的内容
+
+当用户点击一级：
+
+```text
+任务
+```
+
+第二级 Sidebar 必须显示：
+
+```text
+今天
+最近7天
+收集箱
+
+────────────
+
+清单              +
+学习安排
+锻炼计划
+工作任务
+其他自定义清单
+
+────────────
+
+已完成
+垃圾桶
+```
+
+---
+
+# 八、“今天 / 最近7天 / 收集箱”必须是任务模块二级目录
+
+这是强制要求。
+
+它们不允许继续跟：
+
+```text
+日历
+四象限
+```
+
+处在同一层级。
+
+正确关系：
+
+```text
+任务
+├─ 今天
+├─ 最近7天
+├─ 收集箱
+├─ 清单
+├─ 已完成
+└─ 垃圾桶
+```
+
+而：
+
+```text
+日历
+四象限
+```
+
+和：
+
+```text
+任务
+```
+
+是平级一级模块。
+
+---
+
+# 九、完整信息架构必须变成
+
+```text
+Fly
+│
+├── Tasks
+│   │
+│   ├── Today
+│   ├── Next 7 Days
+│   ├── Inbox
+│   │
+│   ├── Lists
+│   │   ├── 学习安排
+│   │   ├── 锻炼计划
+│   │   ├── 工作任务
+│   │   └── ...
+│   │
+│   ├── Completed
+│   └── Trash
+│
+├── Calendar
+│
+└── Eisenhower Matrix
+```
+
+这是本轮重构的核心验收结构。
+
+---
+
+# 十、Desktop 最终布局
+
+当一级选择：
+
+```text
+Tasks
+```
+
+页面必须变成：
+
+```text
+┌──────┬────────────────┬────────────────────────┬─────────────────────┐
+│ Rail │ Task Sidebar   │ Task List              │ Task Detail         │
+│      │                │                        │                     │
+│ 头像 │ 今天           │ 今天                   │ Markdown Detail     │
+│      │ 最近7天        │                        │                     │
+│ ✓    │ 收集箱         │ + 添加任务             │                     │
+│      │                │                        │                     │
+│ ▦    │ 清单        +  │ □ Task A               │                     │
+│      │ 学习安排       │ □ Task B               │                     │
+│ ◉    │ 锻炼计划       │ □ Task C               │                     │
+│      │ 工作任务       │                        │                     │
+│      │                │                        │                     │
+│      │ 已完成         │                        │                     │
+│      │ 垃圾桶         │                        │                     │
+└──────┴────────────────┴────────────────────────┴─────────────────────┘
+```
+
+---
+
+# 十一、四个区域职责必须清楚
+
+## 第一栏
+
+Primary Navigation Rail：
+
+```text
+App Module
+```
+
+## 第二栏
+
+Task Secondary Sidebar：
+
+```text
+Task Navigation
+```
+
+## 第三栏
+
+Task List：
+
+```text
+Task Content
+```
+
+## 第四栏
+
+Task Detail：
+
+```text
+Selected Task
+```
+
+不要再混淆职责。
+
+---
+
+# 十二、Primary Rail 视觉
+
+Primary Rail 应明显比第二级 Sidebar：
+
+# 更窄
+
+# 更深一点
+
+# 更克制
+
+例如：
+
+```text
+Rail:
+48 ~ 56px
+
+Secondary Sidebar:
+220 ~ 250px
+```
+
+视觉上：
+
+Primary Rail 可以使用：
+
+```text
+浅灰
+中性暖灰
+或稍深背景
+```
+
+Secondary Sidebar：
+
+```text
+非常浅灰 / 接近白色
+```
+
+主内容：
+
+```text
+白色
+```
+
+---
+
+# 十三、Rail Selected State
+
+例如：
+
+当前模块是：
+
+```text
+任务
+```
+
+任务 Icon：
+
+```text
+Accent color
++
+轻量背景
+```
+
+其它图标：
+
+```text
+Neutral gray
+```
+
+不要显示：
+
+```text
+任务
+```
+
+两个中文字。
+
+Primary Rail 只图标。
+
+---
+
+# 十四、点击日历以后
+
+点击最左：
+
+```text
+Calendar Icon
+```
+
+Task Secondary Sidebar 应该：
+
+# 消失
+
+Calendar 使用整个主区域。
+
+结构：
+
+```text
+┌──────┬────────────────────────────────────────────────────────┐
+│ Rail │ Calendar                                               │
+│      │                                                        │
+│ 头像 │ 2026年9月                                              │
+│      │                                                        │
+│ ✓    │                                                        │
+│ ▦ ←  │ Month Grid                                             │
+│      │                                                        │
+│ ◉    │                                                        │
+└──────┴────────────────────────────────────────────────────────┘
+```
+
+不要继续显示：
+
+```text
+今天
+最近7天
+收集箱
+清单
+```
+
+因为它们属于 Task Workspace。
+
+---
+
+# 十五、点击四象限以后
+
+同样：
+
+Task Secondary Sidebar 消失。
+
+结构：
+
+```text
+┌──────┬────────────────────────────────────────────────────────┐
+│ Rail │ 四象限                                                 │
+│      │                                                        │
+│ 头像 │ Ⅰ              Ⅱ                                      │
+│      │                                                        │
+│ ✓    │                                                        │
+│ ▦    │ Ⅲ              Ⅳ                                      │
+│ ◉ ←  │                                                        │
+└──────┴────────────────────────────────────────────────────────┘
+```
+
+---
+
+# 十六、不要把 Calendar 再放进 Task Sidebar
+
+当前实现类似：
+
+```text
+今天
+最近7天
+收集箱
+
+日历
+四象限
+```
+
+这种布局必须彻底删除。
+
+因为：
+
+```text
+Calendar
+Matrix
+```
+
+是一级模块。
+
+---
+
+# 十七、任务 Workspace 默认状态
+
+Fly 启动：
+
+默认：
+
+```text
+Primary = Tasks
+Secondary = Today
+```
+
+即：
+
+打开以后：
+
+```text
+任务 → 今天
+```
+
+---
+
+# 十八、Task Sidebar Today
+
+点击：
+
+```text
+今天
+```
+
+中间 Task List：
+
+只显示 Today 页面。
+
+---
+
+# 十九、Task Sidebar Next 7 Days
+
+点击：
+
+```text
+最近7天
+```
+
+中间：
+
+显示未来 7 天 Task。
+
+---
+
+# 二十、Task Sidebar Inbox
+
+点击：
+
+```text
+收集箱
+```
+
+显示 Inbox Tasks。
+
+---
+
+# 二十一、清单
+
+Sidebar：
+
+```text
+清单             +
+```
+
+用户点击：
+
+```text
++
+```
+
+Inline 新建。
+
+例如：
+
+```text
+客户跟进
+```
+
+Enter：
+
+创建。
+
+---
+
+# 二十二、清单必须可重命名
+
+已有：
+
+```text
+学习安排
+锻炼计划
+工作任务
+```
+
+全部可以：
+
+```text
+右键
+→
+重命名
+```
+
+或者：
+
+```text
+Double Click
+```
+
+Inline Rename。
+
+---
+
+# 二十三、清单选择
+
+点击：
+
+```text
+学习安排
+```
+
+中间标题：
+
+```text
+学习安排
+```
+
+只显示：
+
+```text
+listId = 学习安排
+```
+
+的 Task。
+
+---
+
+# 二十四、已完成
+
+点击：
+
+```text
+已完成
+```
+
+显示全部 Completed Task。
+
+---
+
+# 二十五、垃圾桶
+
+点击：
+
+```text
+垃圾桶
+```
+
+显示 Soft Deleted Tasks。
+
+不要直接物理删除数据库。
+
+---
+
+# 二十六、Task Detail 保持右侧
+
+在 Tasks Workspace：
+
+点击中间 Task。
+
+右侧：
+
+```text
+Task Detail
+```
+
+保持显示。
+
+不要弹窗。
+
+不要新页面。
+
+---
+
+# 二十七、Task Detail 继续简化
+
+当前 Fly Task Detail 仍然太像 Form。
+
+继续向：
+
+# Markdown-first
+
+方向调整。
+
+默认只突出：
+
+```text
+日期
+标题
+备注
+```
+
+底部 / Popover 提供：
+
+```text
+清单
+四象限
+标签
+优先级
+提醒
+重复
+```
+
+不要所有功能一直铺在屏幕上。
+
+---
+
+# 二十八、Task Detail Markdown
+
+右侧内容区尽可能像：
+
+```text
+干净笔记页
+```
+
+而不是：
+
+```text
+系统设置页
+```
+
+例如：
+
+```text
+跟进菲律宾客户 Jack
+
+确认报价单、交付窗口和下一次会议时间。
+
+## 下一步
+
+- 确认价格
+- 确认交期
+- 安排电话
+```
+
+视觉：
+
+# 内容优先。
+
+---
+
+# 二十九、任务完成排序
+
+保持之前要求：
+
+未完成：
+
+在上。
+
+Completed：
+
+移到当前分组最后。
+
+Completed Task：
+
+```text
+灰色
+中划线
+```
+
+---
+
+# 三十、Today 排序
+
+Today：
+
+```text
+今天
+```
+
+必须在：
+
+```text
+已过期
+```
+
+上面。
+
+即：
+
+```text
+今天
+Task A
+Task B
+
+
+已过期
+Task C
+Task D
+```
+
+不要：
+
+```text
+已过期
+↓
+今天
+```
+
+---
+
+# 三十一、一级 Rail 和二级 Sidebar 必须视觉上明显区分
+
+示意：
+
+```text
+Rail
+
+背景：
+#ECE8E4 / #F0F0F0
+
+↓
+
+Task Sidebar
+
+背景：
+#F8F8F8
+
+↓
+
+Content
+
+背景：
+#FFFFFF
+```
+
+具体颜色不要直接照抄。
+
+重新建立 Token。
+
+---
+
+# 三十二、不要在 Task Sidebar 放 Fly Logo 大标题
+
+当前：
+
+```text
+Fly
+```
+
+占了一块明显区域。
+
+可以缩小品牌存在感。
+
+例如：
+
+Primary Rail 顶部：
+
+```text
+App Icon
+```
+
+即可。
+
+生产力软件：
+
+# 内容比 Logo 更重要。
+
+---
+
+# 三十三、Window Title Bar
+
+当前 Windows 原生蓝色 Title Bar：
+
+视觉比较突兀。
+
+研究 Flutter Windows 可行方案。
+
+如果能在不引入高风险 Native Hack 的情况下：
+
+使用：
+
+# Custom Title Bar
+
+使：
+
+```text
+Title Bar
++
+Primary Navigation Rail
++
+App Surface
+```
+
+视觉统一。
+
+如果当前阶段实现会导致窗口拖动、最大化、缩放问题：
+
+不要强行做。
+
+先记录为后续。
+
+---
+
+# 三十四、Hover
+
+Rail Icon：
+
+Hover：
+
+```text
+轻微亮度变化
+```
+
+Secondary Sidebar Row：
+
+Hover：
+
+```text
+浅灰
+```
+
+Selected：
+
+```text
+略深灰
+```
+
+不要蓝色大背景。
+
+---
+
+# 三十五、Cursor
+
+可点击项目：
+
+显示：
+
+```text
+click cursor
+```
+
+Sidebar：
+
+必须有 Desktop 感。
+
+---
+
+# 三十六、Primary Navigation Component
+
+请抽象类似：
+
+```text
+PrimaryNavigationRail
+```
+
+里面包含：
+
+```text
+NavigationRailItem
+```
+
+不要把图标散落在 app.dart。
+
+---
+
+# 三十七、Secondary Sidebar Component
+
+建立：
+
+```text
+TaskSidebar
+```
+
+负责：
+
+```text
+Today
+Next7Days
+Inbox
+Lists
+Completed
+Trash
+```
+
+它只存在于：
+
+```text
+Tasks Workspace
+```
+
+---
+
+# 三十八、App Shell
+
+建议形成：
+
+```text
+AppShell
+│
+├── PrimaryNavigationRail
+│
+└── Workspace
+```
+
+Workspace：
+
+根据：
+
+```text
+selectedPrimaryModule
+```
+
+切换：
+
+```text
+TaskWorkspace
+CalendarWorkspace
+MatrixWorkspace
+```
+
+---
+
+# 三十九、Task Workspace
+
+```text
+TaskWorkspace
+│
+├── TaskSidebar
+│
+├── TaskListPane
+└── TaskDetailPane
+```
+
+---
+
+# 四十、不要通过多个 if bool 乱切页面
+
+使用明确状态：
+
+例如：
+
+```text
+enum PrimaryModule {
+  tasks,
+  calendar,
+  matrix,
+}
+```
+
+Task 内部：
+
+```text
+TaskViewSelection
+```
+
+例如：
+
+```text
+today
+next7Days
+inbox
+completed
+trash
+list(id)
+```
+
+不要：
+
+```text
+bool showToday
+bool showInbox
+bool showCalendar
+bool showMatrix
+```
+
+---
+
+# 四十一、路由状态也要符合层级
+
+概念：
+
+```text
+/tasks/today
+
+/tasks/next7days
+
+/tasks/inbox
+
+/tasks/list/:id
+
+/tasks/completed
+
+/tasks/trash
+
+/calendar
+
+/matrix
+```
+
+如果 GoRouter 当前架构适合：
+
+按这个模型调整。
+
+---
+
+# 四十二、保持数据层
+
+不要重写：
+
+```text
+Riverpod
+Repository
+Drift
+SQLite
+```
+
+只改变：
+
+```text
+Navigation
+Presentation
+Query Selection
+```
+
+必要时补 query。
+
+---
+
+# 四十三、测试必须增加
+
+测试：
+
+## Primary Navigation
+
+启动：
+
+```text
+tasks selected
+```
+
+点击：
+
+```text
+calendar
+```
+
+TaskSidebar：
+
+```text
+not visible
+```
+
+点击：
+
+```text
+matrix
+```
+
+TaskSidebar：
+
+```text
+not visible
+```
+
+点击：
+
+```text
+tasks
+```
+
+TaskSidebar：
+
+```text
+visible
+```
+
+---
+
+# 四十四、Tasks 默认 Today
+
+启动：
+
+```text
+primary = tasks
+secondary = today
+```
+
+---
+
+# 四十五、切换清单
+
+点击：
+
+```text
+学习安排
+```
+
+只能显示：
+
+```text
+学习安排 Tasks
+```
+
+---
+
+# 四十六、截图验收
+
+必须保存：
+
+```text
+docs/screenshots/v4/
+```
+
+至少：
+
+```text
+tasks_today.png
+tasks_list.png
+calendar.png
+matrix.png
+```
+
+---
+
+# 四十七、截图强制检查
+
+`tasks_today.png` 必须明确看到四个纵向区域：
+
+```text
+1 Primary Rail
+2 Task Sidebar
+3 Task List
+4 Task Detail
+```
+
+如果只看到三个区域：
+
+# 判定失败。
+
+---
+
+# 四十八、Tasks Screenshot 验收
+
+必须视觉上明显类似：
+
+```text
+窄图标栏
+|
+任务二级栏
+|
+任务列表
+|
+任务详情
+```
+
+Primary Rail：
+
+不能出现：
+
+```text
+今天
+最近7天
+收集箱
+```
+
+---
+
+# 四十九、Calendar Screenshot 验收
+
+必须：
+
+```text
+Primary Rail
++
+Calendar
+```
+
+不能：
+
+```text
+Primary Rail
++
+Task Sidebar
++
+Calendar
+```
+
+---
+
+# 五十、Matrix Screenshot 验收
+
+必须：
+
+```text
+Primary Rail
++
+Matrix
+```
+
+Task Sidebar：
+
+不可见。
+
+---
+
+# 五十一、开发流程
+
+不要一次改完所有文件。
+
+STEP 1：
+
+只完成：
+
+```text
+AppShell
+PrimaryNavigationRail
+TaskSidebar
+```
+
+运行：
+
+```bash
+flutter analyze
+flutter test
+flutter run -d windows
+```
+
+确认视觉层级。
+
+---
+
+STEP 2：
+
+Tasks navigation。
+
+---
+
+STEP 3：
+
+Calendar workspace。
+
+---
+
+STEP 4：
+
+Matrix workspace。
+
+---
+
+STEP 5：
+
+Task Detail polish。
+
+---
+
+# 五十二、关键约束
+
+这次如果你仍然实现成：
+
+```text
+一个左侧 Sidebar
+
+里面同时有：
+今天
+最近7天
+收集箱
+日历
+四象限
+```
+
+那么：
+
+# 直接视为没有完成任务。
+
+不要继续优化这个错误结构。
+
+---
+
+# 五十三、最终目标
+
+最终 Fly 应该呈现明确的：
+
+# Level 1
+
+```text
+Tasks
+Calendar
+Matrix
+```
+
+# Level 2 — Tasks only
+
+```text
+Today
+Next 7 Days
+Inbox
+Lists
+Completed
+Trash
+```
+
+这两个层级必须在：
+
+# UI
+
+# State
+
+# Routing
+
+# Component Architecture
+
+四方面全部体现。
+
+---
+
+现在继续开发：
+
+```text
+E:\workSpace\fly
+```
+
+先完成一级 Rail + 二级 Task Sidebar 的真正结构重构。
+
+不要新增其他功能。
+
+完成后实际运行 Windows Release，并截图验证。

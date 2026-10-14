@@ -108,7 +108,13 @@ class CloudSyncTransport implements SyncTransport {
     List<int> chunk,
   ) async => _json(await _send('PUT', path, bytes: chunk));
   @override
-  Future<void> download(String path, String destination) async {
+  Future<void> download(String path, String destination) =>
+      downloadWithProgress(path, destination);
+  Future<void> downloadWithProgress(
+    String path,
+    String destination, {
+    void Function(int, int)? onProgress,
+  }) async {
     final response = await _send('GET', path);
     if (response.statusCode != 200) {
       await _json(response);
@@ -123,6 +129,7 @@ class CloudSyncTransport implements SyncTransport {
         count += chunk.length;
         if (count > 2 * 1024 * 1024 * 1024) throw StateError('文件超过大小限制');
         output.add(chunk);
+        onProgress?.call(count, response.contentLength);
       }
       await output.flush();
     } finally {

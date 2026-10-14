@@ -25,11 +25,11 @@ class NavigationSettings {
 }
 
 abstract final class StartupWorkspaceResolver {
-  static String resolve(NavigationSettings settings) =>
+  static String resolve(NavigationSettings settings, {bool mobile = false}) =>
       settings.dashboardVisible
       ? '/dashboard'
       : settings.crmVisible
-      ? '/customers/today'
+      ? (mobile ? '/customers/all' : '/customers/today')
       : '/tasks/today';
   static bool allowed(String path, NavigationSettings settings) =>
       !(path.startsWith('/dashboard') && !settings.dashboardVisible) &&

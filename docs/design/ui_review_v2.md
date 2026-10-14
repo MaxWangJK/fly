@@ -7,7 +7,7 @@
 - **Operation steps:** Creating a task is click Add → type → Enter. When the list has keyboard focus, Enter opens the field directly. The field clears and retains focus after creation, so consecutive entry needs no mouse movement.
 - **Clarity:** Today, Next 7 days, Inbox, Calendar, Matrix, custom lists, Completed, and Trash have stable positions. Selecting a custom list filters by the persisted `listId`; it does not mix unrelated tasks.
 - **Completion feedback:** Completion immediately changes the checkbox, muted title, strike-through, and surface. Repository ordering moves the task below all open tasks while keeping it visible. Toggling again restores the open state and ordering.
-- **Compared with mature TickTick-class tools:** Fly now matches the essential desktop scanning and quick-entry loop. It deliberately does not add natural-language date parsing, nested folders, or bulk editing in V1, so advanced capture remains less capable while the common path stays fast.
+- **Compared with mature 任务管理软件-class tools:** Fly now matches the essential desktop scanning and quick-entry loop. It deliberately does not add natural-language date parsing, nested folders, or bulk editing in V1, so advanced capture remains less capable while the common path stays fast.
 
 ## Calendar
 

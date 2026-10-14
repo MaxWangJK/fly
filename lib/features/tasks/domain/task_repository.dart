@@ -18,7 +18,11 @@ abstract interface class TaskRepository {
   Stream<List<FlyChecklistItem>> watchChecklist(String taskId);
   Stream<FlyReminder?> watchReminder(String taskId);
 
-  Future<FlyTaskList> createList(String name, {int colorValue});
+  Future<FlyTaskList> createList(
+    String name, {
+    int colorValue,
+    String? parentId,
+  });
   Future<void> renameList(String listId, String name);
   Future<void> deleteList(String listId);
 

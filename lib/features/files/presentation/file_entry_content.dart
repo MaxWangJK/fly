@@ -21,14 +21,18 @@ class FileEntryContent extends StatelessWidget {
     required this.entry,
     required this.mode,
     required this.visual,
+    this.compact = false,
     this.onCustomer,
     this.onOrder,
+    this.onMenu,
     super.key,
   });
   final FileBrowserEntry entry;
   final FileViewMode mode;
   final Widget visual;
+  final bool compact;
   final VoidCallback? onCustomer, onOrder;
+  final void Function(Offset)? onMenu;
 
   @override
   Widget build(BuildContext context) {
@@ -81,6 +85,51 @@ class FileEntryContent extends StatelessWidget {
       ),
     );
     if (mode == FileViewMode.list) {
+      if (compact) {
+        return Padding(
+          key: ValueKey('file-list-row-${entry.file.id}'),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+          child: Row(
+            children: [
+              SizedBox(width: 40, height: 40, child: visual),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      entry.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: nameStyle,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${fileSizeLabel(entry.file.fileSize)} · ${DateFormat('MM-dd HH:mm').format(entry.file.updatedAt)}',
+                      style: metadata,
+                    ),
+                    if (entry.customerName.isNotEmpty ||
+                        entry.orderNumber.isNotEmpty)
+                      relations,
+                  ],
+                ),
+              ),
+              if (onMenu != null)
+                Builder(
+                  builder: (buttonContext) => IconButton(
+                    key: ValueKey('file-menu-${entry.file.id}'),
+                    tooltip: MaterialLocalizations.of(context).showMenuTooltip,
+                    icon: const Icon(Icons.more_vert),
+                    onPressed: () {
+                      final box = buttonContext.findRenderObject() as RenderBox;
+                      onMenu!(box.localToGlobal(box.size.center(Offset.zero)));
+                    },
+                  ),
+                ),
+            ],
+          ),
+        );
+      }
       return SizedBox(
         key: ValueKey('file-list-row-${entry.file.id}'),
         height: (38 * MediaQuery.textScalerOf(context).scale(12) / 12).clamp(

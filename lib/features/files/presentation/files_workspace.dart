@@ -1,6 +1,13 @@
 import '../../../l10n/service_error_copy.dart';
 
 import 'dart:io';
+import 'dart:async';
+
+import 'package:share_plus/share_plus.dart';
+
+import '../data/permanent_file_deletion.dart';
+import '../data/file_batch_actions.dart';
+import '../data/file_browser_preferences.dart';
 
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:file_selector/file_selector.dart';
@@ -8,6 +15,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../app/settings/navigation_settings.dart';
 import '../../../core/database/app_database.dart';
@@ -26,7 +34,9 @@ import '../data/managed_file_storage.dart';
 import '../data/platform_file_transfer.dart';
 import 'file_providers.dart';
 import 'file_entry_content.dart';
-import 'file_preview_pane.dart';
+import '../../../shared/design_system/responsive_layout.dart';
+import '../../../app/shell/mobile_details.dart';
+import 'image_file_viewer.dart';
 
 class FilesWorkspace extends ConsumerStatefulWidget {
   const FilesWorkspace({this.initialFileId, super.key});
@@ -41,11 +51,225 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
   String? folderId, selectedId, cutId;
   String search = '';
   bool includeChildren = false, importing = false;
-  FileViewMode viewMode = FileViewMode.small;
+  FileViewMode viewMode = FileViewMode.list;
+  bool _viewInitialized = false;
+  bool imagesFirst = true;
+  bool _preferencesLoaded = false, _selecting = false, _batchBusy = false;
+  int _batchDone = 0, _batchTotal = 0;
+  final _selectedFiles = <String>{};
+  late FileBrowserPreferencesStore _preferences;
   double progress = 0;
   ImportCancellation? cancellation;
   final tags = <String>{};
   final customerTags = <String>{};
+  final _imagePicker = ImagePicker();
+  bool _cameraRecoveryStarted = false;
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_viewInitialized) {
+      _viewInitialized = true;
+      if (isPhoneLayout(context)) viewMode = FileViewMode.small;
+      _preferences = FileBrowserPreferencesStore(
+        ref.read(databaseProvider),
+        phone: isPhoneLayout(context),
+      );
+      unawaited(_restorePreferences());
+    }
+    if (!_cameraRecoveryStarted && Platform.isAndroid) {
+      _cameraRecoveryStarted = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          attempt(() async {
+            final lost = await _imagePicker.retrieveLostData();
+            if (!mounted) return;
+            if (lost.exception != null) throw lost.exception!;
+            if (lost.files != null) {
+              await importPicked(lost.files!);
+            }
+          });
+        }
+      });
+    }
+  }
+
+  Future<void> _restorePreferences() async {
+    try {
+      final saved = await _preferences.load();
+      if (!mounted) return;
+      viewMode = FileViewMode.values.firstWhere((v) => v.name == saved.view);
+      sort = saved.sort;
+      if (locateId == null) {
+        collection = saved.collection;
+        folderId = saved.folderId;
+      }
+      imagesFirst = saved.imagesFirst;
+      includeChildren = saved.includeChildren;
+      tags.addAll(saved.fileTags);
+      customerTags.addAll(saved.customerTags);
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('显示设置读取失败：$error')));
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _preferencesLoaded = true;
+          rows = null;
+        });
+      }
+    }
+  }
+
+  void _savePreferences() {
+    final value = FileBrowserPreferences(
+      view: viewMode.name,
+      collection: collection,
+      folderId: folderId,
+      sort: sort,
+      imagesFirst: imagesFirst,
+      includeChildren: includeChildren,
+      fileTags: {...tags},
+      customerTags: {...customerTags},
+    );
+    unawaited(attempt(() => _preferences.save(value)));
+  }
+
+  void _toggleSelection(String id) => setState(() {
+    _selectedFiles.contains(id)
+        ? _selectedFiles.remove(id)
+        : _selectedFiles.add(id);
+  });
+
+  FileBatchActions get _batchActions => FileBatchActions(
+    ref.read(databaseProvider),
+    ref.read(managedFileStorageProvider),
+  );
+  void _batchProgress(int done, int total) {
+    if (mounted) {
+      setState(() {
+        _batchDone = done;
+        _batchTotal = total;
+      });
+    }
+  }
+
+  Future<void> _shareFiles(Set<String> ids) async {
+    if (_batchBusy) return;
+    setState(() {
+      _batchBusy = true;
+      _batchDone = 0;
+      _batchTotal = ids.length;
+    });
+    PreparedFileShare? prepared;
+    var retainForReceiver = false;
+    try {
+      prepared = await _batchActions.prepareShare(
+        ids,
+        progress: _batchProgress,
+      );
+      if (!mounted) return;
+      final box = context.findRenderObject() as RenderBox;
+      final result = await SharePlus.instance.share(
+        ShareParams(
+          title: context.l10n.isZh ? '分享文件' : 'Share files',
+          files: prepared.files
+              .map((f) => XFile(f.path, mimeType: f.mimeType))
+              .toList(),
+          fileNameOverrides: prepared.files.map((f) => f.name).toList(),
+          sharePositionOrigin: box.localToGlobal(Offset.zero) & box.size,
+        ),
+      );
+      // Windows returns before the receiver has read its StorageItems.
+      // Platforms without completion callbacks retain copies for later cleanup.
+      retainForReceiver = result.status == ShareResultStatus.unavailable;
+    } finally {
+      try {
+        if (!retainForReceiver) await prepared?.cleanup();
+      } finally {
+        if (mounted) setState(() => _batchBusy = false);
+      }
+    }
+  }
+
+  Future<void> _deleteFiles(List<FileBrowserEntry> files) async {
+    if (_batchBusy || files.isEmpty) return;
+    final permanent = collection == FileCollection.deleted;
+    final business = files.where((f) => f.file.ownerType != 'library').length;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialog) => AlertDialog(
+        title: Text(
+          permanent ? '永久删除 ${files.length} 项？' : '删除 ${files.length} 项？',
+        ),
+        content: Text(
+          permanent
+              ? '这些文件的实际内容将清理，无法恢复。删除会同步到其他设备。'
+              : '文件将移入最近删除。${business > 0 ? '\n其中 $business 项关联附件也会从所属记录中移除。' : ''}',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialog, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            key: const ValueKey('files-confirm-batch-delete'),
+            onPressed: () => Navigator.pop(dialog, true),
+            child: Text(permanent ? '永久删除' : '删除'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() {
+      _batchBusy = true;
+      _batchDone = 0;
+      _batchTotal = files.length;
+    });
+    try {
+      final result = await _batchActions.delete(
+        files.map((f) => f.file.id).toSet(),
+        permanent: permanent,
+        progress: _batchProgress,
+      );
+      if (!mounted) return;
+      setState(() {
+        _selectedFiles.removeAll(result.completed);
+        if (_selectedFiles.isEmpty) _selecting = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            result.errors.isEmpty
+                ? '已${permanent ? '永久删除' : '删除'} ${result.completed.length} 项'
+                : '已删除 ${result.completed.length} 项，${result.errors.length} 项失败：${result.errors.values.first}',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _batchBusy = false);
+    }
+  }
+
+  Future<void> takePhoto() async {
+    final zh = context.l10n.isZh;
+    try {
+      final photo = await _imagePicker.pickImage(source: ImageSource.camera);
+      if (photo != null && mounted) await importPicked([photo]);
+    } on PlatformException catch (e) {
+      if (e.code == 'camera_access_denied' ||
+          e.code == 'camera_access_restricted') {
+        throw StateError(
+          zh
+              ? '请在系统设置中允许 Fly 使用相机后重试'
+              : 'Allow camera access in system settings and try again.',
+        );
+      }
+      rethrow;
+    }
+  }
+
   Future<void> filters() async {
     final own = await ref.read(managedFileRepositoryProvider).watchTags().first;
     final db = ref.read(databaseProvider);
@@ -152,6 +376,8 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
         ..clear()
         ..addAll(selectedCustomers);
       reload();
+      _selectedFiles.clear();
+      _savePreferences();
     }
   }
 
@@ -189,7 +415,10 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
     collection = value;
     folderId = folder;
     selectedId = null;
+    _selectedFiles.clear();
+    _selecting = false;
     reload();
+    _savePreferences();
   }
 
   Future<void> attempt(Future<void> Function() action) async {
@@ -209,7 +438,13 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
     super.dispose();
   }
 
-  Future<void> importPaths(List<String> paths) async {
+  Future<void> importPicked(List<XFile> files) =>
+      importPaths(files.map((f) => f.path).toList(), pickedFiles: files);
+
+  Future<void> importPaths(
+    List<String> paths, {
+    List<XFile>? pickedFiles,
+  }) async {
     if (importing ||
         collection == FileCollection.deleted ||
         collection == FileCollection.customers) {
@@ -224,12 +459,13 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
       progress = 0;
     });
     try {
-      for (final path in paths) {
+      for (final (index, path) in paths.indexed) {
         ImportedFile? copied;
         bool committed = false;
         try {
           copied = await storage.import(
             path,
+            pickedFile: pickedFiles?[index],
             folderId: destination,
             cancellation: cancellation,
             progress: (done, total) {
@@ -342,12 +578,23 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
     if (latest == null || latest.deletedAt != null) {
       throw StateError(context.l10n.t('filesRestoreFirst'));
     }
+    if (latest.mimeType.startsWith('image/')) {
+      final path = ref
+          .read(managedFileStorageProvider)
+          .absolute(latest.relativePath);
+      if (!await File(path).exists()) throw StateError('文件内容尚未下载，请检查同步状态');
+      await ref.read(managedFileRepositoryProvider).opened(entry.file.id);
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (_) => ImageFileViewer(path: path, name: latest.originalName),
+      );
+      return;
+    }
     await ref
         .read(attachmentOpenerProvider)
         .open(
-          ref
-              .read(managedFileStorageProvider)
-              .absolute(entry.file.relativePath),
+          ref.read(managedFileStorageProvider).absolute(latest.relativePath),
         );
     await ref.read(managedFileRepositoryProvider).opened(entry.file.id);
   }
@@ -415,65 +662,112 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
   Future<void> menu(FileBrowserEntry entry, Offset point) async {
     final f = entry.file;
     final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
-    final action = await showMenu<String>(
-      context: context,
-      position: RelativeRect.fromRect(
-        Rect.fromLTWH(point.dx, point.dy, 0, 0),
-        Offset.zero & overlay.size,
-      ),
-      items: [
-        if (f.deletedAt != null)
-          PopupMenuItem(
-            value: 'restore',
-            child: Text(context.l10n.t('restore')),
+    final action = isPhoneLayout(context)
+        ? await showModalBottomSheet<String>(
+            context: context,
+            useRootNavigator: true,
+            useSafeArea: true,
+            showDragHandle: true,
+            builder: (sheet) => SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ListTile(
+                    title: Text(
+                      entry.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  for (final action
+                      in f.deletedAt != null
+                          ? [
+                              if (f.ownerType == 'library') ("restore", "恢复"),
+                              ("purge", "永久删除"),
+                            ]
+                          : [
+                              ("info", "详情"),
+                              ("rename", "重命名"),
+                              ("share", "分享"),
+                              ("select", "选择"),
+                              ("delete", "删除"),
+                            ])
+                    ListTile(
+                      title: Text(action.$2),
+                      onTap: () => Navigator.pop(sheet, action.$1),
+                    ),
+                ],
+              ),
+            ),
           )
-        else ...[
-          PopupMenuItem(
-            value: 'open',
-            child: Text(context.l10n.t('filesOpen')),
-          ),
-          if (f.mimeType.startsWith('image/'))
-            PopupMenuItem(
-              value: 'preview',
-              child: Text(context.l10n.t('filePreview')),
+        : await showMenu<String>(
+            context: context,
+            position: RelativeRect.fromRect(
+              Rect.fromLTWH(point.dx, point.dy, 0, 0),
+              Offset.zero & overlay.size,
             ),
-          PopupMenuItem(
-            value: 'reveal',
-            child: Text(context.l10n.t('filesReveal')),
-          ),
-          PopupMenuItem(value: 'rename', child: Text(context.l10n.t('rename'))),
-          PopupMenuItem(
-            value: 'tags',
-            child: Text(context.l10n.t('fileOwnTags')),
-          ),
-          PopupMenuItem(
-            value: 'path',
-            child: Text(context.l10n.t('filesCopyPath')),
-          ),
-          if (Platform.isWindows)
-            PopupMenuItem(
-              value: 'copy',
-              child: Text(context.l10n.t('filesCopy')),
-            ),
-          if (f.ownerType == 'library')
-            PopupMenuItem(
-              value: 'cut',
-              child: Text(context.l10n.t('filesCut')),
-            ),
-          if (f.ownerType == 'library')
-            PopupMenuItem(
-              value: 'delete',
-              child: Text(context.l10n.t('noteTrash')),
-            ),
-          if (f.ownerType == 'customer')
-            PopupMenuItem(
-              value: 'customer',
-              child: Text(context.l10n.t('filesViewCustomer')),
-            ),
-        ],
-        PopupMenuItem(value: 'info', child: Text(context.l10n.t('details'))),
-      ],
-    );
+            items: [
+              if (f.deletedAt != null && f.ownerType == 'library')
+                PopupMenuItem(
+                  value: 'restore',
+                  child: Text(context.l10n.t('restore')),
+                ),
+              if (f.deletedAt != null)
+                const PopupMenuItem(value: 'purge', child: Text('永久删除'))
+              else ...[
+                PopupMenuItem(
+                  value: 'open',
+                  child: Text(context.l10n.t('filesOpen')),
+                ),
+                if (f.mimeType.startsWith('image/'))
+                  PopupMenuItem(
+                    value: 'preview',
+                    child: Text(context.l10n.t('filePreview')),
+                  ),
+                if (!isPhoneLayout(context))
+                  PopupMenuItem(
+                    value: 'reveal',
+                    child: Text(context.l10n.t('filesReveal')),
+                  ),
+                PopupMenuItem(
+                  value: 'rename',
+                  child: Text(context.l10n.t('rename')),
+                ),
+                PopupMenuItem(
+                  value: 'tags',
+                  child: Text(context.l10n.t('fileOwnTags')),
+                ),
+                PopupMenuItem(
+                  value: 'path',
+                  child: Text(context.l10n.t('filesCopyPath')),
+                ),
+                if (Platform.isWindows)
+                  PopupMenuItem(
+                    value: 'copy',
+                    child: Text(context.l10n.t('filesCopy')),
+                  ),
+                if (f.ownerType == 'library')
+                  PopupMenuItem(
+                    value: 'cut',
+                    child: Text(context.l10n.t('filesCut')),
+                  ),
+                if (f.ownerType == 'library')
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Text(context.l10n.t('noteTrash')),
+                  ),
+                if (f.ownerType == 'customer')
+                  PopupMenuItem(
+                    value: 'customer',
+                    child: Text(context.l10n.t('filesViewCustomer')),
+                  ),
+              ],
+              PopupMenuItem(
+                value: 'info',
+                child: Text(context.l10n.t('details')),
+              ),
+            ],
+          );
     if (!mounted || action == null) return;
     await attempt(() async {
       final repo = ref.read(managedFileRepositoryProvider);
@@ -481,6 +775,37 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
           .read(managedFileStorageProvider)
           .absolute(f.relativePath);
       switch (action) {
+        case 'share':
+          await _shareFiles({f.id});
+        case 'select':
+          setState(() {
+            _selecting = true;
+            _selectedFiles.add(f.id);
+          });
+        case 'purge':
+          final confirmed = await showDialog<bool>(
+            context: context,
+            builder: (dialog) => AlertDialog(
+              title: const Text('永久删除文件？'),
+              content: Text('“${entry.name}”的文件内容将被清理，无法恢复。删除会同步到其他设备。'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialog, false),
+                  child: const Text('取消'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(dialog, true),
+                  child: const Text('永久删除'),
+                ),
+              ],
+            ),
+          );
+          if (confirmed == true) {
+            await PermanentFileDeletion(
+              ref.read(databaseProvider),
+              ref.read(managedFileStorageProvider),
+            ).purge(f.id);
+          }
         case 'open':
           await open(entry);
         case 'reveal':
@@ -504,7 +829,31 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
             builder: (_) => _FileTagsDialog(fileId: f.id),
           );
         case 'delete':
-          await repo.remove(f.id);
+          if (f.ownerType != 'library') {
+            final confirmed = await showDialog<bool>(
+              context: context,
+              builder: (dialog) => AlertDialog(
+                title: const Text('删除关联附件？'),
+                content: Text('“${entry.name}”也会从所属客户、订单或笔记中移除。'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(dialog, false),
+                    child: const Text('取消'),
+                  ),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(dialog, true),
+                    child: const Text('删除'),
+                  ),
+                ],
+              ),
+            );
+            if (confirmed != true) return;
+          }
+          if (!mounted) return;
+          await repo.remove(
+            f.id,
+            allowBusinessAttachment: isPhoneLayout(context),
+          );
           await ref.read(thumbnailCacheProvider).remove(f);
         case 'restore':
           await repo.restore(f.id);
@@ -512,34 +861,7 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
           ref.read(selectedCustomerIdProvider.notifier).state = f.ownerId;
           context.go('/customers/all');
         case 'preview':
-          await showDialog<void>(
-            context: context,
-            builder: (c) => Dialog(
-              child: Stack(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: InteractiveViewer(
-                      child: Image.file(
-                        File(path),
-                        errorBuilder: (_, _, _) =>
-                            Text(context.l10n.t('fileImageUnavailable')),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    child: IconButton(
-                      tooltip: context.l10n.t('fileClosePreview'),
-                      onPressed: () => Navigator.pop(c),
-                      icon: const Icon(Icons.close),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
+          await open(entry);
         case 'info':
           await showDialog<void>(
             context: context,
@@ -562,6 +884,9 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_preferencesLoaded) {
+      return const Center(child: CircularProgressIndicator());
+    }
     final clarityStyle = ref.watch(flyPaletteProvider) == FlyPaletteId.clarity;
     final crm = ref.watch(navigationSettingsProvider).value.crmVisible;
     if (lastCrm != crm) {
@@ -577,7 +902,7 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
       folderId: folderId,
       descendants: includeChildren,
       search: search,
-      fileTags: tags,
+      fileTags: locateId == null ? tags : const {},
       sort: sort,
       crmVisible: crm,
       fileId: locateId,
@@ -688,6 +1013,30 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
                 spacing: 8,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
+                  IconButton(
+                    key: const ValueKey('files-multi-select'),
+                    tooltip: _selecting ? '退出多选' : '多选',
+                    onPressed: _batchBusy
+                        ? null
+                        : () => setState(() {
+                            _selecting = !_selecting;
+                            _selectedFiles.clear();
+                          }),
+                    icon: Icon(_selecting ? Icons.close : Icons.checklist),
+                  ),
+                  if (isPhoneLayout(context))
+                    IconButton(
+                      tooltip: context.l10n.t('filesFolders'),
+                      icon: const Icon(Icons.folder_outlined),
+                      onPressed: () => showModalBottomSheet<void>(
+                        context: context,
+                        useSafeArea: true,
+                        builder: (_) => SizedBox(
+                          height: MediaQuery.sizeOf(context).height * .7,
+                          child: tree,
+                        ),
+                      ),
+                    ),
                   TextButton(
                     onPressed: () => select(FileCollection.folder),
                     child: Text(context.l10n.t('filesRoot')),
@@ -704,28 +1053,57 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
                       _ => '',
                     }),
                   PopupMenuButton<FileViewMode>(
+                    key: const ValueKey('file-view-mode'),
                     tooltip: context.l10n.t('fileViewMode'),
                     initialValue: viewMode,
-                    onSelected: (value) => setState(() => viewMode = value),
+                    onSelected: (value) {
+                      setState(() => viewMode = value);
+                      _savePreferences();
+                    },
                     icon: Icon(
                       viewMode == FileViewMode.list
                           ? Icons.view_list_outlined
                           : Icons.grid_view,
                     ),
                     itemBuilder: (_) => [
-                      for (final mode in FileViewMode.values)
+                      for (final mode
+                          in isPhoneLayout(context)
+                              ? [FileViewMode.small, FileViewMode.list]
+                              : FileViewMode.values)
                         CheckedPopupMenuItem(
                           value: mode,
                           checked: viewMode == mode,
-                          child: Text(context.l10n.t('fileView_${mode.name}')),
+                          child: Text(
+                            isPhoneLayout(context) && mode == FileViewMode.small
+                                ? '相册'
+                                : context.l10n.t('fileView_${mode.name}'),
+                          ),
                         ),
                     ],
                   ),
+                  if (isPhoneLayout(context))
+                    PopupMenuButton<bool>(
+                      key: const ValueKey('file-kind-order'),
+                      tooltip: '图片和文件顺序',
+                      icon: const Icon(Icons.swap_vert),
+                      onSelected: (v) {
+                        setState(() => imagesFirst = v);
+                        _savePreferences();
+                      },
+                      itemBuilder: (_) => [
+                        for (final value in [true, false])
+                          CheckedPopupMenuItem(
+                            value: value,
+                            checked: imagesFirst == value,
+                            child: Text(value ? '图片在前' : '文件在前'),
+                          ),
+                      ],
+                    ),
                   TextButton.icon(
                     onPressed: () => attempt(filters),
                     icon: const Icon(Icons.filter_list, size: 18),
                     label: Text(
-                      '${context.l10n.t('filesTagFilter')}${tags.isEmpty && customerTags.isEmpty ? '' : ' (${tags.length + customerTags.length})'}',
+                      '${context.l10n.t('filesTagFilter')}${tags.isEmpty && (collection != FileCollection.customers || customerTags.isEmpty) ? '' : ' (${tags.length + (collection == FileCollection.customers ? customerTags.length : 0)})'}',
                     ),
                   ),
                   PopupMenuButton<FileSort>(
@@ -734,6 +1112,7 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
                     onSelected: (v) {
                       sort = v;
                       reload();
+                      _savePreferences();
                     },
                     itemBuilder: (_) => [
                       for (final s in FileSort.values)
@@ -756,12 +1135,19 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
                           ? null
                           : () => attempt(() async {
                               final files = await openFiles();
-                              await importPaths(
-                                files.map((f) => f.path).toList(),
-                              );
+                              await importPicked(files);
                             }),
                       icon: const Icon(Icons.file_upload_outlined),
                       label: Text(context.l10n.t('filesImport')),
+                    ),
+                  if ((Platform.isAndroid || Platform.isIOS) &&
+                      (collection == FileCollection.folder ||
+                          collection == FileCollection.recent))
+                    TextButton.icon(
+                      key: const ValueKey('file-take-photo'),
+                      onPressed: importing ? null : () => attempt(takePhoto),
+                      icon: const Icon(Icons.camera_alt_outlined),
+                      label: Text(context.l10n.isZh ? '拍照上传' : 'Take photo'),
                     ),
                   if (cutId != null && collection == FileCollection.folder)
                     TextButton(
@@ -788,6 +1174,7 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
                 ),
                 onChanged: (s) {
                   search = s;
+                  _selectedFiles.clear();
                   reload();
                 },
               ),
@@ -804,6 +1191,8 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
                 onChanged: (v) {
                   includeChildren = v == true;
                   reload();
+                  _selectedFiles.clear();
+                  _savePreferences();
                 },
               ),
             ),
@@ -882,27 +1271,28 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
       child: Focus(
         autofocus: true,
         child: LayoutBuilder(
-          builder: (context, c) => c.maxWidth < 650
+          builder: (context, c) => useCompactLayout(context) || c.maxWidth < 650
               ? Column(
                   children: [
-                    SizedBox(
-                      height: 48,
-                      child: Row(
-                        children: [
-                          Builder(
-                            builder: (context) => TextButton.icon(
-                              onPressed: () => showModalBottomSheet<void>(
-                                context: context,
-                                builder: (_) =>
-                                    SizedBox(height: 500, child: tree),
+                    if (!isPhoneLayout(context))
+                      SizedBox(
+                        height: 48,
+                        child: Row(
+                          children: [
+                            Builder(
+                              builder: (context) => TextButton.icon(
+                                onPressed: () => showModalBottomSheet<void>(
+                                  context: context,
+                                  builder: (_) =>
+                                      SizedBox(height: 500, child: tree),
+                                ),
+                                icon: const Icon(Icons.folder_outlined),
+                                label: Text(context.l10n.t('filesFolders')),
                               ),
-                              icon: const Icon(Icons.folder_outlined),
-                              label: Text(context.l10n.t('filesFolders')),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
                     Expanded(child: browser),
                   ],
                 )
@@ -938,10 +1328,17 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
   }
 
   Widget fileResults(List<FileBrowserEntry> entries) {
-    final selected = entries
-        .where((entry) => entry.file.id == selectedId)
-        .firstOrNull;
-    Widget listing = viewMode != FileViewMode.list
+    if (isPhoneLayout(context)) {
+      entries = [
+        ...entries.where(
+          (e) => e.file.mimeType.startsWith('image/') == imagesFirst,
+        ),
+        ...entries.where(
+          (e) => e.file.mimeType.startsWith('image/') != imagesFirst,
+        ),
+      ];
+    }
+    final listing = viewMode != FileViewMode.list
         ? GridView.builder(
             padding: const EdgeInsets.all(12),
             gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
@@ -959,7 +1356,9 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
             builder: (context, constraints) => SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: SizedBox(
-                width: constraints.maxWidth.clamp(800, double.infinity),
+                width: useCompactLayout(context)
+                    ? constraints.maxWidth
+                    : constraints.maxWidth.clamp(800, double.infinity),
                 child: ListView.builder(
                   padding: const EdgeInsets.all(12),
                   itemCount: entries.length,
@@ -976,58 +1375,93 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
               ),
             ),
           );
-    if (selected == null) return listing;
-    final preview = FilePreviewPane(
-      key: ValueKey('file-preview-${selected.file.id}'),
-      entry: selected,
-      path: ref
-          .read(managedFileStorageProvider)
-          .absolute(selected.file.relativePath),
-      onClose: () => setState(() => selectedId = null),
-      onOpen: () => attempt(() => open(selected)),
-      onCustomer: selected.customerId == null
-          ? null
-          : () {
-              ref.read(selectedCustomerIdProvider.notifier).state =
-                  selected.customerId;
-              context.go('/customers/all');
-            },
-      onOrder: selected.orderId == null
-          ? null
-          : () {
-              ref.read(orderCustomerFilterProvider.notifier).state = null;
-              ref.read(selectedOrderIdProvider.notifier).state =
-                  selected.orderId;
-              context.go('/orders/all');
-            },
-    );
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth >= 800) {
-          return Row(
-            children: [
-              Expanded(child: listing),
-              const VerticalDivider(width: 1),
-              SizedBox(width: 280, child: preview),
-            ],
-          );
-        }
-        return Column(
-          children: [
-            Expanded(child: listing),
-            const Divider(height: 1),
-            SizedBox(
-              height: (constraints.maxHeight * .45).clamp(0, 260),
-              child: preview,
+    final selected = entries
+        .where((f) => _selectedFiles.contains(f.file.id))
+        .toList();
+    return Column(
+      children: [
+        if (_batchBusy)
+          LinearProgressIndicator(
+            key: const ValueKey('files-batch-progress'),
+            value: _batchTotal == 0 ? null : _batchDone / _batchTotal,
+          ),
+        Expanded(child: listing),
+        if (_selecting)
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Wrap(
+                key: const ValueKey('files-selection-bar'),
+                spacing: 4,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text(
+                    '已选 ${selected.length} 项',
+                    key: const ValueKey('files-selection-count'),
+                  ),
+                  TextButton(
+                    key: const ValueKey('files-select-all'),
+                    onPressed: _batchBusy
+                        ? null
+                        : () => setState(() {
+                            if (selected.length == entries.length) {
+                              _selectedFiles.clear();
+                            } else {
+                              _selectedFiles.addAll(
+                                entries.map((f) => f.file.id),
+                              );
+                            }
+                          }),
+                    child: Text(
+                      selected.length == entries.length ? '取消全选' : '全选',
+                    ),
+                  ),
+                  if (collection != FileCollection.deleted)
+                    TextButton.icon(
+                      key: const ValueKey('files-batch-share'),
+                      onPressed: _batchBusy || selected.isEmpty
+                          ? null
+                          : () => attempt(
+                              () => _shareFiles(
+                                selected.map((f) => f.file.id).toSet(),
+                              ),
+                            ),
+                      icon: const Icon(Icons.share_outlined, size: 18),
+                      label: const Text('分享'),
+                    ),
+                  TextButton.icon(
+                    key: const ValueKey('files-batch-delete'),
+                    onPressed: _batchBusy || selected.isEmpty
+                        ? null
+                        : () => attempt(() => _deleteFiles(selected)),
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    label: Text(
+                      collection == FileCollection.deleted ? '永久删除' : '删除',
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _batchBusy
+                        ? null
+                        : () => setState(() {
+                            _selecting = false;
+                            _selectedFiles.clear();
+                          }),
+                    child: const Text('取消'),
+                  ),
+                ],
+              ),
             ),
-          ],
-        );
-      },
+          ),
+      ],
     );
   }
 
   Widget tile(FileBrowserEntry entry) {
     final f = entry.file;
+    final chosen = _selecting
+        ? _selectedFiles.contains(f.id)
+        : selectedId == f.id;
     final cardStyle =
         ref.watch(flyPaletteProvider) != FlyPaletteId.clarity ||
         viewMode != FileViewMode.list;
@@ -1057,32 +1491,66 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
             : Image.file(
                 snapshot.data!,
                 cacheWidth: 240,
-                fit: BoxFit.contain,
+                fit: isPhoneLayout(context) && viewMode != FileViewMode.list
+                    ? BoxFit.cover
+                    : BoxFit.contain,
                 errorBuilder: (_, _, _) => icon,
               ),
       );
     }
-    final content = FileEntryContent(
-      entry: entry,
-      mode: viewMode,
-      visual: visual,
-      onCustomer: entry.customerId == null
-          ? null
-          : () {
-              ref.read(selectedCustomerIdProvider.notifier).state =
-                  entry.customerId;
-              context.go('/customers/all');
-            },
-      onOrder: entry.orderId == null
-          ? null
-          : () {
-              ref.read(orderCustomerFilterProvider.notifier).state = null;
-              ref.read(selectedOrderIdProvider.notifier).state = entry.orderId;
-              context.go('/orders/all');
-            },
-    );
+    final content = isPhoneLayout(context) && viewMode != FileViewMode.list
+        ? Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: SizedBox.expand(child: visual),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  entry.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          )
+        : FileEntryContent(
+            entry: entry,
+            mode: viewMode,
+            visual: visual,
+            compact: useCompactLayout(context),
+            onMenu: _selecting ? null : (point) => menu(entry, point),
+            onCustomer: _selecting || entry.customerId == null
+                ? null
+                : () {
+                    ref.read(selectedCustomerIdProvider.notifier).state =
+                        entry.customerId;
+                    if (useCompactLayout(context)) {
+                      showCustomerDetailSheet(context, entry.customerId!);
+                    } else {
+                      context.go('/customers/all');
+                    }
+                  },
+            onOrder: _selecting || entry.orderId == null
+                ? null
+                : () {
+                    ref.read(orderCustomerFilterProvider.notifier).state = null;
+                    ref.read(selectedOrderIdProvider.notifier).state =
+                        entry.orderId;
+                    if (useCompactLayout(context)) {
+                      showOrderDetailSheet(context, entry.orderId!);
+                    } else {
+                      context.go('/orders/all');
+                    }
+                  },
+          );
     final card = Material(
-      color: selectedId == f.id
+      key: ValueKey('file-item-${f.id}'),
+      color: chosen
           ? context.flyColors.selected
           : cardStyle
           ? context.flyColors.surface
@@ -1091,7 +1559,7 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
         borderRadius: BorderRadius.circular(cardStyle ? 12 : 8),
         side: cardStyle
             ? BorderSide(
-                color: selectedId == f.id
+                color: chosen
                     ? context.flyColors.accent.withValues(alpha: .48)
                     : context.flyColors.divider,
               )
@@ -1099,17 +1567,41 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => setState(() => selectedId = f.id),
-        onDoubleTap: f.deletedAt == null
-            ? () => attempt(() => open(entry))
+        onTap: () {
+          if (_selecting) {
+            if (!_batchBusy) _toggleSelection(f.id);
+            return;
+          }
+          setState(() => selectedId = f.id);
+          if (f.deletedAt == null) attempt(() => open(entry));
+        },
+        onSecondaryTapUp: _selecting || _batchBusy
+            ? null
+            : (d) => menu(entry, d.globalPosition),
+        onLongPress: isPhoneLayout(context) && !_selecting && !_batchBusy
+            ? () => menu(entry, Offset.zero)
             : null,
-        onSecondaryTapUp: (d) => menu(entry, d.globalPosition),
         child: Padding(
           padding: EdgeInsets.all(viewMode == FileViewMode.list ? 0 : 8),
           child: Stack(
             children: [
               content,
-              if (Platform.isWindows && f.deletedAt == null)
+              if (_selecting)
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: Checkbox(
+                    key: ValueKey('file-check-${f.id}'),
+                    value: chosen,
+                    onChanged: _batchBusy
+                        ? null
+                        : (_) => _toggleSelection(f.id),
+                  ),
+                ),
+              if (!_selecting &&
+                  !isPhoneLayout(context) &&
+                  Platform.isWindows &&
+                  f.deletedAt == null)
                 Positioned(
                   top: 0,
                   right: 0,
@@ -1137,7 +1629,11 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
         ),
       ),
     );
-    final transferable = Platform.isWindows && f.deletedAt == null
+    final transferable =
+        !_selecting &&
+            !isPhoneLayout(context) &&
+            Platform.isWindows &&
+            f.deletedAt == null
         ? GestureDetector(
             onPanStart: (_) => attempt(
               () => PlatformFileTransfer()
@@ -1151,7 +1647,10 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
             child: card,
           )
         : card;
-    return f.ownerType == 'library' && f.deletedAt == null
+    return !_selecting &&
+            !isPhoneLayout(context) &&
+            f.ownerType == 'library' &&
+            f.deletedAt == null
         ? LongPressDraggable<String>(
             data: f.id,
             feedback: Material(

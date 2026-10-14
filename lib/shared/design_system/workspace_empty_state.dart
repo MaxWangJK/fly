@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/fly_localizations.dart';
 import '../search/global_search_palette.dart';
+import 'responsive_layout.dart';
 
 class WorkspaceEmptyState extends StatelessWidget {
   const WorkspaceEmptyState({
@@ -40,12 +41,14 @@ class WorkspaceEmptyState extends StatelessWidget {
               icon: const Icon(Icons.add, size: 18),
               label: Text(actionLabel),
             ),
-            const SizedBox(height: 8),
-            TextButton.icon(
-              onPressed: () => showGlobalSearchPalette(context),
-              icon: const Icon(Icons.search, size: 16),
-              label: Text('${context.l10n.t('globalSearch')} · Ctrl+K'),
-            ),
+            if (!isPhoneLayout(context)) ...[
+              const SizedBox(height: 8),
+              TextButton.icon(
+                onPressed: () => showGlobalSearchPalette(context),
+                icon: const Icon(Icons.search, size: 16),
+                label: Text('${context.l10n.t('globalSearch')} · Ctrl+K'),
+              ),
+            ],
           ],
         ),
       ),

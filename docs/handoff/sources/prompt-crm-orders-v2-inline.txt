@@ -1,0 +1,2810 @@
+[2026-10-14 整理说明：品牌名称已改为通用功能说明；本副本不再是逐字原始附件。]
+
+# Fly CRM + Orders V2 — 外贸客户管理与订单执行管理
+
+当前项目目录：
+```text
+E:\workSpace\fly
+```
+
+当前 Fly 已经完成并验收：
+```text
+任务
+日历
+四象限
+```
+
+现有技术栈：
+```text
+Flutter
+Dart
+Riverpod
+Drift
+SQLite
+Windows Desktop
+```
+
+现有视觉风格、一级导航、二级导航、列表区、详情区的交互方式已经验收通过。
+
+# 本阶段要求
+
+继续开发：
+```text
+客户管理 CRM
+订单管理 Orders
+```
+
+但是：
+
+# 禁止破坏或重做已经完成的任务、日历、四象限模块。
+
+新的 CRM 和 Orders 必须：
+```text
+沿用 Fly 现有 UI/UX
+沿用 Fly 现有 Design System
+沿用 Fly 现有列表交互
+沿用 Fly 现有详情面板逻辑
+沿用 Fly 现有 Progressive Disclosure
+```
+
+不要做成传统 ERP 后台。
+
+---
+
+# 一、一级导航结构
+
+Primary Navigation Rail：
+```text
+头像
+
+客户
+订单
+
+任务
+日历
+四象限
+```
+
+客户与订单位于任务上方。
+
+---
+
+# 二、Domain 原则
+
+必须独立：
+```text
+Customer
+Order
+Task
+```
+
+不要：
+```text
+Customer = Task
+Order = Task
+```
+
+但是可以共享：
+```text
+Priority
+Importance
+Urgency
+Tag
+Recurrence
+SortOrder
+DueDate
+```
+
+等成熟设计思想。
+
+---
+
+# 三、Customer Domain
+
+Customer 至少关联：
+```text
+Customer
+├── CustomerCategory
+├── CustomerStatus
+├── CustomerTags
+├── CustomerContacts
+├── CustomerFollowUps
+├── CustomerSource
+└── Orders
+```
+
+---
+
+# 四、Customer Workspace
+
+点击一级：
+```text
+客户
+```
+
+进入：
+```text
+Customer Workspace
+```
+
+布局：
+```text
+Primary Rail
++
+Customer Secondary Sidebar
++
+Customer List
++
+Customer Detail
+```
+
+---
+
+# 五、Customer Secondary Sidebar
+
+二级目录：
+```text
+今天
+最近7天
+收集箱
+
+────────────
+
+客户级别             +
+
+A级
+B级
+C级
+D级
+```
+
+可以后续增加：
+```text
+全部客户
+已删除
+```
+
+但不要塞太多默认项。
+
+---
+
+# 六、今天
+
+客户 → 今天：
+
+表示：
+
+# 今天需要联系的客户。
+
+核心字段：
+```text
+nextFollowUpDate
+```
+
+---
+
+# 七、客户 Checkbox 的真实含义
+
+客户列表前：
+```text
+□
+```
+
+不是客户“完成”。
+
+而是：
+
+# 今天这一轮跟进已完成。
+
+点击：
+```text
+□ Jack
+```
+
+后：
+```text
+lastFollowUpAt = now
+```
+
+同时创建：
+```text
+CustomerFollowUp
+```
+
+并：
+```text
+Today's Follow-up = Completed
+```
+
+Customer 本身仍然存在。
+
+---
+
+# 八、客户完成今日跟进后的视觉
+
+与 Task 一致：
+```text
+灰色
+放到今天列表下方
+```
+
+但是：
+
+不把 Customer 标记为 Completed。
+
+---
+
+# 九、Follow-up Recurrence
+
+客户支持：
+```text
+每天
+每周
+每两周
+每月
+工作日
+自定义
+从不
+```
+
+逻辑：
+
+如果：
+```text
+daily
+```
+
+今天跟进完成：
+```text
+nextFollowUpDate = tomorrow
+```
+
+如果：
+```text
+weekly
+```
+
+完成后：
+```text
+nextFollowUpDate += 7 days
+```
+
+如果 recurrence 有值但没有 nextFollowUpDate：
+
+默认以：
+```text
+today
+```
+
+作为起点。
+
+---
+
+# 十、最近7天
+
+Customer → 最近7天：
+
+表示：
+
+# 未来7天需要联系的客户。
+
+不是历史最近7天。
+
+---
+
+# 十一、客户级别
+
+默认：
+```text
+A级
+B级
+C级
+D级
+```
+
+但必须是动态实体：
+```text
+CustomerCategory
+```
+
+不要 enum。
+
+支持：
+```text
+新增
+重命名
+删除/停用
+排序
+```
+
+---
+
+# 十二、客户级别自动关联标签
+
+例如：
+```text
+Category = A级
+```
+
+自动拥有：
+```text
+Tag = A级
+```
+
+如果：
+```text
+A级
+```
+
+重命名：
+```text
+优质客户
+```
+
+则关联标签也同步：
+```text
+优质客户
+```
+
+---
+
+# 十三、Customer Status
+
+默认：
+```text
+新客户
+询盘客户
+开发中
+待跟进
+报价客户
+样品客户
+意向客户
+成交客户
+复购客户
+```
+
+建立：
+```text
+CustomerStatus
+```
+
+动态可配置。
+
+支持：
+```text
+新增
+重命名
+排序
+停用
+颜色
+```
+
+不要固定 enum。
+
+---
+
+# 十四、Customer Source
+
+必须实现。
+
+默认：
+```text
+Facebook
+贸易平台
+Google
+Website
+Exhibition
+Referral
+WhatsApp
+LinkedIn
+Existing Customer
+Other
+```
+
+动态可配置。
+
+建立：
+```text
+CustomerSource
+```
+
+---
+
+# 十五、Customer List
+
+客户列表保持 Fly 任务列表风格。
+
+不要 DataTable。
+
+一行展示：
+```text
+客户名称
+国家
+状态
+上次跟进时间
+```
+
+示例：
+```text
+□ Jack       菲律宾      意向客户       今天
+□ Ahmed      UAE         报价客户       2天前
+□ David      UK          样品客户       7天前
+```
+
+---
+
+# 十六、Customer List 标签筛选
+
+Customer List 顶部支持：
+```text
+标签筛选
+```
+
+标签多时：
+
+默认折叠。
+
+例如：
+```text
+全部
+A级
+B级
+菲律宾
+WPC
+
+更多 >
+```
+
+点击：
+```text
+更多
+```
+
+打开 Popover。
+
+---
+
+# 十七、Tag 颜色
+
+Tag 支持：
+```text
+name
+color
+```
+
+颜色必须：
+```text
+低饱和
+柔和
+```
+
+列表中不要巨大 Chip。
+
+---
+
+# 十八、多标签筛选
+
+至少支持：
+```text
+AND
+```
+
+逻辑。
+
+例如：
+```text
+菲律宾
++
+A级
++
+WPC
+```
+
+只显示同时满足的 Customer。
+
+---
+
+# 十九、Customer Search
+
+至少搜索：
+```text
+客户名称
+公司名称
+Email
+WhatsApp
+Facebook
+```
+
+支持模糊匹配。
+
+---
+
+# 二十、Customer Sorting
+
+支持：
+```text
+手动排序
+优先级
+下次跟进时间
+上次跟进时间
+创建时间
+客户名称
+```
+
+Today 默认：
+```text
+priority DESC
+nextFollowUpDate ASC
+manualOrder
+```
+
+---
+
+# 二十一、Priority
+
+客户支持：
+```text
+无
+低
+中
+高
+```
+
+高优先级：
+
+在：
+```text
+今天
+最近7天
+```
+
+靠前显示。
+
+---
+
+# 二十二、Customer Detail
+
+点击 Customer：
+
+右侧显示：
+```text
+Customer Detail
+```
+
+不要 Dialog。
+
+---
+
+# 二十三、Customer Detail 高频信息
+
+默认展开：
+```text
+客户名称
+客户级别
+客户状态
+下次跟进
+重复规则
+优先级
+标签
+跟进记录
+备注
+订单
+```
+
+---
+
+# 二十四、Customer Basic Information
+
+以下放进折叠区域：
+```text
+基本信息 >
+```
+
+默认 Collapse。
+
+展开后：
+```text
+公司名称
+国家
+城市
+地址
+Website
+WhatsApp
+Email
+Phone
+Facebook
+LinkedIn
+贸易平台
+Instagram
+通讯应用
+客户来源
+联系人
+```
+
+---
+
+# 二十五、多联系人
+
+必须支持数据模型：
+```text
+Customer
+└── Contacts
+```
+
+CustomerContact 字段：
+```text
+name
+role
+email
+phone
+whatsapp
+facebook
+linkedin
+note
+isPrimary
+```
+
+---
+
+# 二十六、Customer Tags
+
+Customer Detail：
+
+可以：
+```text
+搜索标签
+Enter 添加
+Enter 创建
+Remove
+```
+
+---
+
+# 二十七、Follow-up History
+
+这是强制 CRM 核心功能。
+
+Customer Detail 中必须存在：
+```text
+跟进记录
+```
+
+示例：
+```text
+2026-09-01
+WhatsApp
+客户确认收到报价
+
+2026-08-29
+Email
+发送 ASA 报价
+
+2026-08-25
+Call
+客户要求寄样
+```
+
+---
+
+# 二十八、新增 Follow-up
+
+输入框：
+```text
+记录本次跟进...
+```
+
+Enter / Ctrl+Enter：
+
+保存。
+
+字段：
+```text
+customerId
+followedUpAt
+channel
+content
+nextAction
+nextFollowUpDate
+createdAt
+updatedAt
+```
+
+保存后：
+```text
+lastFollowUpAt = now
+```
+
+---
+
+# 二十九、Next Action
+
+FollowUp 允许记录：
+```text
+下一步
+```
+
+例如：
+```text
+等客户确认数量
+周五再次联系
+发送新颜色样品
+```
+
+Customer Detail 顶部可以轻量显示最新：
+```text
+Next Action
+```
+
+---
+
+# 三十、Customer Notes
+
+支持 Markdown。
+
+用于：
+```text
+客户偏好
+谈判记录
+价格敏感度
+市场情况
+竞争对手
+产品偏好
+决策人
+```
+
+---
+
+# 三十一、Duplicate Detection
+
+必须实现。
+
+至少：
+```text
+Email
+WhatsApp
+Phone
+```
+
+normalized 后精确匹配。
+
+如果发现：
+```text
+可能已存在该客户
+```
+
+提醒用户。
+
+不要强制阻止创建。
+
+---
+
+# 三十二、Customer Quick Create
+
+列表顶部：
+```text
++ 添加客户
+```
+
+点击：
+```text
+Inline Input
+```
+
+输入：
+```text
+Jack
+```
+
+Enter：
+
+创建到：
+```text
+Inbox
+```
+
+然后：
+
+自动打开 Customer Detail。
+
+不要强制填写完整表单。
+
+---
+
+# 三十三、客户详情中的订单入口
+
+这是本轮新增的强制需求。
+
+Customer Detail 必须有：
+```text
+订单
+```
+
+区域。
+
+显示：
+```text
+订单数量
+最近订单
+订单总金额
+```
+
+可以轻量。
+
+例如：
+```text
+订单 5
+总金额 $85,000
+最近订单 2026-08-20
+```
+
+---
+
+# 三十四、查看订单列表
+
+Customer Detail：
+
+必须有：
+```text
+查看订单
+```
+
+点击以后：
+
+# 直接跳转到一级“订单”模块。
+
+并自动：
+```text
+filter customerId = 当前客户
+```
+
+例如：
+
+Customer：
+```text
+Jack
+```
+
+点击：
+```text
+查看订单
+```
+
+跳转：
+```text
+Orders Workspace
+```
+
+并显示：
+```text
+Jack 的全部订单
+```
+
+---
+
+# 三十五、Order Navigation 返回客户
+
+Order Detail 中：
+
+客户名字：
+```text
+Jack
+```
+
+必须可以点击。
+
+点击：
+
+跳回：
+```text
+Customer Workspace
+```
+
+并选中：
+```text
+Jack
+```
+
+形成：
+```text
+Customer ↔ Order
+```
+
+双向导航。
+
+---
+
+# 三十六、订单模块总体定位
+
+Orders 不是 ERP。
+
+核心问题：
+
+# 这个订单现在进行到哪里？
+
+# 客户付了多少钱？
+
+# 哪个工厂在生产什么？
+
+# 我有没有漏掉给某个工厂下单？
+
+# 这个订单利润是多少？
+
+# 订单文件在哪里？
+
+---
+
+# 三十七、Order Workspace
+
+点击一级：
+```text
+订单
+```
+
+进入：
+```text
+Order Workspace
+```
+
+布局：
+```text
+Primary Rail
++
+Order Secondary Sidebar
++
+Order List
++
+Order Detail
+```
+
+与 Task / Customer 保持一致。
+
+---
+
+# 三十八、Order Secondary Sidebar
+
+订单二级目录不要：
+```text
+今天
+最近7天
+```
+
+使用：
+```text
+全部订单
+
+重要订单
+一般订单
+
+────────────
+
+订单标签
+Tag A
+Tag B
+Tag C
+...
+```
+
+---
+
+# 三十九、全部订单
+
+默认：
+```text
+全部订单
+```
+
+按照：
+```text
+orderCreatedAt DESC
+```
+
+排序。
+
+最新订单在最上面。
+
+用户也可以切换：
+```text
+Manual
+Order Date
+Delivery Date
+Priority
+Status
+Customer
+```
+
+---
+
+# 四十、重要订单与一般订单
+
+不要写成静态两个表。
+
+建议使用：
+```text
+importance
+```
+
+例如：
+```text
+Important
+Normal
+```
+
+Secondary Sidebar：
+```text
+重要订单
+一般订单
+```
+
+只是 Projection。
+
+---
+
+# 四十一、Order Tags
+
+订单可以拥有多个标签。
+
+Order Sidebar 下：
+```text
+订单标签
+```
+
+显示常用标签。
+
+例如：
+```text
+菲律宾
+WPC
+急单
+样品
+大客户
+展会订单
+```
+
+点击：
+
+过滤订单。
+
+标签多时折叠：
+```text
+更多 >
+```
+
+---
+
+# 四十二、Order List
+
+保持紧凑列表风格。
+
+每行至少：
+```text
+订单号
+客户名称
+订单状态
+下单时间
+```
+
+可以额外：
+```text
+金额
+交期
+```
+
+但不要过度拥挤。
+
+示例：
+```text
+SO-2026-001     Jack      生产中      2026-09-01
+SO-2026-002     Ahmed     待收尾款    2026-08-28
+```
+
+---
+
+# 四十三、Order Status
+
+默认：
+```text
+询价
+待确认
+已下单
+待收定金
+生产中
+待收尾款
+已收尾款
+待发货
+已发货
+已完成
+已取消
+```
+
+建立：
+```text
+OrderStatus
+```
+
+动态可配置。
+
+支持：
+```text
+新增
+重命名
+排序
+停用
+颜色
+```
+
+---
+
+# 四十四、Order Priority / Importance / Urgency
+
+订单支持：
+```text
+priority
+importance
+urgency
+```
+
+与 Task 的逻辑保持一致。
+
+例如：
+```text
+Priority = High
+Important = true
+Urgent = true
+```
+
+Order List：
+
+使用：
+```text
+小旗帜
+小色条
+文字颜色
+```
+
+明显标记。
+
+不要整个 Row 高饱和彩色。
+
+---
+
+# 四十五、Order Detail
+
+右侧至少包含：
+```text
+订单号
+
+客户
+
+订单状态
+
+重要程度
+紧急程度
+优先级
+
+订单日期
+预计交期
+
+订单标签
+
+产品 / 工厂
+
+金额与收款
+
+成本与费用
+
+利润
+
+文件管理
+
+备注
+```
+
+使用 Progressive Disclosure。
+
+---
+
+# 四十六、订单与工厂 / 产品
+
+这是强制要求。
+
+一个 Order 可能包含多个：
+```text
+Factory / Product Line
+```
+
+例如：
+```text
+新材料工厂
+WPC 格栅
+
+A墙板工厂
+UV 板
+```
+
+不能只存：
+```text
+factoryName
+productName
+```
+
+一个字段。
+
+建立：
+```text
+OrderItem / OrderProductionItem
+```
+
+---
+
+# 四十七、OrderProductionItem
+
+字段建议：
+```text
+id
+orderId
+
+factoryName
+productName
+
+quantity
+unit
+unitPrice
+salesAmount
+
+factoryCost
+
+productionStatus
+
+colorTag
+
+note
+
+createdAt
+updatedAt
+```
+
+---
+
+# 四十八、工厂颜色标识
+
+不同工厂 / 产品块：
+
+必须有不同的：
+```text
+soft background color
+```
+
+例如：
+```text
+新材料工厂
+WPC 格栅
+```
+
+使用：
+```text
+Light Blue
+```
+```text
+A墙板工厂
+UV 板
+```
+
+使用：
+```text
+Light Yellow
+```
+
+目的：
+
+# 一眼识别不同工厂。
+
+不是装饰。
+
+---
+
+# 四十九、防止漏下单
+
+每个 OrderProductionItem 增加：
+```text
+purchasePlaced
+```
+
+或更明确：
+```text
+factoryOrderStatus
+```
+
+例如：
+```text
+未下单
+已通知工厂
+已确认
+生产中
+已完成
+```
+
+---
+
+# 五十、工厂订单状态视觉
+
+如果：
+```text
+未下单
+```
+
+必须非常明显。
+
+例如：
+```text
+⚠ 未下单
+```
+
+使用柔和但醒目的：
+```text
+Orange / Red accent
+```
+
+避免漏掉。
+
+---
+
+# 五十一、订单产品 / 工厂列表
+
+Order Detail：
+```text
+生产 / 工厂
+
+[新材料工厂]
+WPC 格栅
+数量：...
+状态：生产中
+
+[A墙板工厂]
+UV 板
+数量：...
+状态：未下单
+```
+
+---
+
+# 五十二、订单金额
+
+Order 至少：
+```text
+currency
+salesAmount
+```
+
+不要使用 double。
+
+金额使用：
+```text
+integer minor units
+```
+
+或可靠 Decimal。
+
+---
+
+# 五十三、订单成本 / 费用
+
+必须支持：
+```text
+Factory Cost
+Tax Refund
+Inland Cost
+Port Charges
+Other Cost
+```
+
+中文：
+```text
+工厂成本
+退税
+内陆费
+港杂费
+其他费用
+```
+
+---
+
+# 五十四、利润计算
+
+定义：
+```text
+利润 =
+订单销售金额
+- 工厂成本
+- 内陆费
+- 港杂费
+- 其他费用
++ 退税
+```
+
+如果实际业务存在其他收入/费用：
+
+可以通过：
+```text
+Other Income
+Other Cost
+```
+
+扩展。
+
+---
+
+# 五十五、Order Financial Model
+
+建议建立：
+```text
+OrderFinancialSummary
+```
+
+或者计算层。
+
+字段：
+```text
+salesAmount
+
+factoryCost
+
+taxRefund
+
+inlandCost
+
+portCharges
+
+otherCost
+
+otherIncome
+
+profit
+```
+
+其中：
+
+# profit 尽量动态计算。
+
+不要把可以计算的值作为唯一真相重复存储。
+
+---
+
+# 五十六、利润展示
+
+Order Detail：
+
+显示：
+```text
+订单金额
+
+工厂成本
+退税
+内陆费
+港杂费
+其他费用
+
+────────
+
+预计利润
+利润率
+```
+
+利润率：
+```text
+profit / salesAmount
+```
+
+---
+
+# 五十七、收款逻辑
+
+Order 必须支持：
+```text
+Total Receivable
+Received
+Outstanding
+```
+
+中文：
+```text
+应收金额
+已收金额
+未收金额
+```
+
+---
+
+# 五十八、不要只用一个 paidAmount 字段
+
+建议真正建立：
+```text
+OrderPayment
+```
+
+每次收到一笔钱：
+
+新增一条。
+
+例如：
+```text
+2026-09-01
+USD 5,000
+定金
+
+2026-09-15
+USD 15,000
+尾款
+```
+
+---
+
+# 五十九、OrderPayment 字段
+```text
+id
+orderId
+
+amount
+currency
+
+paymentType
+paidAt
+
+method
+note
+
+attachmentId optional
+
+createdAt
+updatedAt
+```
+
+---
+
+# 六十、付款类型
+
+默认：
+```text
+定金
+进度款
+尾款
+其他
+```
+
+---
+
+# 六十一、已收 / 未收
+
+动态计算：
+```text
+receivedAmount =
+SUM(OrderPayment.amount)
+```
+```text
+outstandingAmount =
+salesAmount - receivedAmount
+```
+
+---
+
+# 六十二、全部收到货款
+
+当：
+```text
+outstandingAmount <= 0
+```
+
+UI：
+
+显示：
+```text
+已收全款
+```
+
+如果订单流程已经进入尾款阶段：
+
+可以自动建议：
+```text
+订单状态 → 已收尾款
+```
+
+但：
+
+# 不要强制自动修改状态。
+
+可以弹轻量提示：
+```text
+已收全部款项，是否将订单状态设为“已收尾款”？
+```
+
+---
+
+# 六十三、部分收款
+
+显示：
+```text
+已收 $5,000 / $20,000
+```
+
+或者 Progress。
+
+不要用巨大进度条。
+
+---
+
+# 六十四、订单标签
+
+Order Detail：
+
+允许：
+```text
+多个标签
+```
+
+Tag 可以：
+```text
+搜索
+Enter 添加
+Enter 创建
+Remove
+```
+
+---
+
+# 六十五、Order Tag Filter
+
+Secondary Sidebar：
+
+点击：
+```text
+急单
+```
+
+显示所有：
+```text
+tag = 急单
+```
+
+订单。
+
+支持多标签筛选可以后续补。
+
+V1至少单 Tag 点击筛选。
+
+---
+
+# 六十六、Order Search
+
+至少：
+```text
+订单号
+客户名
+公司名
+产品名
+工厂名
+```
+
+搜索。
+
+---
+
+# 六十七、Order Sort
+
+支持：
+```text
+创建时间
+订单日期
+交期
+客户
+状态
+优先级
+金额
+利润
+```
+
+默认：
+```text
+createdAt DESC
+```
+
+---
+
+# 六十八、Order File Management
+
+这是强制功能。
+
+Order Detail 最下面：
+
+# 文件管理
+
+---
+
+# 六十九、支持文件类型
+
+至少：
+```text
+PI
+CI
+PL
+CO
+客户转账记录
+截图
+PDF
+Excel
+Word
+图片
+其他
+```
+
+---
+
+# 七十、文件上传
+
+用户可以：
+```text
+点击上传
+Drag & Drop
+```
+
+把文件加入 Order。
+
+---
+
+# 七十一、文件存储
+
+不要把大文件直接存 SQLite Blob。
+
+推荐：
+```text
+SQLite
+↓
+保存 metadata
+
+File System
+↓
+保存真实文件
+```
+
+字段：
+```text
+id
+orderId
+
+fileName
+originalName
+
+fileType
+documentType
+
+localPath
+fileSize
+mimeType
+
+createdAt
+updatedAt
+```
+
+---
+
+# 七十二、订单文件目录
+
+建议：
+```text
+FlyData/
+Orders/
+<orderId>/
+```
+
+例如：
+```text
+Orders/
+SO-2026-001/
+PI/
+CI/
+PL/
+CO/
+Payments/
+Other/
+```
+
+具体物理结构可以根据跨平台策略设计。
+
+不要硬编码 Windows-only path 到业务层。
+
+---
+
+# 七十三、文件分类
+
+Document Type：
+```text
+PI
+CI
+PL
+CO
+Payment
+Image
+Other
+```
+
+允许用户修改分类。
+
+---
+
+# 七十四、点击文件直接打开
+
+点击：
+```text
+PI-001.pdf
+```
+
+调用系统默认程序：
+```text
+Open With Default App
+```
+
+Windows：
+
+使用 Platform Adapter。
+
+不要让 Business Layer 直接 Win32 调用。
+
+---
+
+# 七十五、文件列表 UI
+
+Order Detail 最下：
+```text
+文件
+
+PI
+  PI-001.pdf
+
+CI
+  Commercial Invoice.pdf
+
+PL
+  Packing List.xlsx
+
+收款
+  Deposit-5000USD.jpg
+```
+
+---
+
+# 七十六、文件预览
+
+V1：
+
+不要求自己实现 PDF Viewer。
+
+第一阶段：
+```text
+点击
+↓
+系统打开
+```
+
+以后再做内置预览。
+
+---
+
+# 七十七、客户转账记录
+
+上传：
+```text
+PDF
+截图
+```
+
+可以指定：
+```text
+DocumentType = Payment
+```
+
+如果关联某一笔 OrderPayment：
+
+建立：
+```text
+paymentId
+```
+
+optional link。
+
+---
+
+# 七十八、Customer Detail 的 Orders 区域
+
+Customer Detail：
+
+至少显示：
+```text
+订单数量
+总销售额
+最近订单
+```
+
+以及：
+```text
+查看订单 >
+```
+
+---
+
+# 七十九、点击查看订单后的状态
+
+必须保存用户上下文。
+
+例如：
+
+Customer：
+```text
+Jack
+```
+
+点击：
+```text
+查看订单
+```
+
+跳：
+```text
+Orders
+```
+
+顶部显示：
+```text
+客户：Jack    ×
+```
+
+或者 Filter Chip：
+```text
+Jack
+```
+
+关闭后：
+
+恢复：
+```text
+全部订单
+```
+
+---
+
+# 八十、Customer ↔ Order 双向跳转
+
+Customer Detail：
+```text
+查看订单
+↓
+Orders filtered by Customer
+```
+
+Order Detail：
+```text
+Customer Name
+↓
+Customer Detail
+```
+
+必须流畅。
+
+---
+
+# 八十一、强制 CRM 核心功能清单
+
+以下全部视为本阶段 CRM 核心能力：
+```text
+Follow-up History
+Multiple Contacts
+Customer Source
+Duplicate Detection
+Custom Status
+Custom Category
+Tag System
+Tag Filtering
+Priority
+Follow-up Recurrence
+Today Follow-up Completion
+Customer Search
+Customer Sort
+Customer ↔ Order
+Markdown Notes
+Soft Delete
+```
+
+这些不是可选项。
+
+---
+
+# 八十二、Customer Soft Delete
+
+Customer：
+
+使用：
+```text
+deletedAt
+```
+
+不要物理删除。
+
+如果 Customer 有 Orders：
+
+提醒。
+
+Orders 保留。
+
+---
+
+# 八十三、Order Soft Delete
+
+Order：
+
+使用：
+```text
+deletedAt
+```
+
+不要直接 DELETE Row。
+
+---
+
+# 八十四、Database Migration
+
+必须保留现有：
+```text
+Tasks
+Calendar
+Matrix
+```
+
+数据。
+
+使用：
+```text
+Drift Migration
+```
+
+不要：
+```text
+drop database
+```
+
+---
+
+# 八十五、新增建议表
+
+至少评估：
+```text
+customers
+
+customer_categories
+customer_statuses
+customer_sources
+
+customer_contacts
+customer_followups
+
+customer_tags
+customer_tag_links
+
+
+orders
+order_statuses
+
+order_items
+order_payments
+
+order_tags
+order_tag_links
+
+order_files
+```
+
+是否复用统一：
+```text
+tags
+```
+
+需要做 ADR。
+
+---
+
+# 八十六、Order Tags 是否和 Customer Tags 共用
+
+建议：
+
+# 逻辑层共用 Tag Engine
+
+但：
+
+Customer Tag 和 Order Tag 的应用关系分开。
+
+例如：
+```text
+tags
+customer_tag_links
+order_tag_links
+```
+
+这样：
+```text
+菲律宾
+急单
+WPC
+```
+
+可以统一管理颜色和名称。
+
+---
+
+# 八十七、Order Factory 建议独立实体
+
+如果以后同一个工厂会重复使用：
+
+建议建立：
+```text
+Factory
+```
+
+字段：
+```text
+id
+name
+contact
+phone
+address
+note
+color
+```
+
+OrderProductionItem：
+```text
+factoryId
+```
+
+而不是每个订单重复输工厂名字。
+
+---
+
+# 八十八、Product 建议轻量实体化
+
+同理：
+
+建议建立：
+```text
+Product
+```
+
+例如：
+```text
+WPC 格栅
+UV 板
+PVC Ceiling
+SPC Flooring
+```
+
+V1可以允许：
+```text
+输入并 Enter 创建 Product
+```
+
+不用先开发完整 Product Management。
+
+---
+
+# 八十九、Factory / Product 快速创建
+
+Order Detail：
+
+选择工厂时：
+```text
+搜索 Factory
+```
+
+不存在：
+```text
+Enter 创建
+```
+
+Product 同理。
+
+---
+
+# 九十、订单“未下工厂”必须强提醒
+
+如果 Order 已进入：
+```text
+生产中
+```
+
+但存在：
+```text
+OrderProductionItem.factoryOrderStatus = 未下单
+```
+
+必须：
+
+# 显示警告。
+
+例如：
+```text
+⚠ 1 个工厂尚未下单
+```
+
+这是核心业务安全提醒。
+
+---
+
+# 九十一、Order Checklist 建议
+
+我建议增加一个非常轻量：
+```text
+Order Checklist
+```
+
+默认可包含：
+```text
+PI 确认
+定金到账
+工厂下单
+生产完成
+尾款到账
+订舱
+报关
+发货
+```
+
+但是：
+
+不要强制固定。
+
+V1如果开发成本合理：
+
+实现 Custom Checklist。
+
+否则：
+
+先在 Schema / Docs 预留。
+
+---
+
+# 九十二、Order Notes
+
+Order Detail 需要 Markdown Notes。
+
+用于：
+```text
+客户特殊要求
+生产要求
+颜色
+包装
+交期风险
+议价情况
+注意事项
+```
+
+---
+
+# 九十三、订单状态颜色
+
+Order Status：
+
+使用低饱和色。
+
+例如：
+```text
+待收定金
+Orange
+
+生产中
+Blue
+
+待收尾款
+Purple
+
+待发货
+Teal
+
+已完成
+Green
+```
+
+但：
+
+只作为小 Accent。
+
+---
+
+# 九十四、Important / Urgent 颜色
+
+如果：
+```text
+Important + Urgent
+```
+
+在 Order List 左侧：
+
+可以使用：
+```text
+small red/orange indicator
+```
+
+不要整个 Row 红色。
+
+---
+
+# 九十五、Financial Summary 示例
+
+Order Detail 可以呈现：
+```text
+财务
+
+订单金额       $20,000
+工厂成本       $14,000
+退税            $1,500
+内陆费            $500
+港杂费            $300
+其他费用          $200
+
+预计利润        $6,500
+利润率            32.5%
+```
+
+具体计算以：
+```text
+sales
+- costs
++ taxRefund
+```
+
+为准。
+
+---
+
+# 九十六、Payment Summary 示例
+```text
+收款
+
+订单应收       $20,000
+已收            $5,000
+未收           $15,000
+
++ 记录收款
+```
+
+---
+
+# 九十七、记录收款
+
+点击：
+```text
++ 记录收款
+```
+
+轻量 Popover / Inline Editor：
+```text
+金额
+类型
+日期
+方式
+备注
+附件
+```
+
+---
+
+# 九十八、文件和 Payment 关联
+
+如果上传：
+```text
+客户转账截图
+```
+
+允许：
+```text
+关联到 Payment
+```
+
+后续点击 Payment：
+
+可以看到附件。
+
+---
+
+# 九十九、开发顺序
+
+严格：
+```text
+STEP 1
+CRM/Orders Architecture Docs
+
+STEP 2
+Database Migration Design
+
+STEP 3
+CRM Domain
+
+STEP 4
+CRM Workspace
+
+STEP 5
+Customer Detail
+
+STEP 6
+Follow-up Engine
+
+STEP 7
+Tags / Search / Filters
+
+STEP 8
+Customer ↔ Order Navigation
+
+STEP 9
+Order Domain
+
+STEP 10
+Order Workspace
+
+STEP 11
+Factory / Product
+
+STEP 12
+Order Financials
+
+STEP 13
+Order Payments
+
+STEP 14
+Order Files
+
+STEP 15
+Tests
+
+STEP 16
+Windows Release Build
+
+STEP 17
+Screenshots + Final Report
+```
+
+---
+
+# 一百、不要一次写完再测试
+
+每阶段：
+```text
+implement
+↓
+flutter analyze
+↓
+flutter test
+↓
+run
+↓
+fix
+↓
+continue
+```
+
+---
+
+# 一百零一、CRM Tests
+
+至少：
+```text
+Create Customer
+Edit Customer
+Duplicate Warning
+Custom Category
+Custom Status
+Tag Create
+Tag Filter
+Search
+Priority Sort
+Set Follow-up
+Daily Recurrence
+Weekly Recurrence
+Complete Today Follow-up
+Follow-up History
+Multiple Contact
+Customer Order Navigation
+Soft Delete
+```
+
+---
+
+# 一百零二、Order Tests
+
+至少：
+```text
+Create Order
+Link Customer
+Change Status
+Importance
+Urgency
+Priority
+Tag
+Factory Item
+Product Item
+Factory Order Status
+Profit Calculation
+Payment Calculation
+Outstanding Calculation
+Full Payment
+Upload File Metadata
+Customer Filter
+Soft Delete
+```
+
+---
+
+# 一百零三、关键利润测试
+
+例如：
+```text
+Sales = 20,000
+
+Factory Cost = 14,000
+Inland = 500
+Port = 300
+Other = 200
+
+Tax Refund = 1,500
+```
+
+期望：
+```text
+Profit = 6,500
+```
+
+必须单元测试。
+
+---
+
+# 一百零四、关键收款测试
+
+订单：
+```text
+Total = 20,000
+```
+
+Payment：
+```text
+5,000
+10,000
+5,000
+```
+
+必须：
+```text
+Received = 20,000
+Outstanding = 0
+```
+
+并 UI：
+```text
+已收全款
+```
+
+---
+
+# 一百零五、关键工厂遗漏测试
+
+Order：
+```text
+Status = 生产中
+```
+
+存在：
+```text
+工厂A = 已下单
+工厂B = 未下单
+```
+
+UI：
+
+必须显示：
+```text
+⚠ 1 个工厂尚未下单
+```
+
+---
+
+# 一百零六、最终 CRM 验收
+
+CRM 必须做到：
+```text
+今天该联系谁
+完成今日跟进
+自动计算下次跟进
+查看历史跟进
+记录下一步
+自定义客户级别
+自定义状态
+Tag 筛选
+搜索
+排序
+多个联系人
+来源
+重复客户提醒
+查看客户订单
+跳转订单
+```
+
+---
+
+# 一百零七、最终 Orders 验收
+
+Orders 必须做到：
+```text
+全部订单
+重要订单
+一般订单
+Tag 筛选
+
+订单号
+客户
+状态
+下单时间
+
+订单详情
+
+客户关联
+
+工厂
+产品
+工厂下单状态
+
+金额
+成本
+退税
+费用
+利润
+
+收款
+未收款
+全款状态
+
+重要
+紧急
+优先级
+
+多个标签
+
+文件上传
+文件分类
+点击系统打开
+```
+
+---
+
+# 一百零八、产品判断标准
+
+完成后必须回答：
+
+# 1
+
+打开客户模块：
+
+我是否立刻知道：
+```text
+今天该跟进谁？
+```
+
+# 2
+
+打开客户详情：
+
+我是否能在10秒内知道：
+```text
+客户是谁
+现在什么阶段
+上次聊了什么
+下一步做什么
+有哪些订单
+```
+
+# 3
+
+打开订单：
+
+我是否能立刻知道：
+```text
+这个订单现在到哪一步？
+```
+
+# 4
+
+能否一眼发现：
+```text
+哪个工厂还没下单？
+```
+
+# 5
+
+是否能看到：
+```text
+订单挣多少钱？
+还有多少钱没收到？
+```
+
+# 6
+
+是否可以：
+```text
+两次点击以内打开 PI / CI / PL / CO / 转账凭证？
+```
+
+# 7
+
+整个 CRM / Orders：
+
+是否仍然保持：
+```text
+Fly 的简洁生产力软件风格
+```
+
+而不是：
+```text
+传统复杂 ERP
+```
+
+如果不是：
+
+继续优化。
+
+---
+
+# 一百零九、执行
+
+现在开始检查：
+```text
+E:\workSpace\fly
+```
+
+现有：
+```text
+Navigation
+Design System
+Task
+Calendar
+Matrix
+Database
+Repository
+```
+
+先输出：
+```text
+CRM / Orders Architecture
+Database Migration Plan
+Customer ↔ Order Navigation Plan
+Financial Calculation Plan
+File Storage Plan
+```
+
+然后执行代码开发。
+
+不要擅自加入：
+```text
+AI
+云同步
+WhatsApp API
+邮件同步
+Facebook API
+ERP生产排程
+库存
+采购
+财务会计
+```
+
+先完成 CRM + Order Core。
+
+完成后：
+```text
+flutter analyze
+flutter test
+flutter build windows --release
+flutter run -d windows --release
+```
+
+全部验证，并生成截图和最终报告。
+

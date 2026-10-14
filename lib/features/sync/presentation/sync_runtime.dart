@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -23,7 +25,13 @@ class _SyncRuntimeState extends ConsumerState<SyncRuntime>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed &&
         ref.read(dataRootPathProvider) != null) {
-      ref.read(syncControllerProvider).resume();
+      unawaited(ref.read(syncControllerProvider).resume());
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.detached) {
+      if (ref.read(dataRootPathProvider) != null) {
+        unawaited(ref.read(syncControllerProvider).suspend());
+      }
     }
   }
 

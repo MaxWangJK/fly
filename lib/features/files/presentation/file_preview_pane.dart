@@ -77,9 +77,7 @@ class FilePreviewPane extends StatelessWidget {
             future: File(path).exists(),
             builder: (context, snapshot) => snapshot.data == false
                 ? Text(
-                    l.isZh
-                        ? '文件内容仅存在于其它设备'
-                        : 'File content is only available on another device',
+                    l.isZh ? '文件内容尚未下载。请检查同步状态；官方平台普通账号仅同步文件信息，可通过电脑扫码传文件。' : 'File not downloaded. Check sync status. Official accounts without file access can transfer files through desktop pairing.',
                   )
                 : const SizedBox.shrink(),
           ),

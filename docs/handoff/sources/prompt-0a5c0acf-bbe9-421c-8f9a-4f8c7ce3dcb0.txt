@@ -1,0 +1,2329 @@
+# Fly CRM / Orders Polish V3 — 标签生命周期、排序、删除交互与视觉统一优化
+
+当前项目：
+
+```text
+E:\workSpace\fly
+```
+
+当前 Fly 已经完成：
+
+```text
+客户管理
+订单管理
+任务
+日历
+四象限
+```
+
+并且客户 / 订单核心业务功能已经可用。
+
+本轮进入：
+
+# 微调
+# Bug Fix
+# Interaction Polish
+# UI Refinement
+
+本轮不要新增大模块。
+
+目标：
+
+```text
+修复标签生命周期问题
+优化客户与订单筛选
+优化订单排序
+补充右键删除
+优化默认启动位置
+统一 CRM / Orders 与任务、日历、四象限的视觉语言
+```
+
+---
+
+# 一、先保护现有架构
+
+不要重写：
+
+```text
+Riverpod
+Repository
+Drift
+SQLite
+Task
+Calendar
+Matrix
+Customer Domain
+Order Domain
+```
+
+本轮重点：
+
+```text
+presentation
+query
+sorting
+tag lifecycle
+context menu
+visual polish
+```
+
+---
+
+# 二、Tag 生命周期 Bug 修复
+
+当前存在 Bug：
+
+已经没有任何：
+
+```text
+Customer
+Order
+```
+
+使用：
+
+```text
+订单
+```
+
+这个标签，
+
+但是：
+
+```text
+订单
+```
+
+仍然存在并显示。
+
+这是错误行为。
+
+---
+
+# 三、普通 Tag 自动垃圾回收
+
+对于普通 Tag：
+
+如果：
+
+```text
+Customer References = 0
+AND
+Order References = 0
+```
+
+必须：
+
+# 删除 Tag。
+
+不是只隐藏。
+
+删除数据库：
+
+```text
+tags
+```
+
+中的记录。
+
+---
+
+# 四、Tag Cleanup 不允许误删系统 Tag
+
+必须区分：
+
+```text
+普通标签
+系统标签
+Customer Category 关联标签
+```
+
+例如：
+
+```text
+A级
+B级
+C级
+D级
+```
+
+如果这些仍然对应存在的：
+
+```text
+CustomerCategory
+```
+
+即使暂时没有 Customer 使用：
+
+# 不能删除。
+
+---
+
+# 五、Tag Cleanup Service
+
+不要把垃圾回收逻辑散落到 UI。
+
+建立或完善：
+
+```text
+TagCleanupService
+```
+
+或 Repository 层等价逻辑。
+
+统一判断：
+
+```text
+isDeletableTag(tagId)
+```
+
+条件：
+
+```text
+not system
+not category-linked
+customerRefs == 0
+orderRefs == 0
+```
+
+---
+
+# 六、自动执行 Tag Cleanup 的场景
+
+至少：
+
+```text
+Customer Remove Tag
+
+Order Remove Tag
+
+Customer Soft Delete
+
+Order Soft Delete
+
+Customer permanently removed if applicable
+
+Order permanently removed if applicable
+
+Category relationship changed
+
+Tag Link removed
+```
+
+之后检查。
+
+---
+
+# 七、启动时可以做轻量 Tag Repair
+
+为了修复历史遗留：
+
+应用启动后：
+
+可以执行一次：
+
+```text
+cleanupOrphanTags()
+```
+
+仅清理：
+
+```text
+ordinary tags
+zero references
+```
+
+必须非常安全。
+
+不要删除 Category/System Tag。
+
+---
+
+# 八、Customer List Tag Filter 支持主动删除
+
+当前 Customer List 顶部：
+
+有 Tag Filter。
+
+增加：
+
+# Tag Delete Interaction
+
+---
+
+# 九、Tag Hover 删除按钮
+
+默认：
+
+```text
+[菲律宾]
+```
+
+Hover：
+
+右上方出现一个：
+
+```text
+×
+```
+
+小红叉。
+
+例如：
+
+```text
+[ 菲律宾  × ]
+```
+
+不要一直显示。
+
+只在：
+
+```text
+Mouse Hover
+```
+
+时出现。
+
+---
+
+# 十、点击红叉
+
+用户点击：
+
+```text
+×
+```
+
+不是：
+
+```text
+取消筛选
+```
+
+而是：
+
+# 删除这个标签定义。
+
+这是强操作。
+
+必须判断引用。
+
+---
+
+# 十一、Tag 没有引用
+
+如果：
+
+```text
+Customer refs = 0
+Order refs = 0
+```
+
+点击删除：
+
+可以直接删除。
+
+不需要复杂 Dialog。
+
+可以轻量确认：
+
+```text
+删除标签“重点”？
+```
+
+也可以根据 Fly 当前交互选择直接删除 + Undo。
+
+优先保持安全。
+
+---
+
+# 十二、Tag 仍然被引用
+
+例如：
+
+```text
+重点
+```
+
+当前：
+
+```text
+8 Customers
+3 Orders
+```
+
+使用。
+
+点击红叉：
+
+必须提示：
+
+```text
+“重点”仍被 8 个客户和 3 个订单使用。
+
+删除后，这些客户和订单将移除此标签。
+
+是否继续？
+```
+
+提供：
+
+```text
+取消
+删除标签
+```
+
+---
+
+# 十三、删除被引用 Tag
+
+如果用户明确确认：
+
+执行：
+
+```text
+remove customer tag links
+remove order tag links
+delete tag
+```
+
+必须事务化。
+
+不要出现：
+
+Tag 删除一半，
+
+links 留下 orphan records。
+
+---
+
+# 十四、Customer Detail 基本信息默认展开
+
+当前：
+
+```text
+基本信息
+```
+
+改为：
+
+# 默认展开。
+
+因为用户现在已经确认这部分常用。
+
+但是：
+
+保持：
+
+```text
+可折叠
+```
+
+能力。
+
+---
+
+# 十五、基本信息展开状态
+
+建议：
+
+默认：
+
+```text
+expanded = true
+```
+
+如果当前应用已有：
+
+```text
+UI preference persistence
+```
+
+可以记住用户选择。
+
+如果没有：
+
+本轮不用新增设置持久化。
+
+---
+
+# 十六、Customer Detail 下次跟进 / 重复
+
+当前：
+
+```text
+下次跟进
+重复
+```
+
+两个 Container 大小视觉不统一。
+
+必须调整成：
+
+# 同尺寸
+# 同高度
+# 同 Border
+# 同 Radius
+# 同 Typography
+
+例如：
+
+```text
+┌─────────────────┐ ┌─────────────────┐
+│ 下次跟进        │ │ 重复            │
+│ 2026-09-25      │ │ 三天            │
+└─────────────────┘ └─────────────────┘
+```
+
+---
+
+# 十七、重复规则新增“两月”
+
+Customer recurrence：
+
+当前：
+
+```text
+从不
+三天
+每周
+两周
+每月
+```
+
+增加：
+
+```text
+两月
+```
+
+最终：
+
+```text
+从不
+三天
+每周
+两周
+每月
+两月
+```
+
+---
+
+# 十八、两月 recurrence
+
+Domain 使用：
+
+```text
+every2Months
+```
+
+不要只存中文字符串。
+
+计算：
+
+```text
+baseDate + 2 calendar months
+```
+
+不能：
+
+```text
++ 60 days
+```
+
+---
+
+# 十九、两月月末处理
+
+例如：
+
+```text
+2026-01-31
++ 2 months
+=
+2026-03-31
+```
+
+例如：
+
+```text
+2026-12-31
++ 2 months
+=
+2027-02-28
+```
+
+或闰年：
+
+```text
+Feb 29
+```
+
+使用 Calendar Clamp。
+
+---
+
+# 二十、Order Secondary Sidebar 标签数量限制
+
+订单二级目录：
+
+现在 Tag 可能很多。
+
+改成：
+
+# 最多显示8个 Tag。
+
+例如：
+
+```text
+订单标签
+
+A
+B
+C
+D
+E
+F
+G
+H
+```
+
+超过：
+
+# 不展示。
+
+---
+
+# 二十一、Orders 不要“更多”
+
+订单侧边栏：
+
+不要：
+
+```text
+更多 >
+```
+
+不要展开所有 Tag。
+
+最多固定：
+
+```text
+8
+```
+
+---
+
+# 二十二、Order Tag 选择策略
+
+默认显示8个 Tag：
+
+优先考虑：
+
+```text
+最近使用
++
+引用最多
+```
+
+推荐排序：
+
+```text
+usageCount DESC
+lastUsedAt DESC
+```
+
+如果当前 Tag Model 没有：
+
+```text
+lastUsedAt
+```
+
+就仅使用：
+
+```text
+usageCount DESC
+```
+
+同数量时：
+
+```text
+sortOrder / createdAt
+```
+
+---
+
+# 二十三、Order Sorting 重新定义
+
+这是强制业务规则。
+
+所有订单默认排序：
+
+```text
+1. 紧急 + 重要
+2. 紧急
+3. 优先级 高
+4. 优先级 中
+5. 重要
+6. 优先级 低
+```
+
+注意：
+
+# 必须严格符合这个顺序。
+
+---
+
+# 二十四、Sorting Rank
+
+不要散落多层 if。
+
+建立明确：
+
+```text
+orderDisplayRank(order)
+```
+
+例如：
+
+```text
+Urgent && Important = 0
+
+Urgent = 1
+
+Priority High = 2
+
+Priority Medium = 3
+
+Important = 4
+
+Priority Low = 5
+```
+
+---
+
+# 二十五、排序条件重叠
+
+必须明确：
+
+如果：
+
+```text
+urgent = true
+important = true
+priority = high
+```
+
+只能属于：
+
+```text
+rank 0
+```
+
+不能重复比较造成不稳定排序。
+
+---
+
+# 二十六、同级订单排序
+
+相同 rank：
+
+建议：
+
+```text
+createdAt DESC
+```
+
+或：
+
+```text
+orderDate DESC
+```
+
+当前用户要求：
+
+订单按照生成时间排列。
+
+因此：
+
+```text
+rank ASC
+createdAt DESC
+```
+
+---
+
+# 二十七、Order Sort 测试
+
+必须测试：
+
+```text
+A: urgent + important
+B: urgent
+C: high
+D: medium
+E: important
+F: low
+```
+
+期望：
+
+```text
+A
+B
+C
+D
+E
+F
+```
+
+---
+
+# 二十八、Order List Flag 视觉升级
+
+当前：
+
+```text
+紧急
+重要
+```
+
+只是小红字。
+
+调整：
+
+# Capsule / Pill Badge
+
+例如：
+
+```text
+[紧急]
+[重要]
+```
+
+---
+
+# 二十九、紧急重要 Badge
+
+如果：
+
+```text
+urgent && important
+```
+
+可以显示：
+
+```text
+[紧急] [重要]
+```
+
+或者：
+
+```text
+[紧急 · 重要]
+```
+
+推荐分开两个 Pill，
+
+信息更清楚。
+
+---
+
+# 三十、Badge 颜色
+
+Important：
+
+```text
+soft red / rose
+```
+
+Urgent：
+
+```text
+soft orange-red
+```
+
+文字：
+
+比现在：
+
+# 大一号。
+
+例如：
+
+```text
+12 ~ 13px
+Medium / Semibold
+```
+
+不要太大。
+
+---
+
+# 三十一、Badge 位置
+
+Order Row：
+
+建议：
+
+右下或 Status 附近。
+
+必须：
+
+```text
+容易扫到
+不影响订单号 / 客户 / 状态
+```
+
+---
+
+# 三十二、Customer Right Click Delete
+
+Customer List Row：
+
+支持：
+
+```text
+Right Click
+```
+
+Context Menu：
+
+至少：
+
+```text
+删除客户
+```
+
+---
+
+# 三十三、Customer 删除提示
+
+点击：
+
+```text
+删除客户
+```
+
+如果没有 Orders：
+
+提示：
+
+```text
+确定删除客户 “Jack”？
+```
+
+实际执行：
+
+```text
+Soft Delete
+```
+
+---
+
+# 三十四、Customer 有 Orders
+
+如果：
+
+```text
+Jack
+has 5 Orders
+```
+
+右键删除：
+
+提示：
+
+```text
+Jack 有 5 个关联订单。
+
+删除客户后，客户将进入“已删除”，订单不会删除。
+
+是否继续？
+```
+
+---
+
+# 三十五、Order Right Click Delete
+
+Order List：
+
+Right Click：
+
+```text
+删除订单
+```
+
+提示：
+
+```text
+确定删除订单 SO-2026-001？
+```
+
+执行：
+
+```text
+Soft Delete
+```
+
+---
+
+# 三十六、删除后 UI
+
+删除后：
+
+立即从当前 List 移除。
+
+进入：
+
+```text
+已删除
+```
+
+对应视图。
+
+---
+
+# 三十七、Calendar Task Right Click Delete
+
+Calendar：
+
+对 Task：
+
+支持：
+
+```text
+Right Click
+```
+
+Context Menu：
+
+```text
+删除任务
+```
+
+点击：
+
+提示：
+
+```text
+删除任务？
+```
+
+然后：
+
+Soft Delete。
+
+---
+
+# 三十八、Matrix Task Right Click Delete
+
+四象限：
+
+Task Row：
+
+支持：
+
+```text
+Right Click
+```
+
+删除逻辑：
+
+与 Calendar / Task List 完全一致。
+
+---
+
+# 三十九、Task Delete Shared Action
+
+不要三个页面各写删除逻辑。
+
+复用：
+
+```text
+TaskDeleteAction
+```
+
+或现有 Repository。
+
+Calendar / Matrix 只调用。
+
+---
+
+# 四十、App 默认启动 Workspace 修改
+
+Fly 启动：
+
+当前默认可能：
+
+```text
+Tasks
+```
+
+修改为：
+
+# Customers
+
+即：
+
+```text
+Primary Module = Customers
+Customer Secondary = Today
+```
+
+---
+
+# 四十一、默认启动状态
+
+启动：
+
+应该直接进入：
+
+```text
+客户
+→
+今天
+```
+
+显示：
+
+```text
+今天需要联系
+```
+
+---
+
+# 四十二、如果恢复上次 Workspace
+
+如果当前 Fly 已经实现：
+
+```text
+restore last workspace
+```
+
+本需求优先：
+
+# 默认第一次启动 Customers。
+
+如果已经保存用户最后选择：
+
+可以继续尊重用户最后状态。
+
+如果没有此能力：
+
+始终默认 Customers。
+
+---
+
+# 四十三、UI 总体优化范围
+
+需要重新审查：
+
+```text
+Customer Secondary Sidebar
+Customer List
+Customer Detail
+
+Order Secondary Sidebar
+Order List
+Order Detail
+```
+
+对照：
+
+```text
+Tasks
+Calendar
+Matrix
+```
+
+现有已满意视觉。
+
+要求：
+
+# 整个 Fly 像一个完整产品。
+
+不能：
+
+```text
+Task 是一个设计
+CRM 是另一个设计
+Orders 又是 ERP 风
+```
+
+---
+
+# 四十四、Apple-inspired 原则
+
+本轮不是复制 macOS。
+
+而是借鉴 Apple 的产品设计原则：
+
+```text
+Content First
+
+Less Chrome
+
+Clear Hierarchy
+
+Precise Spacing
+
+Subtle Feedback
+
+Progressive Disclosure
+
+Consistency
+
+Low Visual Noise
+
+Strong Typography
+```
+
+---
+
+# 四十五、减少边框
+
+当前 Customer Detail / Order Detail：
+
+如果存在太多：
+
+```text
+1px rectangular boxes
+```
+
+需要审查。
+
+不要每一个字段都像：
+
+```text
+表单输入框
+```
+
+---
+
+# 四十六、什么时候使用 Border
+
+只有：
+
+```text
+editable interactive area
+grouped information
+hoverable surface
+```
+
+才需要。
+
+普通信息：
+
+优先：
+
+```text
+spacing
+typography
+background
+```
+
+表达层级。
+
+---
+
+# 四十七、减少卡片套卡片
+
+避免：
+
+```text
+大 Card
+里面小 Card
+里面 Input Card
+```
+
+使用：
+
+```text
+flat sections
+divider
+spacing
+```
+
+---
+
+# 四十八、Secondary Sidebar 设计
+
+Customer / Order Sidebar：
+
+必须与 Task Sidebar：
+
+使用同一：
+
+```text
+row height
+font size
+hover
+selected
+spacing
+divider
+icon system
+```
+
+---
+
+# 四十九、Customer Sidebar
+
+例如：
+
+```text
+今天
+最近7天
+收集箱
+
+客户级别
+A级
+B级
+...
+```
+
+Selected：
+
+不要大蓝块。
+
+使用：
+
+```text
+subtle neutral selection
++
+accent icon / indicator
+```
+
+---
+
+# 五十、Order Sidebar
+
+同样。
+
+---
+
+# 五十一、List Header
+
+Customer：
+
+```text
+今天需要联系
+```
+
+Order：
+
+```text
+全部订单
+```
+
+Header：
+
+与 Task List：
+
+使用统一：
+
+```text
+title size
+toolbar height
+sorting control
+search area
+```
+
+---
+
+# 五十二、Search Box
+
+Customer / Order：
+
+搜索框目前占比较明显。
+
+重新检查：
+
+高度：
+
+```text
+34 ~ 38px
+```
+
+不要太大。
+
+Icon：
+
+轻灰。
+
+Placeholder：
+
+更浅。
+
+---
+
+# 五十三、Filter Tag Style
+
+Customer Tag Filter：
+
+尽量：
+
+```text
+small capsule
+flat
+low saturation
+```
+
+不要产生大量边框视觉噪音。
+
+---
+
+# 五十四、Customer Row
+
+现在 Customer Row 可以进一步扁平。
+
+建议：
+
+```text
+Checkbox
+Name
+Country
+Status
+Last FollowUp
+```
+
+保持：
+
+```text
+44 ~ 50px
+```
+
+不要大 Card。
+
+---
+
+# 五十五、Customer Priority Background
+
+现有：
+
+```text
+High
+Medium
+Low
+```
+
+保持。
+
+但 Background：
+
+再淡一些。
+
+例如：
+
+High：
+
+```text
+非常浅的 rose
+```
+
+Medium：
+
+```text
+非常浅的 amber
+```
+
+Low：
+
+```text
+white
+```
+
+---
+
+# 五十六、Order Row
+
+Order Row：
+
+尽量：
+
+```text
+Order Number
+Customer
+Status
+Date
+
+flags in secondary line / right bottom
+```
+
+---
+
+# 五十七、Order Row Vertical Rhythm
+
+如果加入 Capsule：
+
+允许 Row 高度比 Customer：
+
+略高：
+
+```text
+48 ~ 54px
+```
+
+不要超过：
+
+```text
+60px
+```
+
+---
+
+# 五十八、Customer Detail Layout
+
+Customer Detail 当前信息较多。
+
+继续坚持：
+
+```text
+two-column compact grid
+```
+
+例如：
+
+```text
+Customer Level   Status
+
+Source           Priority
+
+Next FollowUp    Recurrence
+```
+
+---
+
+# 五十九、基本信息
+
+默认展开后：
+
+不要一下显示巨大表单。
+
+使用：
+
+```text
+compact field rows
+```
+
+Custom Fields：
+
+也遵循同样视觉。
+
+---
+
+# 六十、Customer Notes / FollowUps
+
+已经完成 Extension Panel：
+
+保持。
+
+Preview 区域：
+
+进一步减少：
+
+```text
+box decoration
+```
+
+让它更像：
+
+```text
+clickable section
+```
+
+---
+
+# 六十一、Order Detail
+
+Order Detail：
+
+继续保持：
+
+```text
+Customer + Status
+Priority + Flags
+Tags
+Dates
+Order Details
+Financial
+Notes
+Files
+```
+
+---
+
+# 六十二、Order Summary Sections
+
+```text
+订单详情
+财务信息
+订单备注
+```
+
+三个入口：
+
+视觉统一。
+
+例如：
+
+```text
+Section Title
+short preview
+chevron
+```
+
+不要每个入口不同风格。
+
+---
+
+# 六十三、统一 Extension Entry Component
+
+建立或复用：
+
+```text
+DetailSectionEntry
+```
+
+用于：
+
+```text
+Customer Notes
+Customer FollowUps
+
+Order Details
+Financial
+Order Notes
+```
+
+统一：
+
+```text
+padding
+hover
+chevron
+title
+preview
+```
+
+---
+
+# 六十四、Icon System
+
+检查 CRM / Orders：
+
+是否混用了：
+
+```text
+emoji
+Material default icons
+custom icons
+```
+
+统一使用当前 Fly 的：
+
+```text
+Icon Theme
+```
+
+---
+
+# 六十五、Typography
+
+Customer / Order：
+
+必须和 Tasks：
+
+使用同一 typography scale。
+
+不要 CRM：
+
+字体明显更大或更粗。
+
+---
+
+# 六十六、Title
+
+Workspace title：
+
+```text
+22 ~ 24
+Semibold
+```
+
+Detail customer/order name：
+
+```text
+18 ~ 20
+Semibold
+```
+
+Metadata：
+
+```text
+12 ~ 13
+```
+
+---
+
+# 六十七、Color Usage
+
+颜色只用于：
+
+```text
+priority
+status
+tag
+flag
+selected
+warning
+```
+
+不要：
+
+```text
+每个模块一种大背景色
+```
+
+---
+
+# 六十八、Window Title Bar
+
+保持现有。
+
+不要本轮折腾 Native Window Chrome，
+
+除非已经稳定实现。
+
+---
+
+# 六十九、Hover
+
+所有：
+
+```text
+Sidebar row
+Customer row
+Order row
+Tag
+Section entry
+```
+
+都必须有：
+
+```text
+subtle hover
+```
+
+---
+
+# 七十、Selected
+
+Selected Customer / Order：
+
+不要粗边框。
+
+使用：
+
+```text
+slight background
++
+thin accent indicator
+```
+
+或当前 Task 一致方式。
+
+---
+
+# 七十一、Focus Ring
+
+Keyboard Focus：
+
+不要消失。
+
+使用：
+
+```text
+subtle accent ring
+```
+
+确保未来键盘操作。
+
+---
+
+# 七十二、Context Menu Style
+
+Customer / Order / Calendar / Matrix：
+
+右键菜单：
+
+统一。
+
+不要每个模块自己设计。
+
+---
+
+# 七十三、删除操作颜色
+
+Context Menu：
+
+```text
+删除
+```
+
+使用：
+
+```text
+red destructive action
+```
+
+其它操作：
+
+normal。
+
+---
+
+# 七十四、Toast / Snackbar
+
+删除完成：
+
+可以：
+
+```text
+已移动到已删除
+```
+
+并提供：
+
+```text
+撤销
+```
+
+如果已有 Undo 架构。
+
+如果没有：
+
+不强制本轮加入。
+
+---
+
+# 七十五、Customer Screenshot Review
+
+完成后实际检查：
+
+```text
+客户 Sidebar
+Customer Filter
+Customer Row
+Customer Detail
+```
+
+重点：
+
+# 是否太像后台管理系统？
+
+如果是：
+
+继续减少框线。
+
+---
+
+# 七十六、Order Screenshot Review
+
+重点：
+
+# 是否太像 ERP？
+
+如果是：
+
+继续：
+
+```text
+flatten
+reduce border
+reduce card
+simplify typography
+```
+
+---
+
+# 七十七、不要破坏现有 Fly identity
+
+虽然借鉴 Apple：
+
+不要把它改成：
+
+```text
+macOS clone
+```
+
+Fly 已经有自己的：
+
+```text
+Rail
+Sidebar
+List
+Detail
+Extension
+```
+
+这是核心。
+
+---
+
+# 七十八、测试 Tag Orphan Cleanup
+
+Create:
+
+```text
+Tag = 订单
+```
+
+关联 Customer。
+
+移除。
+
+Order 也没有使用。
+
+期望：
+
+```text
+Tag deleted
+```
+
+---
+
+# 七十九、Tag Cross Reference Test
+
+Tag：
+
+```text
+重点
+```
+
+Customer 无引用。
+
+Order 有1引用。
+
+期望：
+
+```text
+Tag remains
+```
+
+删除 Order Link：
+
+期望：
+
+```text
+Tag deleted
+```
+
+---
+
+# 八十、Manual Delete Referenced Tag Test
+
+Tag：
+
+```text
+菲律宾
+```
+
+有：
+
+```text
+5 Customers
+2 Orders
+```
+
+点击红叉。
+
+必须：
+
+显示引用提示。
+
+取消：
+
+数据不变。
+
+确认：
+
+links removed
+tag deleted。
+
+---
+
+# 八十一、Order Tag Max8 Test
+
+有：
+
+```text
+12 tags
+```
+
+Sidebar：
+
+只显示：
+
+```text
+8
+```
+
+不存在：
+
+```text
+More
+```
+
+---
+
+# 八十二、Order Ranking Test
+
+必须建立完整 Unit Test。
+
+Input：
+
+```text
+A urgent + important low
+B urgent low
+C high
+D medium
+E important low
+F low
+```
+
+Output：
+
+```text
+A
+B
+C
+D
+E
+F
+```
+
+---
+
+# 八十三、Order Ranking Same Group
+
+两个 High：
+
+```text
+High A created Sep 2
+High B created Sep 1
+```
+
+结果：
+
+```text
+High A
+High B
+```
+
+---
+
+# 八十四、Delete Context Tests
+
+至少：
+
+```text
+Customer right click delete
+Order right click delete
+Calendar task delete
+Matrix task delete
+```
+
+都要经过：
+
+Repository Soft Delete。
+
+---
+
+# 八十五、Startup Test
+
+Fresh state：
+
+启动：
+
+```text
+Customers
+Today
+```
+
+---
+
+# 八十六、Visual Regression Screenshots
+
+保存：
+
+```text
+docs/screenshots/polish_v3/
+```
+
+至少：
+
+```text
+customers_today.png
+customer_detail.png
+orders_all.png
+order_detail.png
+order_priority_flags.png
+customer_context_menu.png
+order_context_menu.png
+```
+
+---
+
+# 额外任务
+日历支持 鼠标滑轮滚动 而滚动。
+
+# 八十七、UI Review 文档
+
+建立：
+
+```text
+docs/design/polish_v3/ui_review.md
+```
+
+评分：
+
+```text
+Visual consistency
+Information density
+Flatness
+Typography
+Spacing
+CRM usability
+Order usability
+Destructive action safety
+Tag usability
+```
+
+1-10。
+
+任何低于：
+
+```text
+8
+```
+
+继续调整。
+
+---
+
+# 八十八、不要牺牲可读性换扁平
+
+Flat Design：
+
+不是：
+
+```text
+所有边界都删掉
+```
+
+而是：
+
+```text
+减少无意义装饰
+```
+
+需要明确交互边界时：
+
+仍保留。
+
+---
+
+# 八十九、开发顺序
+
+严格：
+
+```text
+STEP 1
+Fix orphan tag cleanup
+
+STEP 2
+Tag manual delete
+
+STEP 3
+Customer recurrence two-month
+
+STEP 4
+Order max 8 tags
+
+STEP 5
+Order ranking
+
+STEP 6
+Right-click delete
+
+STEP 7
+Default customer startup
+
+STEP 8
+Customer UI polish
+
+STEP 9
+Order UI polish
+
+STEP 10
+Cross-module consistency review
+
+STEP 11
+Tests
+
+STEP 12
+Windows release build
+```
+
+---
+
+# 九十、每阶段验证
+
+每阶段：
+
+```bash
+flutter analyze
+```
+
+然后：
+
+```bash
+flutter test
+```
+
+不要积累大量错误。
+
+---
+
+# 九十一、最终 Build
+
+必须：
+
+```bash
+flutter build windows --release
+```
+
+PASS。
+
+然后：
+
+```bash
+flutter run -d windows --release
+```
+
+真实打开检查。
+
+---
+
+# 九十二、本轮最终验收
+
+必须全部满足：
+
+## Tags
+
+- 0 Customer + 0 Order 的普通标签自动删除
+- Customer Filter Tag hover 可出现红叉
+- 可以主动删除 Tag
+- 被引用时显示数量提示
+- Category/System Tag 不误删
+
+## Customer
+
+- Basic Info 默认展开
+- Next FollowUp / Recurrence 尺寸一致
+- Recurrence 新增“两月”
+- Customer / Order 支持右键删除
+
+## Orders
+
+- Sidebar 最多显示8个 Tags
+- 没有 More
+- 默认排序严格：
+
+```text
+紧急重要
+>
+紧急
+>
+高
+>
+中
+>
+重要
+>
+低
+```
+
+- Important/Urgent 使用更明显 Capsule Badge
+
+## Tasks
+
+- Calendar Task 右键删除
+- Matrix Task 右键删除
+
+## Startup
+
+默认：
+
+```text
+客户 → 今天
+```
+
+## UI
+
+Customer / Orders：
+
+必须：
+
+```text
+Flat
+Modular
+Clean
+Compact
+Consistent
+```
+
+并继续和：
+
+```text
+Tasks
+Calendar
+Matrix
+```
+
+属于同一个 Fly 设计体系。
+
+---
+
+# 九十三、最终产品判断
+
+完成后实际问：
+
+# 打开 Fly 后，我是不是立刻进入今天需要联系的客户？
+
+# 客户和订单的视觉是不是和任务模块来自同一个产品？
+
+# Customer / Order 是否减少了“后台系统感”？
+
+# 我是不是能一眼看出紧急重要订单？
+
+# 无用标签是否不会永久残留？
+
+# 右键删除是不是符合桌面软件用户习惯？
+
+# 客户详情和订单详情是否足够紧凑，但仍然清楚？
+
+如果任一答案是否定：
+
+继续优化。
+
+现在开始修改：
+
+```text
+E:\workSpace\fly
+```
+
+完成本轮 Polish V3 后停止，不要开发新的业务模块。

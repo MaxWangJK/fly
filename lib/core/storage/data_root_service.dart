@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/services.dart';
+
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -20,15 +22,56 @@ class FlyDataRootService {
   FlyDataRootService({
     Directory? supportDirectory,
     Directory? documentsDirectory,
-  }) : this._withDirectories(supportDirectory, documentsDirectory);
+    TargetPlatform? platform,
+  }) : this._withDirectories(supportDirectory, documentsDirectory, platform);
 
   FlyDataRootService._withDirectories(
     this._supportDirectory,
     this._documentsDirectory,
+    this._platform,
   );
 
   final Directory? _supportDirectory;
   final Directory? _documentsDirectory;
+  final TargetPlatform? _platform;
+  static const mobileStorageChannel = MethodChannel(
+    'com.flyproduct.fly/storage',
+  );
+  TargetPlatform get platform =>
+      _platform ??
+      (Platform.isAndroid
+          ? TargetPlatform.android
+          : Platform.isIOS
+          ? TargetPlatform.iOS
+          : TargetPlatform.windows);
+  bool get isMobile =>
+      platform == TargetPlatform.android || platform == TargetPlatform.iOS;
+
+  Future<String> initializeMobile() async {
+    if (!isMobile) throw StateError('此操作仅适用于手机');
+    final saved = await loadDataRoot();
+    if (saved != null) {
+      if (platform == TargetPlatform.android) {
+        final accessible = await mobileStorageChannel.invokeMethod<bool>(
+          'ensureAccess',
+          {'path': saved},
+        );
+        if (accessible != true) throw StateError('请允许 Fly 访问已有的手机数据目录后重试。');
+      }
+      await ensureStructure(saved);
+      return saved;
+    }
+    final shared = platform == TargetPlatform.android
+        ? await mobileStorageChannel.invokeMethod<String>('sharedRoot')
+        : null;
+    final root = p.normalize(p.absolute(shared ?? await recommendedDataRoot()));
+    await prepareFirstRun(
+      root,
+      useExistingDatabase: true,
+      migrateLegacyDatabase: true,
+    );
+    return root;
+  }
 
   Future<Directory> get _support async =>
       _supportDirectory ?? await getApplicationSupportDirectory();
@@ -55,7 +98,7 @@ class FlyDataRootService {
   Future<String> recommendedDataRoot() async {
     final documents =
         _documentsDirectory ?? await getApplicationDocumentsDirectory();
-    return p.join(documents.path, 'FlyData');
+    return p.join(documents.path, isMobile ? 'fly' : 'FlyData');
   }
 
   Future<DataRootInspection> inspect(String path) async {
@@ -152,6 +195,7 @@ class FlyDataRootService {
   Future<void> _ensureStructure(Directory root) async {
     await root.create(recursive: true);
     for (final name in const [
+      'files',
       'attachments',
       'orders',
       'customers',

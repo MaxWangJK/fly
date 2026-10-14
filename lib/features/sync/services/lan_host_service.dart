@@ -23,6 +23,7 @@ class LanHostService {
   DateTime? pairingExpires;
   String? workspace;
   bool cloudActive = false, syncFiles = false;
+  void Function()? onPairingChanged;
   LanSyncMode mode = LanSyncMode.bidirectional;
   final Map<String, List<DateTime>> _attempts = {};
   int get port => _server?.port ?? 8765;
@@ -43,6 +44,7 @@ class LanHostService {
   void rotatePairing() {
     pairingCode = '${100000 + _random.nextInt(900000)}';
     pairingExpires = DateTime.now().add(const Duration(minutes: 5));
+    onPairingChanged?.call();
   }
 
   Future<List<String>> addresses() async => [
@@ -328,7 +330,9 @@ class LanHostService {
         (operation == 'delete' && changed.isNotEmpty) ||
         changed.contains('__lifecycle__');
     final binaryConflict =
-        entity == 'attachments' && overlap.contains('sha256');
+        entity == 'attachments' &&
+        before['deletion_batch'] != 'permanent' &&
+        overlap.contains('sha256');
     final conflictId = overlap.isNotEmpty || deletionConflict
         ? const Uuid().v4()
         : null;
@@ -359,9 +363,10 @@ class LanHostService {
       }
     }
     final blocked =
+        (entity == 'attachments' && before['deletion_batch'] == 'permanent') ||
         deleted != null &&
-        operation != 'delete' &&
-        !(operation == 'restore' && base == version);
+            operation != 'delete' &&
+            !(operation == 'restore' && base == version);
     var current = <String, dynamic>{
       'entityType': entity,
       'recordId': id,

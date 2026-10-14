@@ -1,0 +1,13 @@
+<VirtualHost *:80>
+    ServerName fly.example.com
+    DocumentRoot /var/www/fly/public
+
+    <Directory /var/www/fly/public>
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    IncludeOptional /etc/fly/apache-env.conf
+    ErrorLog ${APACHE_LOG_DIR}/fly-error.log
+    CustomLog ${APACHE_LOG_DIR}/fly-access.log combined
+</VirtualHost>

@@ -1,5 +1,7 @@
 # Fly
 
+2.0 接续开发或转移到新电脑，请先阅读 [项目交接入口](FLY_PROJECT_HANDOFF.md) 和 [完整需求](docs/handoff/FLY_REQUIREMENTS.md)。当前 2.0.2+38 功能测试版本在 `codex/fly-2-sync` 分支提交；Windows 10 x64 和 Android 交付说明见 [本次发布记录](docs/release/fly_2_0_2_build38.md)。下面保留原 1.0 的开发/发布说明。
+
 Fly 是面向外贸个人工作的 Windows x64、本地优先桌面工作区，基于 Flutter、Riverpod、Drift 和 SQLite。当前 1.0 范围涵盖 Dashboard、客户、订单、任务、日历、四象限、今日复盘、文件、笔记、3D 装柜、全局搜索和备份。完整边界见 [产品范围](docs/product/v1_scope.md)，发布状态见 [1.0 发布计划](docs/release/fly_1_0_release_plan.md)。
 
 ## 开发

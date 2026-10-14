@@ -13,6 +13,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/shell/mobile_details.dart';
+import '../../../shared/design_system/responsive_layout.dart';
+
 import '../../../shared/design_system/design_tokens.dart';
 import '../../../shared/design_system/detail_section_entry.dart';
 import '../../../shared/design_system/extension_panel.dart';
@@ -1441,7 +1444,18 @@ class _CustomerStatusRow extends ConsumerWidget {
                         customer!.id;
                     ref.read(orderExtensionProvider.notifier).state =
                         OrderExtensionType.none;
-                    context.go('/customers/all');
+                    if (useCompactLayout(context)) {
+                      final navigator = Navigator.of(context);
+                      final router = GoRouter.of(context);
+                      navigator.pop();
+                      router.go('/customers/all');
+                      final sheetContext = navigator.context;
+                      if (sheetContext.mounted) {
+                        showCustomerDetailSheet(sheetContext, customer!.id);
+                      }
+                    } else {
+                      context.go('/customers/all');
+                    }
                   },
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 7),

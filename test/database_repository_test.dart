@@ -89,19 +89,22 @@ void main() {
     expect(await repository.watchReminder(task.id).first, isNull);
   });
 
-  test('reorder persists the requested task sequence', () async {
-    final first = await repository.createTask(title: 'First');
-    final second = await repository.createTask(title: 'Second');
-    final third = await repository.createTask(title: 'Third');
+  test(
+    'saved manual order does not override newest-created task display',
+    () async {
+      final first = await repository.createTask(title: 'First');
+      final second = await repository.createTask(title: 'Second');
+      final third = await repository.createTask(title: 'Third');
 
-    await repository.reorderTask(third.id, [third.id, first.id, second.id]);
+      await repository.reorderTask(third.id, [third.id, first.id, second.id]);
 
-    expect((await repository.watchAllTasks().first).map((task) => task.id), [
-      third.id,
-      first.id,
-      second.id,
-    ]);
-  });
+      expect((await repository.watchAllTasks().first).map((task) => task.id), [
+        third.id,
+        second.id,
+        first.id,
+      ]);
+    },
+  );
 
   test('custom list CRUD moves tasks back to inbox on deletion', () async {
     final list = await repository.createList('Work');
@@ -128,14 +131,14 @@ void main() {
     expect((await repository.watchInboxTasks().first).single.id, task.id);
   });
 
-  test('completed tasks are visible and sorted after open tasks', () async {
-    final completed = await repository.createTask(title: 'Completed');
+  test('completion does not override newest-created task sorting', () async {
     final open = await repository.createTask(title: 'Open');
+    final completed = await repository.createTask(title: 'Completed');
     await repository.setCompleted(completed.id, completed: true);
 
     final tasks = await repository.watchAllTasks().first;
-    expect(tasks.map((task) => task.id), [open.id, completed.id]);
-    expect(tasks.last.isCompleted, isTrue);
+    expect(tasks.map((task) => task.id), [completed.id, open.id]);
+    expect(tasks.first.isCompleted, isTrue);
   });
 
   test('trash supports reactive restore and permanent deletion', () async {

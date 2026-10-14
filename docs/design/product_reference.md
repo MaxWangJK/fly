@@ -1,8 +1,8 @@
 # Product Reference
 
-TickTick informed Fly's understanding of mature task-product information architecture: stable navigation, dense task rows, contextual details, calendar projection, matrix projection, and model-driven dragging.
+任务管理软件 informed Fly's understanding of mature task-product information architecture: stable navigation, dense task rows, contextual details, calendar projection, matrix projection, and model-driven dragging.
 
-Fly does not copy TickTick branding, logo, imagery, proprietary icons, source, database content, resources, or pixel geometry. It independently defines:
+Fly does not copy 任务管理软件 branding, logo, imagery, proprietary icons, source, database content, resources, or pixel geometry. It independently defines:
 
 - Flutter component structure
 - cool blue-gray color system

@@ -26,6 +26,8 @@ import '../domain/customer.dart';
 import '../domain/customer_name.dart';
 import 'customer_duplicate_dialog.dart';
 import 'customer_providers.dart';
+import '../../../app/shell/mobile_details.dart';
+import '../../../shared/design_system/responsive_layout.dart';
 
 class CustomerDetailPanel extends ConsumerStatefulWidget {
   const CustomerDetailPanel({required this.customerId, super.key});
@@ -971,6 +973,7 @@ class _OrdersSummary extends ConsumerWidget {
                       OrderExtensionType.none;
                   ref.read(customerDetailExtensionProvider.notifier).state =
                       DetailExtensionType.none;
+                  if (useCompactLayout(context)) Navigator.pop(context);
                   context.go('/orders/all');
                 },
                 child: Text(context.crmCopy('查看订单')),
@@ -988,7 +991,20 @@ class _OrdersSummary extends ConsumerWidget {
                       OrderExtensionType.none;
                   ref.read(customerDetailExtensionProvider.notifier).state =
                       DetailExtensionType.none;
-                  if (context.mounted) context.go('/orders/all');
+                  if (context.mounted) {
+                    if (useCompactLayout(context)) {
+                      final navigator = Navigator.of(context);
+                      final router = GoRouter.of(context);
+                      navigator.pop();
+                      router.go('/orders/all');
+                      final sheetContext = navigator.context;
+                      if (sheetContext.mounted) {
+                        await showOrderDetailSheet(sheetContext, order.id);
+                      }
+                    } else {
+                      context.go('/orders/all');
+                    }
+                  }
                 },
                 icon: const Icon(Icons.add, size: 15),
                 label: Text(context.crmCopy('新建订单')),

@@ -59,6 +59,7 @@ class SyncNotificationService {
     if (_stopped) return;
     try {
       await auth.refresh();
+      if (_stopped) return;
       final socket = await openSocket(auth.server);
       if (_stopped) {
         await socket.close();

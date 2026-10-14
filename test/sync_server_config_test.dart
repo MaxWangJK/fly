@@ -3,6 +3,9 @@ import 'package:fly/features/sync/domain/sync_protocol.dart';
 
 void main() {
   final supported = {
+    'world-workshop.cn/api': 'https://world-workshop.cn/api',
+    '192.168.0.21/api': 'http://192.168.0.21/api',
+    '192.168.0.21:8765/api': 'http://192.168.0.21:8765/api',
     '198.51.100.10:8000': 'http://198.51.100.10:8000/api',
     'http://198.51.100.10:8000': 'http://198.51.100.10:8000/api',
     'http://198.51.100.10:8000/api/': 'http://198.51.100.10:8000/api',
@@ -44,4 +47,61 @@ void main() {
       expect(() => SyncServerConfig.validate(invalid), throwsFormatException);
     });
   }
+  test('official file policy cannot be bypassed by a scheme, port or path', () {
+    for (final url in [
+      'world-workshop.cn/api',
+      'http://world-workshop.cn:8765/api',
+      'https://WORLD-WORKSHOP.CN/fly/api',
+    ]) {
+      expect(
+        SyncServerConfig.allowsCloudFiles(url, 'other@example.com'),
+        isFalse,
+      );
+      expect(
+        SyncServerConfig.allowsCloudFiles(url, ' MAX@CEILING-ARTS.COM '),
+        isTrue,
+      );
+    }
+    expect(
+      SyncServerConfig.allowsCloudFiles(
+        '192.168.0.21:8765/api',
+        'other@example.com',
+      ),
+      isTrue,
+    );
+  });
+  test('pairing QR validates type, local address and expiration', () {
+    final now = DateTime(2026, 10, 13);
+    final valid = LanPairingPayload(
+      ['http://192.168.0.21:8765/api'],
+      '123456',
+      now.add(const Duration(minutes: 5)),
+    );
+    expect(
+      LanPairingPayload.decode(valid.encode(), now: now).endpoints,
+      valid.endpoints,
+    );
+    expect(
+      () => LanPairingPayload.decode(
+        valid.encode(),
+        now: now.add(const Duration(minutes: 6)),
+      ),
+      throwsFormatException,
+    );
+    expect(
+      () => LanPairingPayload.decode(
+        LanPairingPayload(
+          ['https://example.com/api'],
+          '123456',
+          valid.expiresAt,
+        ).encode(),
+        now: now,
+      ),
+      throwsFormatException,
+    );
+    expect(
+      () => LanPairingPayload.decode('{}', now: now),
+      throwsFormatException,
+    );
+  });
 }

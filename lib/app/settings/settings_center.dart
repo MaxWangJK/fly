@@ -17,6 +17,7 @@ import '../../features/tasks/presentation/task_providers.dart';
 import '../../features/customers/import/customer_import_dialog.dart';
 import '../../features/knowledge/presentation/knowledge_providers.dart';
 import '../../shared/design_system/fly_color_scheme.dart';
+import '../../shared/design_system/responsive_layout.dart';
 import '../../shared/backup/backup_settings_dialog.dart';
 import '../../shared/notifications/reminder_settings_dialog.dart';
 import '../../shared/export/fly_excel_export_service.dart';
@@ -24,7 +25,8 @@ import 'navigation_settings.dart';
 import '../../features/sync/presentation/sync_settings_panel.dart';
 
 class SettingsCenter extends ConsumerStatefulWidget {
-  const SettingsCenter({super.key});
+  const SettingsCenter({this.initialCategory, super.key});
+  final String? initialCategory;
   @override
   ConsumerState<SettingsCenter> createState() => _SettingsCenterState();
 }
@@ -46,9 +48,20 @@ class _SettingsCenterState extends ConsumerState<SettingsCenter> {
     '关于',
   ];
   int selected = 0;
+  bool mobileCategoryOpen = false;
   bool busy = false;
   String? error;
   String? knowledgeImportSummary;
+  @override
+  void initState() {
+    super.initState();
+    final initial = categories.indexOf(widget.initialCategory ?? '');
+    if (initial >= 0) {
+      selected = initial;
+      mobileCategoryOpen = true;
+    }
+  }
+
   Future<void> _run(Future<void> Function() action) async {
     setState(() {
       busy = true;
@@ -111,123 +124,142 @@ class _SettingsCenterState extends ConsumerState<SettingsCenter> {
     ),
   );
   @override
-  Widget build(BuildContext context) => Dialog(
-    key: const ValueKey('settings-center'),
-    insetPadding: const EdgeInsets.all(16),
-    backgroundColor: Theme.of(context).colorScheme.surface,
-    child: SizedBox(
-      width: 1050,
-      height: 740,
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 14, 12, 12),
-            child: Row(
-              children: [
-                Text(tr('设置'), style: Theme.of(context).textTheme.titleLarge),
-                const Spacer(),
+  Widget build(BuildContext context) {
+    final compact = useCompactLayout(context);
+    final body = Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+          child: Row(
+            children: [
+              if (compact && mobileCategoryOpen)
                 IconButton(
-                  tooltip: tr('关闭设置'),
-                  onPressed: busy ? null : () => Navigator.pop(context),
-                  icon: const Icon(Icons.close),
+                  key: const ValueKey('settings-back'),
+                  tooltip: tr('设置'),
+                  onPressed: busy
+                      ? null
+                      : () => setState(() {
+                          mobileCategoryOpen = false;
+                          error = null;
+                        }),
+                  icon: const Icon(Icons.arrow_back),
                 ),
-              ],
-            ),
+              Expanded(
+                child: Text(
+                  compact && mobileCategoryOpen
+                      ? tr(categories[selected])
+                      : tr('设置'),
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+              ),
+              IconButton(
+                tooltip: tr('关闭设置'),
+                onPressed: busy ? null : () => Navigator.pop(context),
+                icon: const Icon(Icons.close),
+              ),
+            ],
           ),
-          const Divider(height: 1),
-          Expanded(
-            child: LayoutBuilder(
-              builder: (context, bounds) {
-                final content = SingleChildScrollView(
-                  key: ValueKey('settings-content-$selected'),
-                  padding: const EdgeInsets.all(24),
-                  child: Align(
-                    alignment: Alignment.topLeft,
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 740),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
+        ),
+        const Divider(height: 1),
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, bounds) {
+              final content = SingleChildScrollView(
+                key: ValueKey('settings-content-$selected'),
+                padding: EdgeInsets.all(compact ? 16 : 24),
+                child: Align(
+                  alignment: Alignment.topLeft,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 740),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (!compact)
                           Text(
                             tr(categories[selected]),
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
-                          if (error != null)
-                            Text(
-                              error!,
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.error,
-                              ),
+                        if (error != null)
+                          Text(
+                            error!,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
                             ),
-                          ..._content(),
-                        ],
-                      ),
+                          ),
+                        ..._content(),
+                      ],
                     ),
                   ),
-                );
-                if (bounds.maxWidth < 680) {
-                  return Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: DropdownButton<int>(
-                          key: const ValueKey('settings-category-selector'),
-                          isExpanded: true,
-                          value: selected,
-                          items: [
-                            for (var i = 0; i < categories.length; i++)
-                              DropdownMenuItem(
-                                value: i,
-                                child: Text(tr(categories[i])),
-                              ),
-                          ],
-                          onChanged: (i) => setState(() => selected = i!),
-                        ),
+                ),
+              );
+              Widget categoriesList() => ListView(
+                padding: const EdgeInsets.all(12),
+                children: [
+                  for (var i = 0; i < categories.length; i++)
+                    ListTile(
+                      key: ValueKey('settings-category-$i'),
+                      leading: Icon(_categoryIcon(categories[i])),
+                      title: Text(tr(categories[i])),
+                      selected: !compact && selected == i,
+                      trailing: compact
+                          ? const Icon(Icons.chevron_right)
+                          : null,
+                      selectedTileColor: Theme.of(context).colorScheme.primary
+                          .withValues(alpha: .09),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      Expanded(child: content),
-                    ],
-                  );
-                }
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    SizedBox(
-                      width: 200,
-                      child: ListView(
-                        padding: const EdgeInsets.all(12),
-                        children: [
-                          for (var i = 0; i < categories.length; i++)
-                            ListTile(
-                              key: ValueKey('settings-category-$i'),
-                              dense: true,
-                              selected: selected == i,
-                              selectedTileColor: Theme.of(context)
-                                  .colorScheme
-                                  .primary
-                                  .withValues(alpha: .09),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              title: Text(tr(categories[i])),
-                              onTap: () => setState(() {
-                                selected = i;
-                                error = null;
-                              }),
-                            ),
-                        ],
-                      ),
+                      onTap: busy
+                          ? null
+                          : () => setState(() {
+                              selected = i;
+                              mobileCategoryOpen = true;
+                              error = null;
+                            }),
                     ),
-                    const VerticalDivider(width: 1),
-                    Expanded(child: content),
-                  ],
-                );
-              },
-            ),
+                ],
+              );
+              if (compact || bounds.maxWidth < 680) {
+                return mobileCategoryOpen ? content : categoriesList();
+              }
+              return Row(
+                children: [
+                  SizedBox(width: 210, child: categoriesList()),
+                  const VerticalDivider(width: 1),
+                  Expanded(child: content),
+                ],
+              );
+            },
           ),
-        ],
-      ),
-    ),
-  );
+        ),
+      ],
+    );
+    if (compact) {
+      return Dialog.fullscreen(
+        key: const ValueKey('settings-center'),
+        child: SafeArea(child: body),
+      );
+    }
+    return Dialog(
+      key: const ValueKey('settings-center'),
+      insetPadding: const EdgeInsets.all(16),
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      child: SizedBox(width: 1050, height: 740, child: body),
+    );
+  }
+
+  IconData _categoryIcon(String category) => switch (category) {
+    '常规' => Icons.tune,
+    '外观' => Icons.palette_outlined,
+    '导航' => Icons.explore_outlined,
+    '提醒' => Icons.notifications_outlined,
+    '数据与备份' => Icons.backup_outlined,
+    '文件与存储' => Icons.folder_outlined,
+    '导入与导出' => Icons.import_export,
+    '资料库' => Icons.menu_book_outlined,
+    '同步' => Icons.sync,
+    _ => Icons.info_outline,
+  };
 
   List<Widget> _content() {
     if (categories[selected] == '同步') return [const SyncSettingsPanel()];

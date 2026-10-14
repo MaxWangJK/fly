@@ -8,8 +8,10 @@ class FlyTaskList {
     required this.sortOrder,
     required this.version,
     this.deletedAt,
+    this.parentId,
   });
 
+  final String? parentId;
   final String id;
   final String name;
   final int colorValue;

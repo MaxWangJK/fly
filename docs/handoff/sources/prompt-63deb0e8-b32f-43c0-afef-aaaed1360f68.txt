@@ -1,0 +1,2231 @@
+# Fly CRM / Orders Polish V2 — 标签、客户详情、订单详情与扩展面板微调
+
+当前项目：
+
+```text
+E:\workSpace\fly
+```
+
+当前已经完成：
+
+```text
+任务
+日历
+四象限
+客户管理
+订单管理
+客户备注扩展面板
+客户跟进记录扩展面板
+订单财务
+订单工厂/产品
+订单文件
+```
+
+本轮不新增大模块。
+
+目标：
+
+# 进一步减少视觉噪音
+# 减少标题和表单感
+# 提高外贸员每天高频使用效率
+# 让客户和订单详情更紧凑
+# 让复杂信息通过右侧 Extension Panel 展开
+
+不要破坏现有数据层、Riverpod、Repository、Drift、SQLite。
+
+---
+
+# 一、Customer List 标签筛选最多展示两行
+
+当前：
+
+```text
+客户列表顶部标签筛选
+```
+
+默认只展示一行。
+
+修改为：
+
+# 最多展示两行。
+
+例如：
+
+```text
+全部   A级   B级   菲律宾   WPC
+样品   报价   大客户   老客户介绍
+```
+
+如果标签仍然超出两行：
+
+显示：
+
+```text
+更多 >
+```
+
+点击：
+
+打开全部标签 Popover。
+
+---
+
+# 二、两行 Tag Layout
+
+不要按照固定 Tag 数量判断。
+
+根据：
+
+```text
+available width
+```
+
+动态 Wrap。
+
+限制：
+
+```text
+maxLines = 2
+```
+
+超出的 Tag：
+
+进入：
+
+```text
+More
+```
+
+---
+
+# 三、Tag Filter 状态必须保留
+
+如果用户选择：
+
+```text
+菲律宾
+A级
+WPC
+```
+
+然后点击：
+
+```text
+更多
+```
+
+Popover 中必须显示这些 Tag 已选中。
+
+关闭 Popover：
+
+列表过滤状态不变。
+
+---
+
+# 四、Customer Detail 去掉“标签”标题
+
+当前：
+
+```text
+标签
+[tag][tag][tag]
+```
+
+改成：
+
+直接显示标签区域。
+
+不要显示：
+
+```text
+标签
+```
+
+两个字。
+
+目的：
+
+# 节约垂直空间。
+
+---
+
+# 五、Customer Detail 标签区域改为大框
+
+参考：
+
+```text
+下次跟进
+```
+
+区域的视觉。
+
+Tag 区域：
+
+使用一个：
+
+```text
+outlined / subtle surface container
+```
+
+例如：
+
+```text
+┌────────────────────────────┐
+│ 菲律宾  WPC  A级  样品    │
+│ 大客户  报价               │
+└────────────────────────────┘
+```
+
+---
+
+# 六、Tag Container 自动增高
+
+Tag 越多：
+
+自动：
+
+```text
+wrap
+↓
+grow height
+```
+
+不要固定高度。
+
+不要滚动条。
+
+只有当 Tag 数量极端多时，才考虑内部限制。
+
+V1：
+
+优先自然扩展。
+
+---
+
+# 七、点击 Tag Container
+
+点击空白区域：
+
+打开：
+
+```text
+Tag Selector
+```
+
+支持：
+
+```text
+搜索
+选择
+Enter 创建
+删除关联
+```
+
+---
+
+# 八、基本信息支持用户自定义字段
+
+这是重要新增需求。
+
+Customer Detail：
+
+```text
+基本信息 >
+```
+
+展开以后：
+
+除了固定字段：
+
+```text
+公司
+国家
+城市
+WhatsApp
+Email
+Facebook
+Website
+Source
+Contacts
+```
+
+用户可以：
+
+```text
++ 添加字段
+```
+
+---
+
+# 九、Custom Field
+
+建立：
+
+```text
+CustomerCustomFieldDefinition
+CustomerCustomFieldValue
+```
+
+不要把动态字段直接塞进：
+
+```text
+customers
+```
+
+表。
+
+---
+
+# 十、Custom Field Definition
+
+字段：
+
+```text
+id
+name
+type
+sortOrder
+createdAt
+updatedAt
+```
+
+第一阶段支持：
+
+```text
+text
+number
+date
+```
+
+就够。
+
+不要一开始做：
+
+```text
+formula
+relation
+rollup
+```
+
+---
+
+# 十一、Custom Field Example
+
+例如用户可以增加：
+
+```text
+年采购量
+目标价格
+主要产品
+决策人
+竞争对手
+付款习惯
+客户规模
+```
+
+---
+
+# 十二、添加 Custom Field
+
+Customer Basic Info：
+
+```text
++ 添加字段
+```
+
+点击：
+
+输入：
+
+```text
+年采购量
+```
+
+Enter：
+
+创建。
+
+然后：
+
+当前 Customer：
+
+可以填写值。
+
+---
+
+# 十三、Custom Field Definition 是全局的
+
+例如创建：
+
+```text
+年采购量
+```
+
+以后其它 Customer 也可以使用这个字段。
+
+不要每个 Customer 创建独立 field schema。
+
+---
+
+# 十四、未使用 Tag 自动删除
+
+这是强制需求。
+
+如果一个 Tag：
+
+```text
+重点
+```
+
+同时：
+
+```text
+0 Customers
+0 Orders
+```
+
+使用，
+
+则：
+
+# 自动删除这个 Tag。
+
+---
+
+# 十五、Tag Garbage Collection
+
+不能仅在 UI 隐藏。
+
+数据库也删除：
+
+```text
+tags row
+```
+
+前提：
+
+```text
+customer_tag_links = 0
+AND
+order_tag_links = 0
+```
+
+---
+
+# 十六、什么时候执行 Tag Cleanup
+
+至少在以下操作后检查：
+
+```text
+Customer 移除 Tag
+Order 移除 Tag
+Customer 删除
+Order 删除
+Tag 关联改变
+```
+
+---
+
+# 十七、不要误删 Category Tag
+
+注意：
+
+Customer Category：
+
+如果系统设计中：
+
+```text
+A级
+B级
+```
+
+对应自动 Tag，
+
+且该 Category 仍然存在：
+
+即使当前暂时没有 Customer 使用，
+
+# 不要删除。
+
+否则 Category Tag 会丢失。
+
+因此区分：
+
+```text
+system/category-linked tag
+```
+
+与：
+
+```text
+ordinary tag
+```
+
+---
+
+# 十八、Ordinary Tag 删除规则
+
+仅：
+
+```text
+ordinary tag
+```
+
+在：
+
+```text
+zero references
+```
+
+时自动删除。
+
+---
+
+# 十九、Order Workspace 去掉“新建订单”
+
+这是强制业务规则。
+
+订单列表：
+
+# 不允许直接新建 Order。
+
+不要：
+
+```text
++ 新建订单
+```
+
+---
+
+# 二十、订单只能从 Customer 创建
+
+唯一标准创建流程：
+
+```text
+Customer Detail
+↓
++ 新建订单
+↓
+Order created with customerId
+↓
+打开 Order Detail
+```
+
+因为：
+
+# 任何订单都必须属于 Customer。
+
+这样避免：
+
+```text
+创建订单
+↓
+再搜索客户
+```
+
+这种低效率流程。
+
+---
+
+# 二十一、如果以后需要无客户订单
+
+当前阶段：
+
+# 不支持。
+
+不要允许：
+
+```text
+customerId = null
+```
+
+新建订单。
+
+如果数据库现在允许 nullable：
+
+业务层禁止。
+
+---
+
+# 二十二、Order Detail 去掉顶部 Financial Summary
+
+当前 Order Detail：
+
+最上面可能存在：
+
+```text
+财务信息
+订单金额
+利润
+收款...
+```
+
+全部移除。
+
+不要让财务信息抢占第一屏。
+
+---
+
+# 二十三、Order Detail 顶部信息重新布局
+
+顶部第一部分：
+
+```text
+订单号 / 标题
+```
+
+下面：
+
+```text
+客户              订单状态
+```
+
+两个字段同一行。
+
+---
+
+# 二十四、客户 + 状态双列
+
+示意：
+
+```text
+客户                 订单状态
+
+Jack                 生产中
+```
+
+或者：
+
+```text
+[ Jack ]        [ 生产中 ]
+```
+
+保持紧凑。
+
+---
+
+# 二十五、点击客户
+
+Order Detail 中：
+
+```text
+Jack
+```
+
+继续支持：
+
+```text
+点击
+↓
+Customer Workspace
+↓
+打开 Jack
+```
+
+---
+
+# 二十六、Priority 与 Flags 放同一行
+
+Order Detail：
+
+当前：
+
+```text
+优先级
+```
+
+和：
+
+```text
+重要 / 紧急
+```
+
+分散。
+
+重构为同一行。
+
+例如：
+
+```text
+优先级     ○高 ○中 ●低
+
+标记       □重要 □紧急
+```
+
+如果宽度足够：
+
+同一横向区域。
+
+---
+
+# 二十七、Priority 去掉外围框
+
+Order Detail：
+
+不要再有：
+
+```text
+一个大 Priority Container
+```
+
+仅保留：
+
+```text
+○ 高
+○ 中
+○ 低
+```
+
+Radio / Segmented style。
+
+---
+
+# 二十八、Order Priority 颜色
+
+继续沿用：
+
+```text
+High = soft red
+Medium = soft yellow/orange
+Low = no background
+```
+
+但是：
+
+Priority Selector 本身不要有整个大背景。
+
+只 Selected Item 有轻色。
+
+---
+
+# 二十九、Order Flags
+
+Flag：
+
+```text
+重要
+紧急
+```
+
+使用：
+
+```text
+Checkbox / Toggle Chip
+```
+
+不要大 Switch。
+
+---
+
+# 三十、Order List 显示 Flags
+
+如果：
+
+```text
+important = true
+```
+
+Order List Row：
+
+右下方显示：
+
+```text
+重要
+```
+
+红色字体。
+
+如果：
+
+```text
+urgent = true
+```
+
+显示：
+
+```text
+紧急
+```
+
+红色字体。
+
+如果两个都有：
+
+```text
+重要 · 紧急
+```
+
+---
+
+# 三十一、Flag 视觉
+
+字体：
+
+```text
+11 ~ 12px
+```
+
+颜色：
+
+```text
+soft red / strong red text
+```
+
+不要整行红色。
+
+---
+
+# 三十二、Priority 与 Flags 分工
+
+明确：
+
+```text
+Priority
+=
+排序 / 背景
+```
+
+```text
+Important / Urgent
+=
+右下角文字标识
+```
+
+不要互相覆盖。
+
+---
+
+# 三十三、Order Detail 去掉“订单标签”标题
+
+当前：
+
+```text
+订单标签
+[tag][tag]
+```
+
+去掉：
+
+```text
+订单标签
+```
+
+四个字。
+
+直接显示 Tag Container。
+
+与 Customer Detail Tag 风格统一。
+
+---
+
+# 三十四、Order Tag Container
+
+使用：
+
+```text
+大框
+自动换行
+自动增高
+```
+
+与 Customer Tag Container 共用组件。
+
+---
+
+# 三十五、“生产 / 工厂”改名为“订单详情”
+
+这是强制调整。
+
+当前：
+
+```text
+生产 / 工厂
+```
+
+改成：
+
+# 订单详情
+
+---
+
+# 三十六、订单详情主面板只展示摘要
+
+Order Detail 主页面：
+
+显示一个摘要卡：
+
+```text
+订单详情
+
+新材料工厂 · WPC格栅 · 500㎡
+A墙板工厂 · UV板 · 300张
+
+查看全部 >
+```
+
+不要直接铺所有生产字段。
+
+---
+
+# 三十七、点击“订单详情”
+
+打开 Fly 最右侧：
+
+# Order Detail Extension Panel。
+
+与 Customer Notes Extension 类似。
+
+---
+
+# 三十八、Order Production Extension
+
+结构：
+
+```text
+┌────────────────────────────────────┐
+│ 订单详情                      ×    │
+│                                    │
+│ + 添加项目                         │
+│                                    │
+│ 新材料工厂                         │
+│ WPC 格栅                           │
+│ 500 ㎡                             │
+│                                    │
+│ A墙板工厂                          │
+│ UV板                               │
+│ 300 张                             │
+└────────────────────────────────────┘
+```
+
+---
+
+# 三十九、Order Item 必填
+
+每一个：
+
+```text
+OrderItem
+```
+
+必须：
+
+```text
+Factory
+Product
+Quantity
+```
+
+三项。
+
+都为必填。
+
+---
+
+# 四十、去掉工厂未下单逻辑
+
+删除：
+
+```text
+未下单
+已通知
+已确认
+```
+
+等 Factory Order Status UI / Logic。
+
+如果数据库已有字段：
+
+可以保留兼容，
+
+但：
+
+# 不再在 UI 使用。
+
+不要因为本轮删除 Schema 造成 Migration 风险。
+
+---
+
+# 四十一、Factory Field
+
+输入：
+
+```text
+新材料工厂
+```
+
+支持：
+
+```text
+Autocomplete
+```
+
+如果不存在：
+
+Enter 创建。
+
+---
+
+# 四十二、Product Field
+
+同样：
+
+输入：
+
+```text
+WPC 格栅
+```
+
+如果不存在：
+
+Enter 创建。
+
+---
+
+# 四十三、Quantity
+
+Quantity：
+
+```text
+value
+unit
+```
+
+例如：
+
+```text
+500
+㎡
+```
+
+单位可以：
+
+```text
+㎡
+pcs
+m
+cartons
+sets
+```
+
+V1允许输入字符串 unit。
+
+---
+
+# 四十四、Order Item Color
+
+不同 Item：
+
+继续使用：
+
+```text
+soft background
+```
+
+区分。
+
+但不要以 Factory Status 颜色区分。
+
+只作为视觉区块。
+
+---
+
+# 四十五、Order Detail Summary
+
+主详情摘要：
+
+显示：
+
+最多：
+
+```text
+2~3 OrderItems
+```
+
+更多：
+
+```text
++3
+```
+
+不要把主面板撑很高。
+
+---
+
+# 四十六、Financial Information 改成 Extension Panel
+
+主 Order Detail：
+
+只显示：
+
+```text
+财务信息
+```
+
+摘要卡。
+
+点击：
+
+打开：
+
+# Financial Extension Panel。
+
+---
+
+# 四十七、Financial Summary Preview
+
+主面板摘要建议：
+
+```text
+订单金额        $20,000
+预计利润         $6,500
+未收金额        $15,000
+
+查看详情 >
+```
+
+只显示最重要的3项。
+
+---
+
+# 四十八、Financial Extension
+
+打开后显示：
+
+```text
+订单金额
+
+预计利润
+
+已收定金
+已收尾款
+
+工厂成本
+
+退税
+内陆费
+港杂费
+其他费用
+
+已收金额
+未收金额
+
+利润率
+```
+
+---
+
+# 四十九、财务 UI 顺序重新设计
+
+不要按数据库字段顺序。
+
+按业务逻辑：
+
+第一组：
+
+```text
+收入
+```
+
+```text
+订单金额
+```
+
+第二组：
+
+```text
+收款
+```
+
+```text
+已收定金
+已收尾款
+已收合计
+未收金额
+```
+
+第三组：
+
+```text
+成本与费用
+```
+
+```text
+工厂成本
+内陆费
+港杂费
+其他费用
+```
+
+第四组：
+
+```text
+退税
+```
+
+第五组：
+
+```text
+结果
+```
+
+```text
+预计利润
+利润率
+```
+
+---
+
+# 五十、已收定金 / 已收尾款
+
+当前如果存在：
+
+```text
+OrderPayment
+```
+
+不要重复造字段作为唯一事实源。
+
+优先：
+
+```text
+Deposit Payments SUM
+Balance Payments SUM
+```
+
+计算：
+
+```text
+已收定金
+已收尾款
+```
+
+---
+
+# 五十一、如果现有 Payment Model 简单
+
+可以继续现有结构。
+
+但 UI 需要明确：
+
+```text
+定金
+尾款
+```
+
+而不是只有：
+
+```text
+已收金额
+```
+
+---
+
+# 五十二、Financial Editable
+
+点击金额：
+
+Inline Edit。
+
+不要大 Form。
+
+例如：
+
+```text
+工厂成本        100,000 RMB
+```
+
+点击：
+
+变输入。
+
+Enter：
+
+保存。
+
+---
+
+# 五十三、Currency
+
+如果：
+
+订单销售是 USD，
+
+费用是 RMB，
+
+不要错误直接求和。
+
+这是重要业务问题。
+
+---
+
+# 五十四、多币种利润
+
+检查当前实现。
+
+如果当前订单利润计算：
+
+直接将：
+
+```text
+USD Sales
+-
+RMB Cost
+```
+
+这是错误的。
+
+必须明确：
+
+V1 采用：
+
+# Profit Calculation Currency
+
+建议：
+
+设置：
+
+```text
+baseProfitCurrency
+```
+
+默认：
+
+```text
+CNY
+```
+
+---
+
+# 五十五、Exchange Rate
+
+如果订单销售货币：
+
+```text
+USD
+```
+
+订单利润需要：
+
+```text
+exchangeRate
+```
+
+例如：
+
+```text
+1 USD = 7.12 CNY
+```
+
+则：
+
+```text
+Sales CNY
+=
+USD Sales × exchangeRate
+```
+
+再计算利润。
+
+---
+
+# 五十六、如果现有系统已经支持币种换算
+
+复用。
+
+如果还没有：
+
+本轮至少：
+
+# 不允许错误跨币种直接计算。
+
+可以先：
+
+```text
+same currency only
+```
+
+或：
+
+需要用户填写 exchange rate。
+
+---
+
+# 五十七、财务信息必须保持简单
+
+不要变成会计软件。
+
+用户只是需要：
+
+```text
+我卖了多少
+成本多少
+退税多少
+费用多少
+赚多少
+收了多少
+还差多少
+```
+
+---
+
+# 五十八、Order Notes 采用 Customer Notes 相同逻辑
+
+Order Detail：
+
+```text
+订单备注
+```
+
+区域：
+
+默认只显示最新 Note。
+
+点击：
+
+打开：
+
+```text
+Order Notes Extension
+```
+
+---
+
+# 五十九、OrderNote Entity
+
+不要复用：
+
+```text
+CustomerNote
+```
+
+建立：
+
+```text
+OrderNote
+```
+
+字段与 CustomerNote 类似：
+
+```text
+id
+orderId
+content
+createdAt
+updatedAt
+color
+deletedAt
+```
+
+---
+
+# 六十、Order Notes Extension
+
+与 Customer Notes：
+
+共享：
+
+```text
+Extension Panel framework
+Search
+Input
+Blocks
+Time
+Color
+```
+
+---
+
+# 六十一、Order Note Enter
+
+输入：
+
+```text
+客户要求外箱不能有中文
+```
+
+Enter：
+
+创建 Block。
+
+Shift+Enter：
+
+换行。
+
+---
+
+# 六十二、Order Note Search
+
+支持：
+
+```text
+content
+```
+
+搜索。
+
+---
+
+# 六十三、Order Extension Panel 类型
+
+现在 Order 至少有：
+
+```text
+none
+orderDetails
+financial
+notes
+```
+
+建立：
+
+```text
+OrderExtensionType
+```
+
+不要同时打开多个 Extension。
+
+---
+
+# 六十四、点击不同区域
+
+点击：
+
+```text
+订单详情
+```
+
+：
+
+```text
+extension = orderDetails
+```
+
+点击：
+
+```text
+财务信息
+```
+
+：
+
+```text
+extension = financial
+```
+
+点击：
+
+```text
+订单备注
+```
+
+：
+
+```text
+extension = notes
+```
+
+---
+
+# 六十五、Order Detail 主页面最终建议顺序
+
+```text
+订单号 / 名称
+
+客户              状态
+
+优先级            标记
+
+Tag Container
+
+订单日期          交期
+
+────────────
+
+订单详情
+摘要 >
+
+────────────
+
+财务信息
+订单金额 / 利润 / 未收
+>
+
+────────────
+
+订单备注
+最新一条
+>
+
+────────────
+
+文件
+```
+
+---
+
+# 六十六、文件管理继续保留
+
+现有：
+
+```text
+PI
+CI
+PL
+CO
+转账记录
+PDF
+图片
+```
+
+功能不要删除。
+
+文件管理保持 Order Detail 最下方。
+
+---
+
+# 六十七、Tag 自动删除测试
+
+Create Tag：
+
+```text
+重点
+```
+
+Customer 使用。
+
+然后 Customer 移除。
+
+Order 也没有使用。
+
+期望：
+
+```text
+Tag 重点
+↓
+自动删除
+```
+
+---
+
+# 六十八、Tag 多端引用测试
+
+Tag：
+
+```text
+菲律宾
+```
+
+Customer A 使用。
+
+Order B 使用。
+
+Customer A 移除。
+
+仍然：
+
+```text
+Tag 菲律宾
+```
+
+必须存在。
+
+直到 Order B 也移除。
+
+---
+
+# 六十九、Category Tag 测试
+
+```text
+A级
+```
+
+即使：
+
+```text
+0 Customers
+```
+
+但：
+
+```text
+CustomerCategory A级 exists
+```
+
+则：
+
+Tag 不能自动删除。
+
+---
+
+# 七十、Customer Custom Field 测试
+
+创建：
+
+```text
+年采购量
+```
+
+Customer A：
+
+```text
+100 containers/year
+```
+
+Customer B：
+
+可以看到同一个字段定义。
+
+---
+
+# 七十一、Customer Custom Field 删除
+
+如果 Field Definition：
+
+被多个 Customer 使用，
+
+删除时：
+
+确认：
+
+```text
+会删除 X 个客户中的该字段值
+```
+
+不要静默删除。
+
+---
+
+# 七十二、Order Create Rule Test
+
+Order Workspace：
+
+# 不应该存在：
+
+```text
++ New Order
+```
+
+Customer Detail：
+
+必须存在：
+
+```text
++ 新建订单
+```
+
+---
+
+# 七十三、Order Customer Required Test
+
+任何新 Order：
+
+必须：
+
+```text
+customerId != null
+```
+
+---
+
+# 七十四、Order Priority List Test
+
+Low：
+
+白色。
+
+Medium：
+
+浅黄。
+
+High：
+
+浅红。
+
+---
+
+# 七十五、Order Flags Test
+
+important only：
+
+右下：
+
+```text
+重要
+```
+
+urgent only：
+
+```text
+紧急
+```
+
+both：
+
+```text
+重要 · 紧急
+```
+
+红色。
+
+---
+
+# 七十六、Order Item Validation
+
+点击：
+
+```text
++ 添加项目
+```
+
+如果：
+
+```text
+Factory empty
+```
+
+或者：
+
+```text
+Product empty
+```
+
+或者：
+
+```text
+Quantity empty
+```
+
+不能保存。
+
+---
+
+# 七十七、Order Item 不需要 Status
+
+确认 UI：
+
+不再出现：
+
+```text
+未下单
+生产中
+已完成
+```
+
+Factory Status。
+
+订单整体状态继续保留。
+
+---
+
+# 七十八、Financial Preview Test
+
+Order：
+
+```text
+Sales = 20,000
+Profit = 6,500
+Outstanding = 15,000
+```
+
+主面板：
+
+只显示：
+
+```text
+20,000
+6,500
+15,000
+```
+
+重要摘要。
+
+---
+
+# 七十九、Order Note Preview
+
+多个 Order Notes：
+
+主 Order Detail：
+
+只显示最新一个。
+
+---
+
+# 八十、Extension Panel Responsive
+
+Customer / Order：
+
+Extension 打开以后：
+
+布局不能 Overflow。
+
+顺序：
+
+```text
+Primary Rail
+Secondary Sidebar
+List
+Detail
+Extension
+```
+
+窗口不足：
+
+优先缩：
+
+```text
+Detail
+```
+
+再：
+
+```text
+Extension Overlay
+```
+
+---
+
+# 八十一、视觉原则
+
+本轮不要增加新的大标题。
+
+尤其：
+
+去掉：
+
+```text
+标签
+订单标签
+```
+
+等明显可以省略的标题。
+
+通过：
+
+```text
+layout
+spacing
+container
+```
+
+表达语义。
+
+---
+
+# 八十二、Form Density
+
+外贸员每天使用：
+
+客户和订单详情会频繁打开。
+
+必须：
+
+```text
+紧凑
+快速扫读
+不滚动太多
+```
+
+优先减少：
+
+```text
+标题
+空白
+大卡
+大按钮
+```
+
+---
+
+# 八十三、不要为了节省空间变拥挤
+
+虽然目标是紧凑，
+
+但：
+
+```text
+Readable > Dense
+```
+
+双列字段：
+
+如果宽度不够：
+
+自动一列。
+
+不要强塞。
+
+---
+
+# 八十四、Design Docs
+
+更新：
+
+```text
+docs/design/crm_orders_polish_v2/
+```
+
+至少：
+
+```text
+tag_layout.md
+tag_lifecycle.md
+customer_custom_fields.md
+order_detail_compact.md
+order_extensions.md
+financial_panel.md
+```
+
+---
+
+# 八十五、Tests
+
+新增：
+
+```text
+tag_gc_test
+custom_field_test
+order_creation_rule_test
+order_priority_test
+order_flags_test
+order_item_validation_test
+financial_summary_test
+order_notes_test
+```
+
+---
+
+# 八十六、最终验证
+
+必须运行：
+
+```bash
+flutter analyze
+```
+
+PASS。
+
+```bash
+flutter test
+```
+
+PASS。
+
+```bash
+flutter build windows --release
+```
+
+PASS。
+
+最后：
+
+```bash
+flutter run -d windows --release
+```
+
+实际检查。
+
+---
+
+# 八十七、本轮验收标准
+
+## Customer List Tags
+
+最多：
+
+```text
+2 rows
+```
+
+多余：
+
+```text
+More
+```
+
+---
+
+## Customer Detail Tags
+
+无：
+
+```text
+标签
+```
+
+标题。
+
+使用：
+
+```text
+auto-growing container
+```
+
+---
+
+## Customer Basic Info
+
+支持：
+
+```text
+user-defined fields
+```
+
+---
+
+## Unused Tags
+
+普通 Tag：
+
+```text
+0 Customer refs
+0 Order refs
+```
+
+自动删除。
+
+---
+
+## Order Creation
+
+只能：
+
+```text
+Customer Detail
+↓
+New Order
+```
+
+创建。
+
+Order List 不提供 New Order。
+
+---
+
+## Order Top Detail
+
+```text
+Customer + Status
+```
+
+同一行。
+
+---
+
+## Priority + Flags
+
+同一逻辑区域。
+
+Priority：
+
+Radio。
+
+Flags：
+
+Important / Urgent。
+
+---
+
+## Order List
+
+Important / Urgent：
+
+右下角红色文字。
+
+---
+
+## Order Tags
+
+无：
+
+```text
+订单标签
+```
+
+标题。
+
+---
+
+## Order Detail Section
+
+原：
+
+```text
+生产/工厂
+```
+
+改：
+
+```text
+订单详情
+```
+
+点击打开 Extension。
+
+---
+
+## Order Item
+
+必须：
+
+```text
+Factory
+Product
+Quantity
+```
+
+---
+
+## Factory Status
+
+UI删除。
+
+---
+
+## Financial
+
+主页面只显示摘要。
+
+点击：
+
+打开 Financial Extension。
+
+---
+
+## Order Notes
+
+与 Customer Notes 相同逻辑。
+
+---
+
+# 八十八、最终产品判断
+
+完成后检查：
+
+# 客户详情是否更短？
+
+# 标签是否不会无限占一行？
+
+# 无用标签是否会自动消失？
+
+# 创建订单是否永远从客户上下文开始？
+
+# 打开订单第一眼是否看到客户和状态，而不是一堆财务数字？
+
+# 紧急/重要订单是否在列表一眼可见？
+
+# 产品属于哪个工厂、数量多少，是否两次点击内可以录入？
+
+# 财务是否既简单又不会错误计算多币种？
+
+# 订单备注是否像客户备注一样可以快速连续记录？
+
+如果答案不是“是”，继续优化。
+
+现在开始修改：
+
+```text
+E:\workSpace\fly
+```
+
+完成本轮微调后停止，不要进入下一阶段功能。

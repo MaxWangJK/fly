@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <key>UIFileSharingEnabled</key>
+    <true/>
+    <key>LSSupportsOpeningDocumentsInPlace</key>
+    <true/>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
@@ -61,6 +65,10 @@
 	</array>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Fly 使用本地网络与已配对的电脑同步数据和文件。</string>
+	<key>NSCameraUsageDescription</key>
+	<string>用于扫描电脑配对二维码及拍照导入文件。</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>用于选择照片导入 Fly 文件目录。</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>

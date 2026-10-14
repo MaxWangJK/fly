@@ -2,6 +2,10 @@ import 'dart:math' as math;
 import 'dart:ui' show PointerDeviceKind;
 
 import 'package:flutter/material.dart';
+
+import '../../../shared/design_system/responsive_layout.dart';
+import '../../tasks/presentation/widgets/task_view_links.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../l10n/fly_localizations.dart';
@@ -102,6 +106,7 @@ class _DailyReviewPageState extends ConsumerState<DailyReviewPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (isPhoneLayout(context)) const TaskViewLinks(current: 'review'),
         Padding(
           padding: const EdgeInsets.all(16),
           child: Wrap(

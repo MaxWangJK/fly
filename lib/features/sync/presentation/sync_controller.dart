@@ -19,6 +19,7 @@ import '../services/sync_conflict_service.dart';
 import '../services/lan_host_service.dart';
 import '../services/sync_engine.dart';
 import '../services/sync_notification_service.dart';
+import '../services/sync_workspace_binding.dart';
 
 final syncControllerProvider = ChangeNotifierProvider<SyncController>((ref) {
   final controller = SyncController(
@@ -32,6 +33,7 @@ final syncControllerProvider = ChangeNotifierProvider<SyncController>((ref) {
 class SyncController extends ChangeNotifier {
   SyncController(this.outbox, this.root) : host = LanHostService(outbox, root) {
     auth = AuthService(server, root);
+    host.onPairingChanged = _notify;
   }
   final SyncOutboxRepository outbox;
   final String root;
@@ -40,11 +42,21 @@ class SyncController extends ChangeNotifier {
   SyncEngine? engine;
   SyncNotificationService? notifications;
   String server = SyncServerConfig.defaultBaseUrl;
-  bool ready = false,
-      busy = false,
-      cloudEnabled = false,
-      cloudFiles = false,
-      lanFiles = false;
+  bool ready = false, busy = false, cloudEnabled = false;
+  bool get cloudFiles => SyncServerConfig.allowsCloudFiles(server, auth.email);
+  bool get lanFiles => true;
+  SyncConnectionMode connectionMode = SyncConnectionMode.cloud;
+  bool get isMobile =>
+      defaultTargetPlatform == TargetPlatform.android ||
+      defaultTargetPlatform == TargetPlatform.iOS;
+  LanPairingPayload? get pairingPayload =>
+      host.running && addresses.isNotEmpty && host.pairingExpires != null
+      ? LanPairingPayload(
+          addresses.take(8).map((a) => 'http://$a:$lanPort/api').toList(),
+          host.pairingCode,
+          host.pairingExpires!,
+        )
+      : null;
   String? error, lanEndpoint, lanToken, lanWorkspace;
   List<String> addresses = [];
   List<Map<String, dynamic>> devices = [], conflicts = [], trustedDevices = [];
@@ -52,20 +64,20 @@ class SyncController extends ChangeNotifier {
   int lanPort = 8765;
   LanSyncMode mode = LanSyncMode.bidirectional;
   bool _disposed = false;
+  bool _foreground = true;
+  Future<void> _lifecycle = Future.value();
+  bool get connected =>
+      engine?.enabled == true &&
+      engine?.lastSuccess != null &&
+      engine?.error == null;
+  bool get connecting => engine?.running == true && !connected;
   Future<void> initialize() async {
     try {
       server = await outbox.state('server') ?? server;
       SyncServerConfig.validate(server);
       auth = AuthService(server, root);
       if (root.isNotEmpty) await auth.restore();
-      cloudFiles = await outbox.state('cloudFiles') == 'true';
-      lanFiles = await outbox.state('lanFiles') == 'true';
       lanPort = int.tryParse(await outbox.state('lanPort') ?? '') ?? 8765;
-      final savedMode = await outbox.state('lanMode');
-      mode = LanSyncMode.values.firstWhere(
-        (m) => m.name == savedMode,
-        orElse: () => LanSyncMode.bidirectional,
-      );
       lanEndpoint = await outbox.state('lanEndpoint');
       lanWorkspace = await outbox.state('lanRemoteWorkspace');
       if (lanEndpoint != null) {
@@ -75,17 +87,34 @@ class SyncController extends ChangeNotifier {
       }
       counts = await outbox.initialCounts();
       ready = true;
-      if (await outbox.state('cloudEnabled') == 'true' && auth.userId != null) {
+      final savedConnection = await outbox.state('syncConnectionMode');
+      final savedCloud = await outbox.state('cloudEnabled') == 'true';
+      final savedHost = await outbox.state('lanHostEnabled') == 'true';
+      connectionMode =
+          savedConnection == 'lan' ||
+              (savedConnection == null &&
+                  !savedCloud &&
+                  (savedHost || lanToken != null))
+          ? SyncConnectionMode.lan
+          : SyncConnectionMode.cloud;
+      if (connectionMode == SyncConnectionMode.cloud &&
+          savedCloud &&
+          auth.userId != null) {
         await _enableCloud();
       }
-      if (await outbox.state('lanHostEnabled') == 'true') await _startHost();
-      if (!cloudEnabled && !host.running && lanToken != null) {
-        await _startLanClient();
+      if (connectionMode == SyncConnectionMode.lan) {
+        if (savedHost && !isMobile) await _startHost();
+        if (!host.running &&
+            lanToken != null &&
+            await outbox.state('lanClientEnabled') != 'false') {
+          await _startLanClient();
+        }
       }
     } on Object catch (e) {
       error = _errorText(e);
       ready = true;
     }
+    if (!_foreground && isMobile) await _stopEngine();
     _notify();
   }
 
@@ -122,10 +151,13 @@ class SyncController extends ChangeNotifier {
       confirm: confirm,
     );
     counts = await outbox.initialCounts();
+    if (connectionMode == SyncConnectionMode.cloud) {
+      engine?.syncFiles = cloudFiles;
+    }
     await refreshDetails();
   });
   Future<void> logout() => run(() async {
-    await _stopEngine();
+    if (cloudEnabled) await _stopEngine();
     cloudEnabled = false;
     host.cloudActive = false;
     await outbox.saveState('cloudEnabled', 'false');
@@ -135,24 +167,58 @@ class SyncController extends ChangeNotifier {
   });
   Future<void> configureServer(String value) => run(() async {
     if (cloudEnabled) throw StateError('请先关闭云同步再修改服务器');
-    final checked = SyncServerConfig.validate(value).toString();
+    final checked = _serverInput(value).toString();
+    await _saveServer(checked);
+  });
+  Uri _serverInput(String value) {
+    final checked = SyncServerConfig.validate(value);
+    if (!value.contains('://') &&
+        SyncServerConfig.displayAddress(server).toLowerCase() ==
+            SyncServerConfig.displayAddress(value).toLowerCase()) {
+      return Uri.parse(server);
+    }
+    return checked;
+  }
+
+  Future<void> _saveServer(String checked) async {
+    if (checked == server) return;
     server = checked;
     await outbox.saveState('server', checked);
     auth = AuthService(server, root);
     await auth.restore();
     devices = [];
     conflicts = [];
-  });
+  }
+
   Future<void> testConnection([String? value]) => run(() async {
-    final transport = CloudSyncTransport(value ?? server);
-    try {
-      final response = await transport.request('GET', '/health');
-      if (response['status'] != 'ok' || response['apiVersion'] != 1) {
-        throw StateError('服务器协议不兼容');
-      }
-    } finally {
-      transport.close();
+    final input = value ?? server;
+    final preferred = _serverInput(input);
+    final candidates = [preferred];
+    if (!input.contains('://') && !SyncServerConfig.isOfficial(input)) {
+      candidates.add(
+        preferred.replace(
+          scheme: preferred.scheme == 'https' ? 'http' : 'https',
+          port: preferred.hasPort ? preferred.port : null,
+        ),
+      );
     }
+    Object? last;
+    for (final candidate in candidates) {
+      final transport = CloudSyncTransport(candidate.toString());
+      try {
+        final response = await transport.request('GET', '/health');
+        if (response['status'] != 'ok' || response['apiVersion'] != 1) {
+          throw StateError('服务器协议不兼容');
+        }
+        if (!cloudEnabled) await _saveServer(candidate.toString());
+        return;
+      } on Object catch (e) {
+        last = e;
+      } finally {
+        transport.close();
+      }
+    }
+    throw StateError('无法连接同步服务器：$last');
   });
   Future<void> setCloud(bool value) => run(() async {
     if (value) {
@@ -165,9 +231,11 @@ class SyncController extends ChangeNotifier {
     await outbox.saveState('cloudEnabled', '$value');
   });
   Future<void> _enableCloud() async {
+    if (connectionMode != SyncConnectionMode.cloud) throw StateError('请先选择云同步');
     if (auth.userId == null) throw StateError('请先登录');
-    await outbox.bind('cloud:$server:${auth.userId}');
     await _stopEngine();
+    await SyncWorkspaceBinding(outbox).activate('cloud:$server:${auth.userId}');
+    if (_disposed || (isMobile && !_foreground)) return;
     final transport = CloudSyncTransport(
       server,
       token: auth.accessToken,
@@ -179,10 +247,10 @@ class SyncController extends ChangeNotifier {
       cursorKey: 'cloudCursor',
       files: FileSyncService(outbox.db, root, transport),
       syncFiles: cloudFiles,
+      failureLimit: isMobile ? 3 : null,
     );
     engine!.addListener(_changed);
     cloudEnabled = true;
-    _configureLanFiles();
     host.cloudActive = true;
     engine!.start();
     notifications = SyncNotificationService(
@@ -192,18 +260,17 @@ class SyncController extends ChangeNotifier {
     unawaited(notifications!.connect());
   }
 
-  Future<void> setFiles({bool? cloud, bool? lan}) => run(() async {
-    if (cloud != null) {
-      cloudFiles = cloud;
-      await outbox.saveState('cloudFiles', '$cloud');
-    }
-    if (lan != null) {
-      lanFiles = lan;
-      host.syncFiles = lan;
-      await outbox.saveState('lanFiles', '$lan');
-    }
-    engine?.syncFiles = cloudEnabled ? cloudFiles : lanFiles;
-    _configureLanFiles();
+  Future<void> selectConnectionMode(SyncConnectionMode value) => run(() async {
+    if (connectionMode == value) return;
+    await _stopEngine();
+    await host.stop();
+    cloudEnabled = false;
+    host.cloudActive = false;
+    connectionMode = value;
+    await outbox.saveState('cloudEnabled', 'false');
+    await outbox.saveState('lanHostEnabled', 'false');
+    await outbox.saveState('lanClientEnabled', 'false');
+    await outbox.saveState('syncConnectionMode', value.name);
   });
   Future<void> setHost(bool value, int port) => run(() async {
     if (value) {
@@ -217,6 +284,10 @@ class SyncController extends ChangeNotifier {
     await outbox.saveState('lanPort', '$port');
   });
   Future<void> _startHost() async {
+    if (connectionMode != SyncConnectionMode.lan) {
+      throw StateError('请先选择电脑与手机同步');
+    }
+    if (host.running) return;
     if (!(Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
       throw StateError('局域网服务仅支持电脑');
     }
@@ -227,8 +298,8 @@ class SyncController extends ChangeNotifier {
     try {
       addresses = await host.addresses();
       if (!cloudEnabled) {
-        await outbox.bind('lan:${host.workspace}');
         await _stopEngine();
+        await SyncWorkspaceBinding(outbox).activate('lan:${host.workspace}');
         final transport = LanSyncTransport(
           'http://127.0.0.1:$lanPort/api',
           token: () async => host.hostToken,
@@ -239,6 +310,8 @@ class SyncController extends ChangeNotifier {
           cursorKey: 'lanCursor',
           files: FileSyncService(outbox.db, root, transport),
           syncFiles: lanFiles,
+          failureLimit: isMobile ? 3 : null,
+          pollInterval: const Duration(seconds: 2),
         );
         engine!.addListener(_changed);
         engine!.start();
@@ -255,7 +328,27 @@ class SyncController extends ChangeNotifier {
     host.mode = value;
     await outbox.saveState('lanMode', value.name);
   });
-  Future<void> pair(String endpoint, String code) => run(() async {
+  Future<void> pair(String endpoint, String code) =>
+      run(() => _pair(endpoint, code));
+  Future<void> pairQr(String raw) => run(() async {
+    final payload = LanPairingPayload.decode(raw);
+    Object? last;
+    for (final endpoint in payload.endpoints) {
+      try {
+        await _pair(endpoint, payload.code);
+        return;
+      } on SocketException catch (e) {
+        last = e;
+      } on TimeoutException catch (e) {
+        last = e;
+      }
+    }
+    throw StateError('无法连接电脑，请确认处于同一局域网并允许防火墙端口：$last');
+  });
+  Future<void> _pair(String endpoint, String code) async {
+    if (connectionMode != SyncConnectionMode.lan) {
+      throw StateError('请先选择电脑与手机同步');
+    }
     final checked = SyncServerConfig.validate(endpoint).toString();
     final transport = LanSyncTransport(checked, token: () async => null);
     try {
@@ -265,7 +358,10 @@ class SyncController extends ChangeNotifier {
         body: {'code': code.trim(), 'deviceName': Platform.localHostname},
       );
       final workspace = response['workspaceId'] as String;
-      if (!cloudEnabled) await outbox.bind('lan:$workspace');
+      if (!cloudEnabled) {
+        await _stopEngine();
+        await SyncWorkspaceBinding(outbox).activate('lan:$workspace');
+      }
       lanEndpoint = checked;
       lanToken = response['token'] as String;
       lanWorkspace = workspace;
@@ -275,15 +371,37 @@ class SyncController extends ChangeNotifier {
       );
       await outbox.saveState('lanEndpoint', checked);
       await outbox.saveState('lanRemoteWorkspace', workspace);
+      await outbox.saveState('lanClientEnabled', 'true');
       if (!cloudEnabled) await _startLanClient();
-      _configureLanFiles();
+      final checkedTransport = LanSyncTransport(
+        checked,
+        token: () async => lanToken,
+      );
+      try {
+        await checkedTransport.request('GET', '/lan/info');
+      } finally {
+        checkedTransport.close();
+      }
     } finally {
       transport.close();
     }
+  }
+
+  Future<void> setLanClient(bool enabled) => run(() async {
+    if (enabled) {
+      if (lanToken == null || lanEndpoint == null) {
+        throw StateError('请先扫描电脑二维码');
+      }
+      await _startLanClient();
+    } else {
+      await _stopEngine();
+    }
+    await outbox.saveState('lanClientEnabled', '$enabled');
   });
   Future<void> _startLanClient() async {
-    await outbox.bind('lan:$lanWorkspace');
     await _stopEngine();
+    await SyncWorkspaceBinding(outbox).activate('lan:$lanWorkspace');
+    if (_disposed || (isMobile && !_foreground)) return;
     final transport = LanSyncTransport(
       lanEndpoint!,
       token: () async => lanToken,
@@ -294,34 +412,68 @@ class SyncController extends ChangeNotifier {
       cursorKey: 'lanCursor',
       files: FileSyncService(outbox.db, root, transport),
       syncFiles: lanFiles,
+      failureLimit: isMobile ? 3 : null,
+      pollInterval: const Duration(seconds: 2),
     );
     engine!.addListener(_changed);
     engine!.start();
   }
 
-  void _configureLanFiles() {
-    final active = engine;
-    if (active == null || !cloudEnabled) return;
-    active.lanFiles?.transport.close();
-    active.lanFiles = lanFiles && lanToken != null && lanEndpoint != null
-        ? FileSyncService(
-            outbox.db,
-            root,
-            LanSyncTransport(lanEndpoint!, token: () async => lanToken),
-          )
-        : null;
+  Future<void> suspend() {
+    if (!isMobile) return Future.value();
+    _foreground = false;
+    notifications?.dispose();
+    engine?.stop();
+    engine?.transport.close();
+    return _lifecycle = _lifecycle.then((_) => _stopEngine());
   }
 
-  void resume() {
-    if (ready) unawaited(engine?.synchronize());
+  Future<void> resume() {
+    _foreground = true;
+    return _lifecycle = _lifecycle.then((_) async {
+      if (!ready || _disposed || !_foreground) return;
+      if (!isMobile) {
+        await engine?.synchronize();
+        return;
+      }
+      await connectNow(automatic: true);
+    });
   }
+
+  Future<void> connectNow({bool automatic = false}) => run(() async {
+    if (!_foreground || _disposed) return;
+    if (engine?.enabled == true) {
+      await engine!.synchronize();
+      return;
+    }
+    if (connectionMode == SyncConnectionMode.lan &&
+        lanToken != null &&
+        lanEndpoint != null) {
+      if (automatic && await outbox.state('lanClientEnabled') == 'false') {
+        return;
+      }
+      await _startLanClient();
+      await outbox.saveState('lanClientEnabled', 'true');
+    } else if (connectionMode == SyncConnectionMode.cloud &&
+        auth.userId != null) {
+      if (automatic && await outbox.state('cloudEnabled') != 'true') return;
+      await _enableCloud();
+      await outbox.saveState('cloudEnabled', 'true');
+    } else if (!automatic) {
+      throw StateError('请在“我的 → 同步设置”登录云端或扫描电脑二维码');
+    }
+  });
 
   void _changed() {
+    if (isMobile && engine?.enabled == false) {
+      notifications?.dispose();
+      notifications = null;
+    }
     _notify();
   }
 
   Future<void> refreshDetails() async {
-    if (auth.userId != null) {
+    if (connectionMode == SyncConnectionMode.cloud && auth.userId != null) {
       final transport = CloudSyncTransport(
         server,
         token: auth.accessToken,

@@ -85,7 +85,7 @@ void main() {
       await db.close();
 
       db = AppDatabase(NativeDatabase(file));
-      expect(db.schemaVersion, 18);
+      expect(db.schemaVersion, 19);
       expect(
         (await customersFor(db).watchCustomer(customer.id).first)?.name,
         'Preserved Jack',

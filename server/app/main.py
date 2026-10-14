@@ -126,6 +126,12 @@ def create_app(settings=None, engine=None):
         # This also guarantees that user-specific cursor order follows commit order.
         return db.scalar(select(User).where(User.id == user_id).with_for_update())
 
+    def require_file_sync(db, device):
+        allowed = {email.strip().lower() for email in settings.file_sync_allowed_emails.split(',') if email.strip()}
+        user = db.get(User, device.user_id)
+        if allowed and (not user or user.email.lower() not in allowed):
+            raise HTTPException(403, 'File contents are not enabled for this account')
+
     def issue(db, device):
         refresh = secrets.token_urlsafe(48)
         db.add(RefreshToken(token_hash=digest(refresh), device_id=device.id,
@@ -228,6 +234,25 @@ def create_app(settings=None, engine=None):
         results = [accept(db, device, mutation) for mutation in body.mutations]
         device.last_seen_at = now()
         db.commit()
+        # A permanent tombstone removes content, but shared content stays until
+        # the last non-purged reference has been permanently removed.
+        hashes = {r['record']['data'].get('sha256') for r in results
+                  if r['record']['entityType'] == 'attachments'
+                  and r['record']['data'].get('deletion_batch') == 'permanent'}
+        if hashes:
+            lock_user(db, device.user_id)
+            records = db.scalars(select(SyncRecord).where(
+                SyncRecord.user_id == device.user_id,
+                SyncRecord.entity_type == 'attachments')).all()
+            for digest in hashes:
+                if not digest or any(r.data.get('sha256') == digest and
+                                     r.data.get('deletion_batch') != 'permanent' for r in records):
+                    continue
+                blob = db.get(FileBlob, (device.user_id, digest))
+                if blob:
+                    storage.blob(device.user_id, digest).unlink(missing_ok=True)
+                    db.delete(blob)
+            db.commit()
         return {'results': results}
 
     @app.get('/api/sync/pull')
@@ -274,6 +299,7 @@ def create_app(settings=None, engine=None):
 
     @app.post('/api/files/upload/init')
     def init_upload(body: UploadInput, device=Depends(authenticated), db: Session = Depends(database)):
+        require_file_sync(db, device)
         if body.size > settings.max_file_bytes:
             raise HTTPException(413, 'File too large')
         blob = db.get(FileBlob, (device.user_id, body.sha256))
@@ -302,6 +328,7 @@ def create_app(settings=None, engine=None):
     @app.put('/api/files/upload/{upload_id}/chunk')
     async def chunk(upload_id: UUID, request: Request, offset: int = Query(ge=0),
                     device=Depends(authenticated), db: Session = Depends(database)):
+        require_file_sync(db, device)
         upload = owned_upload(db, device, upload_id)
         if offset != upload.offset:
             raise HTTPException(409, {'offset': upload.offset})
@@ -325,6 +352,7 @@ def create_app(settings=None, engine=None):
 
     @app.post('/api/files/upload/{upload_id}/complete')
     def complete(upload_id: UUID, device=Depends(authenticated), db: Session = Depends(database)):
+        require_file_sync(db, device)
         lock_user(db, device.user_id)
         saved = db.get(FileUploadSession, str(upload_id))
         if saved and saved.user_id == device.user_id and saved.completed_at:
@@ -353,6 +381,7 @@ def create_app(settings=None, engine=None):
 
     @app.get('/api/files/{file_id}/download')
     def download(file_id: UUID, device=Depends(authenticated), db: Session = Depends(database)):
+        require_file_sync(db, device)
         record = db.get(SyncRecord, (device.user_id, 'attachments', str(file_id)))
         if not record or record.deleted_at or not record.data.get('sha256'):
             raise HTTPException(404, 'File not found')

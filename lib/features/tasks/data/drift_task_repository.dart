@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
+import 'package:uuid/data.dart';
 
 import '../../../core/database/app_database.dart';
 import '../domain/checklist_item.dart';
@@ -17,6 +18,7 @@ class DriftTaskRepository implements TaskRepository {
 
   final AppDatabase _db;
   final Uuid _uuid;
+  int _lastCreationMillis = 0;
 
   Stream<List<FlyTask>> _watchWhere(
     Expression<bool> Function($TasksTable row) predicate,
@@ -24,22 +26,9 @@ class DriftTaskRepository implements TaskRepository {
     final query = _db.select(_db.tasks)
       ..where((row) => row.deletedAt.isNull() & predicate(row))
       ..orderBy([
-        (row) => OrderingTerm(expression: row.status.equals('completed')),
-        (row) => OrderingTerm(
-          expression: row.priority.equals('high'),
-          mode: OrderingMode.desc,
-        ),
-        (row) => OrderingTerm(
-          expression: row.priority.equals('medium'),
-          mode: OrderingMode.desc,
-        ),
-        (row) => OrderingTerm(
-          expression: row.priority.equals('low'),
-          mode: OrderingMode.desc,
-        ),
-        (row) => OrderingTerm(expression: row.sortOrder),
-        (row) => OrderingTerm(expression: row.createdAt),
-        (row) => OrderingTerm(expression: row.id),
+        (row) =>
+            OrderingTerm(expression: row.createdAt, mode: OrderingMode.desc),
+        (row) => OrderingTerm(expression: row.id, mode: OrderingMode.desc),
       ]);
     return query.watch().map(
       (rows) => rows.map(_fromRecord).toList(growable: false),
@@ -60,7 +49,7 @@ class DriftTaskRepository implements TaskRepository {
       ..where((row) => row.deletedAt.isNotNull())
       ..orderBy([
         (row) =>
-            OrderingTerm(expression: row.deletedAt, mode: OrderingMode.desc),
+            OrderingTerm(expression: row.createdAt, mode: OrderingMode.desc),
       ]);
     return query.watch().map(
       (rows) => rows.map(_fromRecord).toList(growable: false),
@@ -126,6 +115,7 @@ class DriftTaskRepository implements TaskRepository {
             (row) => FlyTaskList(
               id: row.id,
               name: row.name,
+              parentId: row.parentId,
               colorValue: row.colorValue,
               createdAt: row.createdAt,
               updatedAt: row.updatedAt,
@@ -142,10 +132,18 @@ class DriftTaskRepository implements TaskRepository {
   Future<FlyTaskList> createList(
     String name, {
     int colorValue = 0xFF4D6BD8,
+    String? parentId,
   }) async {
     final value = name.trim();
     if (value.isEmpty) {
       throw ArgumentError.value(name, 'name', 'List name cannot be empty');
+    }
+    if (parentId != null) {
+      final parent =
+          await (_db.select(_db.taskLists)
+                ..where((r) => r.id.equals(parentId) & r.deletedAt.isNull()))
+              .getSingleOrNull();
+      if (parent == null) throw StateError('上级清单不存在');
     }
     final maxExpression = _db.taskLists.sortOrder.max();
     final maxOrder =
@@ -156,6 +154,7 @@ class DriftTaskRepository implements TaskRepository {
     final list = FlyTaskList(
       id: _uuid.v4(),
       name: value,
+      parentId: parentId,
       colorValue: colorValue,
       createdAt: now,
       updatedAt: now,
@@ -168,6 +167,7 @@ class DriftTaskRepository implements TaskRepository {
           TaskListsCompanion.insert(
             id: list.id,
             name: list.name,
+            parentId: Value(parentId),
             colorValue: Value(list.colorValue),
             createdAt: list.createdAt,
             updatedAt: list.updatedAt,
@@ -302,8 +302,13 @@ class DriftTaskRepository implements TaskRepository {
             .map((row) => row.read(maxExpression))
             .getSingle();
     final now = DateTime.now();
+    final millis = now.millisecondsSinceEpoch;
+    _lastCreationMillis = millis > _lastCreationMillis
+        ? millis
+        : _lastCreationMillis + 1;
     final task = FlyTask(
-      id: _uuid.v4(),
+      // Time-sortable IDs keep creations within one stored second in order.
+      id: _uuid.v7(config: V7Options(_lastCreationMillis, null)),
       title: value,
       description: description.trim(),
       status: TaskStatus.open,

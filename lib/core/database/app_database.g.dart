@@ -1335,6 +1335,17 @@ class $TaskListsTable extends TaskLists
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $TaskListsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _parentIdMeta = const VerificationMeta(
+    'parentId',
+  );
+  @override
+  late final GeneratedColumn<String> parentId = GeneratedColumn<String>(
+    'parent_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<String> id = GeneratedColumn<String>(
@@ -1427,6 +1438,7 @@ class $TaskListsTable extends TaskLists
   );
   @override
   List<GeneratedColumn> get $columns => [
+    parentId,
     id,
     name,
     colorValue,
@@ -1448,6 +1460,12 @@ class $TaskListsTable extends TaskLists
   }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
+    if (data.containsKey('parent_id')) {
+      context.handle(
+        _parentIdMeta,
+        parentId.isAcceptableOrUnknown(data['parent_id']!, _parentIdMeta),
+      );
+    }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     } else if (isInserting) {
@@ -1512,6 +1530,10 @@ class $TaskListsTable extends TaskLists
   TaskListRecord map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return TaskListRecord(
+      parentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}parent_id'],
+      ),
       id: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}id'],
@@ -1554,6 +1576,7 @@ class $TaskListsTable extends TaskLists
 }
 
 class TaskListRecord extends DataClass implements Insertable<TaskListRecord> {
+  final String? parentId;
   final String id;
   final String name;
   final int colorValue;
@@ -1563,6 +1586,7 @@ class TaskListRecord extends DataClass implements Insertable<TaskListRecord> {
   final int sortOrder;
   final int version;
   const TaskListRecord({
+    this.parentId,
     required this.id,
     required this.name,
     required this.colorValue,
@@ -1575,6 +1599,9 @@ class TaskListRecord extends DataClass implements Insertable<TaskListRecord> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (!nullToAbsent || parentId != null) {
+      map['parent_id'] = Variable<String>(parentId);
+    }
     map['id'] = Variable<String>(id);
     map['name'] = Variable<String>(name);
     map['color_value'] = Variable<int>(colorValue);
@@ -1590,6 +1617,9 @@ class TaskListRecord extends DataClass implements Insertable<TaskListRecord> {
 
   TaskListsCompanion toCompanion(bool nullToAbsent) {
     return TaskListsCompanion(
+      parentId: parentId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(parentId),
       id: Value(id),
       name: Value(name),
       colorValue: Value(colorValue),
@@ -1609,6 +1639,7 @@ class TaskListRecord extends DataClass implements Insertable<TaskListRecord> {
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return TaskListRecord(
+      parentId: serializer.fromJson<String?>(json['parentId']),
       id: serializer.fromJson<String>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       colorValue: serializer.fromJson<int>(json['colorValue']),
@@ -1623,6 +1654,7 @@ class TaskListRecord extends DataClass implements Insertable<TaskListRecord> {
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
+      'parentId': serializer.toJson<String?>(parentId),
       'id': serializer.toJson<String>(id),
       'name': serializer.toJson<String>(name),
       'colorValue': serializer.toJson<int>(colorValue),
@@ -1635,6 +1667,7 @@ class TaskListRecord extends DataClass implements Insertable<TaskListRecord> {
   }
 
   TaskListRecord copyWith({
+    Value<String?> parentId = const Value.absent(),
     String? id,
     String? name,
     int? colorValue,
@@ -1644,6 +1677,7 @@ class TaskListRecord extends DataClass implements Insertable<TaskListRecord> {
     int? sortOrder,
     int? version,
   }) => TaskListRecord(
+    parentId: parentId.present ? parentId.value : this.parentId,
     id: id ?? this.id,
     name: name ?? this.name,
     colorValue: colorValue ?? this.colorValue,
@@ -1655,6 +1689,7 @@ class TaskListRecord extends DataClass implements Insertable<TaskListRecord> {
   );
   TaskListRecord copyWithCompanion(TaskListsCompanion data) {
     return TaskListRecord(
+      parentId: data.parentId.present ? data.parentId.value : this.parentId,
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
       colorValue: data.colorValue.present
@@ -1671,6 +1706,7 @@ class TaskListRecord extends DataClass implements Insertable<TaskListRecord> {
   @override
   String toString() {
     return (StringBuffer('TaskListRecord(')
+          ..write('parentId: $parentId, ')
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('colorValue: $colorValue, ')
@@ -1685,6 +1721,7 @@ class TaskListRecord extends DataClass implements Insertable<TaskListRecord> {
 
   @override
   int get hashCode => Object.hash(
+    parentId,
     id,
     name,
     colorValue,
@@ -1698,6 +1735,7 @@ class TaskListRecord extends DataClass implements Insertable<TaskListRecord> {
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is TaskListRecord &&
+          other.parentId == this.parentId &&
           other.id == this.id &&
           other.name == this.name &&
           other.colorValue == this.colorValue &&
@@ -1709,6 +1747,7 @@ class TaskListRecord extends DataClass implements Insertable<TaskListRecord> {
 }
 
 class TaskListsCompanion extends UpdateCompanion<TaskListRecord> {
+  final Value<String?> parentId;
   final Value<String> id;
   final Value<String> name;
   final Value<int> colorValue;
@@ -1719,6 +1758,7 @@ class TaskListsCompanion extends UpdateCompanion<TaskListRecord> {
   final Value<int> version;
   final Value<int> rowid;
   const TaskListsCompanion({
+    this.parentId = const Value.absent(),
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.colorValue = const Value.absent(),
@@ -1730,6 +1770,7 @@ class TaskListsCompanion extends UpdateCompanion<TaskListRecord> {
     this.rowid = const Value.absent(),
   });
   TaskListsCompanion.insert({
+    this.parentId = const Value.absent(),
     required String id,
     required String name,
     this.colorValue = const Value.absent(),
@@ -1745,6 +1786,7 @@ class TaskListsCompanion extends UpdateCompanion<TaskListRecord> {
        updatedAt = Value(updatedAt),
        sortOrder = Value(sortOrder);
   static Insertable<TaskListRecord> custom({
+    Expression<String>? parentId,
     Expression<String>? id,
     Expression<String>? name,
     Expression<int>? colorValue,
@@ -1756,6 +1798,7 @@ class TaskListsCompanion extends UpdateCompanion<TaskListRecord> {
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
+      if (parentId != null) 'parent_id': parentId,
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (colorValue != null) 'color_value': colorValue,
@@ -1769,6 +1812,7 @@ class TaskListsCompanion extends UpdateCompanion<TaskListRecord> {
   }
 
   TaskListsCompanion copyWith({
+    Value<String?>? parentId,
     Value<String>? id,
     Value<String>? name,
     Value<int>? colorValue,
@@ -1780,6 +1824,7 @@ class TaskListsCompanion extends UpdateCompanion<TaskListRecord> {
     Value<int>? rowid,
   }) {
     return TaskListsCompanion(
+      parentId: parentId ?? this.parentId,
       id: id ?? this.id,
       name: name ?? this.name,
       colorValue: colorValue ?? this.colorValue,
@@ -1795,6 +1840,9 @@ class TaskListsCompanion extends UpdateCompanion<TaskListRecord> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (parentId.present) {
+      map['parent_id'] = Variable<String>(parentId.value);
+    }
     if (id.present) {
       map['id'] = Variable<String>(id.value);
     }
@@ -1828,6 +1876,7 @@ class TaskListsCompanion extends UpdateCompanion<TaskListRecord> {
   @override
   String toString() {
     return (StringBuffer('TaskListsCompanion(')
+          ..write('parentId: $parentId, ')
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('colorValue: $colorValue, ')
@@ -29774,6 +29823,7 @@ typedef $$DashboardDailyFocusesTableProcessedTableManager =
       PrefetchHooks Function()
     >;
 typedef $$TaskListsTableCreateCompanionBuilder = TaskListsCompanion Function({
+  Value<String?> parentId,
   required String id,
   required String name,
   Value<int> colorValue,
@@ -29785,6 +29835,7 @@ typedef $$TaskListsTableCreateCompanionBuilder = TaskListsCompanion Function({
   Value<int> rowid,
 });
 typedef $$TaskListsTableUpdateCompanionBuilder = TaskListsCompanion Function({
+  Value<String?> parentId,
   Value<String> id,
   Value<String> name,
   Value<int> colorValue,
@@ -29829,6 +29880,11 @@ class $$TaskListsTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnFilters<String> get parentId => $composableBuilder(
+    column: $table.parentId,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
     builder: (column) => ColumnFilters(column),
@@ -29904,6 +29960,11 @@ class $$TaskListsTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnOrderings<String> get parentId => $composableBuilder(
+    column: $table.parentId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get id => $composableBuilder(
     column: $table.id,
     builder: (column) => ColumnOrderings(column),
@@ -29954,6 +30015,9 @@ class $$TaskListsTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  GeneratedColumn<String> get parentId =>
+      $composableBuilder(column: $table.parentId, builder: (column) => column);
+
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
@@ -30034,6 +30098,7 @@ class $$TaskListsTableTableManager
               $$TaskListsTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
+                Value<String?> parentId = const Value.absent(),
                 Value<String> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<int> colorValue = const Value.absent(),
@@ -30044,6 +30109,7 @@ class $$TaskListsTableTableManager
                 Value<int> version = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TaskListsCompanion(
+                parentId: parentId,
                 id: id,
                 name: name,
                 colorValue: colorValue,
@@ -30056,6 +30122,7 @@ class $$TaskListsTableTableManager
               ),
           createCompanionCallback:
               ({
+                Value<String?> parentId = const Value.absent(),
                 required String id,
                 required String name,
                 Value<int> colorValue = const Value.absent(),
@@ -30066,6 +30133,7 @@ class $$TaskListsTableTableManager
                 Value<int> version = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TaskListsCompanion.insert(
+                parentId: parentId,
                 id: id,
                 name: name,
                 colorValue: colorValue,

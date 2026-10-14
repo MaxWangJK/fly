@@ -81,7 +81,7 @@ docker compose exec nginx nginx -s reload
 
 ## IP、域名、自定义端口与 HTTP
 
-客户端支持 `http://IP:端口`、`https://IP:端口`、HTTP/HTTPS 域名、IPv6（例如 `http://[::1]:8080`）。省略 `/api` 会自动补齐；仅填 `IP:端口` 或域名时采用 HTTP。反向代理前缀可以填写完整的 `https://域名/前缀/api`。实际服务必须提供相应路由。
+客户端支持 `http://IP:端口`、`https://IP:端口`、HTTP/HTTPS 域名、IPv6（例如 `http://[::1]:8080`）。省略 `/api` 会自动补齐。2.0.1 起，界面默认显示 `world-workshop.cn/api` 并使用 HTTPS；自建地址可以省略协议，测试连接会尝试适用的 HTTP/HTTPS 并保存成功的协议。反向代理前缀可以填写完整的 `https://域名/前缀/api`。实际服务必须提供相应路由。
 
 HTTP 使用 `ws` 通知连接，HTTPS 使用 `wss`；默认端口分别为 80/443。HTTPS 使用系统证书校验，IP 访问需要证书包含该 IP，自签证书需由设备信任，不会自动绕过证书错误。HTTP 密码、令牌和业务数据不加密，公网建议 HTTPS；客户端保留用户选择。
 
@@ -131,6 +131,12 @@ docker compose up -d api nginx
 升级先备份，再更新代码并运行 `docker compose up -d --build api nginx`。API 启动执行 `alembic upgrade head`；迁移失败则不启动 HTTP 服务。不要删除数据卷。旧客户端不可直接打开已经迁移到版本 18 的本地数据库；回退 1.0 必须使用升级前的本地备份。
 
 ## 本地开发与测试
+
+### 2.0.1 文件同步权限
+
+官方 `world-workshop.cn/api` 部署在 `.env` 中设置 `FILE_SYNC_ALLOWED_EMAILS=max@ceiling-arts.com`，更新服务端后所有上传初始化、分片、完成和下载接口均检查已登录账号邮箱。仅更新客户端不能代替服务端校验。
+
+自建服务器将 `FILE_SYNC_ALLOWED_EMAILS=` 留空，允许已登录用户同步自己的实体文件，仍执行用户隔离和校验。`.env.example` 按官方平台预填白名单；自建部署须清空这一项。旧 `.env` 不会被更新代码自动覆盖，部署时按对应类型设置后重建 API 服务。
 
 ```bash
 cd /opt/fly/server

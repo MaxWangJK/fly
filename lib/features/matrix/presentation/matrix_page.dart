@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import '../../tasks/presentation/widgets/task_completion_feedback.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../l10n/fly_localizations.dart';
 import '../../../shared/design_system/design_tokens.dart';
+import '../../../shared/design_system/responsive_layout.dart';
+import '../../tasks/presentation/widgets/task_view_links.dart';
 import '../../../shared/formatters/relative_date_formatter.dart';
 import '../../tasks/domain/task.dart';
 import '../../tasks/presentation/task_providers.dart';
@@ -52,6 +55,7 @@ class MatrixPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tasks = ref.watch(allTasksProvider);
+    final compact = useCompactLayout(context);
     return SafeArea(
       child: ColoredBox(
         color: Theme.of(context).scaffoldBackgroundColor,
@@ -65,21 +69,29 @@ class MatrixPage extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SizedBox(
-                height: 52,
+              if (isPhoneLayout(context)) const TaskViewLinks(current: "matrix")
+              else ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 52),
                 child: Row(
                   children: [
                     Text(
                       context.l10n.t('matrix'),
-                      style: Theme.of(context).textTheme.headlineMedium,
+                      style: compact
+                          ? Theme.of(context).textTheme.titleLarge
+                          : Theme.of(context).textTheme.headlineMedium,
                     ),
-                    const SizedBox(width: FlySpacing.md),
-                    Expanded(
-                      child: Text(
-                        context.l10n.t('matrixHint'),
-                        style: Theme.of(context).textTheme.bodySmall,
+                    if (compact) ...[
+                      const Spacer(),
+                      const TaskViewLinks(current: 'matrix'),
+                    ] else ...[
+                      const SizedBox(width: FlySpacing.md),
+                      Expanded(
+                        child: Text(
+                          context.l10n.t('matrixHint'),
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
@@ -115,13 +127,16 @@ class MatrixPage extends ConsumerWidget {
                         );
                       }
                       return GridView.count(
-                        physics: const NeverScrollableScrollPhysics(),
+                        physics: const ClampingScrollPhysics(),
                         crossAxisCount: 2,
                         crossAxisSpacing: FlySpacing.sm,
                         mainAxisSpacing: FlySpacing.sm,
                         childAspectRatio:
                             (constraints.maxWidth / 2) /
-                            (constraints.maxHeight / 2),
+                            ((constraints.maxHeight / 2).clamp(
+                              250,
+                              double.infinity,
+                            )),
                         children: cards,
                       );
                     },
@@ -348,9 +363,7 @@ class _MatrixTask extends ConsumerWidget {
       },
       onSecondaryTapDown: (details) =>
           showTaskDeleteContextMenu(context, ref, task, details.globalPosition),
-      onCompleted: (value) => ref
-          .read(taskRepositoryProvider)
-          .setCompleted(task.id, completed: value),
+      onCompleted: (value) => completeTaskWithFeedback(context, ref, task.id, value),
       metadata: RelativeDateFormatter.createdAt(
         task.createdAt,
         isZh: context.l10n.isZh,

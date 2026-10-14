@@ -3,6 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../shared/design_system/responsive_layout.dart';
+import 'widgets/task_view_links.dart';
+import 'widgets/task_completion_feedback.dart';
+
 import '../../../l10n/fly_localizations.dart';
 import '../../../shared/design_system/design_tokens.dart';
 import '../../../shared/design_system/workspace_empty_state.dart';
@@ -183,12 +187,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                       ]),
                     )
                     .toList()
-                  ..sort((a, b) {
-                    final priority = compareTaskPriority(a, b);
-                    return priority != 0
-                        ? priority
-                        : b.updatedAt.compareTo(a.updatedAt);
-                  });
+                  ..sort(compareTaskCreatedNewestFirst);
             return matches;
           })
         : null;
@@ -219,7 +218,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                             ),
                           )
                           .toList()
-                        ..sort(_compareOverdueTasks))
+                        ..sort(compareTaskCreatedNewestFirst))
                       .firstOrNull
             : loaded.firstOrNull;
         _initialSelectionPending = false;
@@ -250,12 +249,14 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _ListHeader(
-                  title: title,
-                  tasks: tasks,
-                  collection: widget.collection,
-                ),
-                const SizedBox(height: FlySpacing.md),
+                if (!isPhoneLayout(context)) ...[
+                  _ListHeader(
+                    title: title,
+                    tasks: tasks,
+                    collection: widget.collection,
+                  ),
+                  const SizedBox(height: FlySpacing.md),
+                ],
                 if (_canAdd) ...[
                   Focus(
                     onKeyEvent: (_, event) {
@@ -308,6 +309,8 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                     ),
                   ),
                 const SizedBox(height: FlySpacing.xs),
+                if (isPhoneLayout(context))
+                  const TaskViewLinks(current: 'tasks'),
                 if (_canAdd && query.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(bottom: FlySpacing.xs),
@@ -399,8 +402,9 @@ class _ListHeader extends StatelessWidget {
               collection == TaskCollection.trash
         ? values.length
         : values.where((task) => !task.isCompleted).length;
-    return SizedBox(
-      height: 34,
+    final compact = useCompactLayout(context);
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 48),
       child: Row(
         children: [
           Expanded(
@@ -409,7 +413,8 @@ class _ListHeader extends StatelessWidget {
               style: Theme.of(context).textTheme.headlineMedium,
             ),
           ),
-          if (count != null)
+          if (compact) const TaskViewLinks(current: 'tasks'),
+          if (count != null && !compact)
             Text(
               collection == TaskCollection.completed ||
                       collection == TaskCollection.trash
@@ -473,11 +478,6 @@ class _TaskSearchResults extends ConsumerWidget {
   }
 }
 
-int _compareOverdueTasks(FlyTask first, FlyTask second) {
-  final priority = compareTaskPriority(first, second);
-  return priority != 0 ? priority : second.dueDate!.compareTo(first.dueDate!);
-}
-
 class _TaskRows extends ConsumerWidget {
   const _TaskRows({
     required this.tasks,
@@ -498,30 +498,19 @@ class _TaskRows extends ConsumerWidget {
       final today = tasks.where((t) => TaskDateRange.isToday(t, day)).toList();
       final overdue =
           tasks.where((t) => TaskDateRange.isOverdue(t, day)).toList()
-            ..sort(_compareOverdueTasks);
+            ..sort(compareTaskCreatedNewestFirst);
       return ListView(
         controller: scrollController,
         children: [
-          ListTile(
-            dense: true,
-            title: Text('${context.l10n.t('today')}  ${today.length}'),
-          ),
-          ReorderableListView.builder(
+          if (!isPhoneLayout(context))
+            ListTile(
+              dense: true,
+              title: Text('${context.l10n.t('today')}  ${today.length}'),
+            ),
+          ListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            buildDefaultDragHandles: false,
             itemCount: today.length,
-            onReorderItem: (oldIndex, newIndex) async {
-              final reordered = [...today];
-              final moved = reordered.removeAt(oldIndex);
-              reordered.insert(newIndex, moved);
-              await ref
-                  .read(taskRepositoryProvider)
-                  .reorderTask(
-                    moved.id,
-                    reordered.map((task) => task.id).toList(),
-                  );
-            },
             itemBuilder: (_, index) => _TaskRow(
               key: ValueKey(today[index].id),
               task: today[index],
@@ -565,34 +554,11 @@ class _TaskRows extends ConsumerWidget {
       );
     }
 
-    final list = collection == TaskCollection.trash
-        ? ListView.builder(
-            controller: scrollController,
-            itemCount: tasks.length,
-            itemBuilder: (context, index) => row(index),
-          )
-        : ReorderableListView.builder(
-            scrollController: scrollController,
-            buildDefaultDragHandles: false,
-            itemCount: tasks.length,
-            proxyDecorator: (child, index, animation) => Material(
-              elevation: FlyElevation.popup,
-              color: Theme.of(context).colorScheme.surface,
-              child: child,
-            ),
-            onReorderItem: (oldIndex, newIndex) async {
-              final reordered = [...tasks];
-              final moved = reordered.removeAt(oldIndex);
-              reordered.insert(newIndex, moved);
-              await ref
-                  .read(taskRepositoryProvider)
-                  .reorderTask(
-                    moved.id,
-                    reordered.map((task) => task.id).toList(growable: false),
-                  );
-            },
-            itemBuilder: (context, index) => row(index),
-          );
+    final list = ListView.builder(
+      controller: scrollController,
+      itemCount: tasks.length,
+      itemBuilder: (context, index) => row(index),
+    );
     return Scrollbar(controller: scrollController, child: list);
   }
 }
@@ -603,7 +569,7 @@ class _TaskRow extends ConsumerWidget {
     required this.index,
     required this.lists,
     required this.collection,
-    this.reorderable = true,
+    this.reorderable = false,
     super.key,
   });
 
@@ -626,9 +592,7 @@ class _TaskRow extends ConsumerWidget {
       onTap: inTrash ? () {} : () => _open(context, ref),
       onCompleted: inTrash
           ? null
-          : (value) => ref
-                .read(taskRepositoryProvider)
-                .setCompleted(task.id, completed: value),
+          : (value) => completeTaskWithFeedback(context, ref, task.id, value),
       onSecondaryTapDown: (details) => inTrash
           ? _showTrashContextMenu(context, ref, details.globalPosition)
           : _showContextMenu(context, ref, details.globalPosition),

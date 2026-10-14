@@ -85,7 +85,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 18;
+  int get schemaVersion => 19;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -393,7 +393,15 @@ class AppDatabase extends _$AppDatabase {
           }
           await migrator.createTable(knowledgeFavorites);
         }
-        if (from < 18) await createSyncSchema(this);
+        if (from < 19 && !await _columnExists('task_lists', 'parent_id')) {
+          await migrator.addColumn(taskLists, taskLists.parentId);
+          for (final event in ['insert', 'update', 'delete']) {
+            await customStatement(
+              'DROP TRIGGER IF EXISTS sync_task_lists_$event',
+            );
+          }
+        }
+        if (from < 19) await createSyncSchema(this);
         await _createIndexes();
         final violations = await customSelect('PRAGMA foreign_key_check').get();
         if (violations.isNotEmpty) {

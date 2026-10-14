@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/sync/presentation/mobile_sync_button.dart';
 import '../../features/customers/presentation/customer_detail_panel.dart';
 import '../../features/customers/presentation/customer_extension_panel.dart';
 import '../../features/customers/presentation/customer_providers.dart';
@@ -20,6 +21,7 @@ import '../../features/tasks/presentation/task_sidebar.dart';
 import '../../features/tools/presentation/tools_sidebar.dart';
 import '../../l10n/fly_localizations.dart';
 import '../../shared/design_system/design_tokens.dart';
+import '../../shared/design_system/responsive_layout.dart';
 import '../../shared/search/global_search_palette.dart';
 import '../../shared/notifications/reminder_coordinator.dart';
 import 'primary_navigation_rail.dart';
@@ -36,6 +38,8 @@ class AppShell extends ConsumerWidget {
     final width = MediaQuery.sizeOf(context).width;
     final path = GoRouterState.of(context).uri.path;
     final module = primaryModuleForPath(path);
+    final compact = useCompactLayout(context);
+    final isMe = path == '/me';
     final visibility = ref.watch(navigationSettingsProvider).value;
     final visibleModules = PrimaryModule.values
         .where(
@@ -47,7 +51,7 @@ class AppShell extends ConsumerWidget {
         )
         .toList();
 
-    if (width >= FlyBreakpoints.expanded) {
+    if (!compact && !isMe && width >= FlyBreakpoints.expanded) {
       return _withGlobalSearch(
         context,
         Scaffold(
@@ -71,7 +75,7 @@ class AppShell extends ConsumerWidget {
       );
     }
 
-    if (width >= FlyBreakpoints.medium) {
+    if (!compact && !isMe && width >= FlyBreakpoints.medium) {
       return _withGlobalSearch(
         context,
         Scaffold(
@@ -117,90 +121,119 @@ class AppShell extends ConsumerWidget {
     return _withGlobalSearch(
       context,
       Scaffold(
-        appBar: AppBar(
-          title: const Text('Fly'),
-          actions: [
-            IconButton(
-              key: const ValueKey('primary-settings'),
-              icon: const Icon(Icons.settings_outlined),
-              onPressed: () => showDialog<void>(
-                context: context,
-                builder: (_) => const SettingsCenter(),
+        appBar: isPhoneLayout(context)
+            ? null
+            : AppBar(
+                title: const Text('Fly'),
+                actions: [
+                  IconButton(
+                    key: const ValueKey('primary-settings'),
+                    icon: const Icon(Icons.settings_outlined),
+                    onPressed: () => showDialog<void>(
+                      context: context,
+                      builder: (_) => const SettingsCenter(),
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
-        body: child,
-        bottomNavigationBar: NavigationBar(
-          height: 62,
-          selectedIndex: visibleModules.contains(module)
-              ? visibleModules.indexOf(module)
-              : 0,
-          onDestinationSelected: (index) =>
-              _navigateModule(context, ref, visibleModules[index]),
-          destinations:
-              [
-                    NavigationDestination(
-                      icon: Icon(Icons.home_outlined),
-                      selectedIcon: Icon(Icons.home_rounded),
-                      label: context.l10n.t('navHome'),
+        body: isPhoneLayout(context)
+            ? SafeArea(
+                child: Column(
+                  children: [
+                    const Align(
+                      alignment: Alignment.centerRight,
+                      child: MobileSyncButton(),
                     ),
-                    NavigationDestination(
-                      icon: Icon(Icons.people_outline),
-                      selectedIcon: Icon(Icons.people),
-                      label: context.l10n.t('navCustomers'),
-                    ),
-                    NavigationDestination(
-                      icon: Icon(Icons.receipt_long_outlined),
-                      selectedIcon: Icon(Icons.receipt_long),
-                      label: context.l10n.t('navOrders'),
-                    ),
-                    NavigationDestination(
-                      icon: const Icon(Icons.check_box_outlined),
-                      selectedIcon: const Icon(Icons.check_box),
-                      label: context.l10n.t('tasks'),
-                    ),
-                    NavigationDestination(
-                      icon: const Icon(Icons.calendar_month_outlined),
-                      selectedIcon: const Icon(Icons.calendar_month),
-                      label: context.l10n.t('calendar'),
-                    ),
-                    NavigationDestination(
-                      icon: const Icon(Icons.grid_view_outlined),
-                      selectedIcon: const Icon(Icons.grid_view),
-                      label: context.l10n.t('matrix'),
-                    ),
-                    NavigationDestination(
-                      icon: Icon(Icons.folder_outlined),
-                      selectedIcon: Icon(Icons.folder),
-                      label: context.l10n.t('navFiles'),
-                    ),
-                    NavigationDestination(
-                      icon: Icon(Icons.menu_book_outlined),
-                      selectedIcon: Icon(Icons.menu_book_rounded),
-                      label: context.l10n.t('navNotes'),
-                    ),
-                    NavigationDestination(
-                      icon: const Icon(Icons.handyman_outlined),
-                      selectedIcon: const Icon(Icons.handyman_rounded),
-                      label: context.l10n.t('tools'),
-                    ),
-                  ].indexed
-                  .where(
-                    (v) => visibleModules.contains(PrimaryModule.values[v.$1]),
-                  )
-                  .map((v) => v.$2)
-                  .toList(),
+                    Expanded(child: child),
+                  ],
+                ),
+              )
+            : child,
+        bottomNavigationBar: _compactNavigation(
+          context,
+          ref,
+          module,
+          visibleModules,
+          isMe: isMe,
         ),
       ),
     );
   }
 
+  Widget _compactNavigation(
+    BuildContext context,
+    WidgetRef ref,
+    PrimaryModule selected,
+    List<PrimaryModule> visible, {
+    bool isMe = false,
+  }) {
+    final main = [
+      PrimaryModule.customers,
+      PrimaryModule.orders,
+      PrimaryModule.tasks,
+      PrimaryModule.files,
+    ].where(visible.contains).toList();
+    final current =
+        selected == PrimaryModule.calendar || selected == PrimaryModule.matrix
+        ? PrimaryModule.tasks
+        : selected;
+    return NavigationBar(
+      key: const ValueKey('compact-navigation'),
+      height: 64,
+      selectedIndex: !isMe && main.contains(current)
+          ? main.indexOf(current)
+          : main.length,
+      onDestinationSelected: (index) {
+        if (index < main.length) {
+          _navigateModule(context, ref, main[index]);
+          return;
+        }
+        context.go('/me');
+      },
+      destinations: [
+        for (final m in main)
+          NavigationDestination(
+            icon: Icon(_moduleIcon(m)),
+            label: _moduleLabel(context, m),
+          ),
+        NavigationDestination(
+          icon: const Icon(Icons.person_outline),
+          label: context.l10n.isZh ? '我的' : 'Me',
+        ),
+      ],
+    );
+  }
+
+  IconData _moduleIcon(PrimaryModule module) => switch (module) {
+    PrimaryModule.dashboard => Icons.home_outlined,
+    PrimaryModule.customers => Icons.people_outline,
+    PrimaryModule.orders => Icons.receipt_long_outlined,
+    PrimaryModule.tasks => Icons.check_box_outlined,
+    PrimaryModule.files => Icons.folder_outlined,
+    PrimaryModule.notes => Icons.menu_book_outlined,
+    PrimaryModule.tools => Icons.handyman_outlined,
+    PrimaryModule.calendar => Icons.calendar_month_outlined,
+    PrimaryModule.matrix => Icons.grid_view_outlined,
+  };
+  String _moduleLabel(BuildContext context, PrimaryModule module) =>
+      context.l10n.t(switch (module) {
+        PrimaryModule.dashboard => 'navHome',
+        PrimaryModule.customers => 'navCustomers',
+        PrimaryModule.orders => 'navOrders',
+        PrimaryModule.tasks => 'tasks',
+        PrimaryModule.files => 'navFiles',
+        PrimaryModule.notes => 'navNotes',
+        PrimaryModule.tools => 'tools',
+        PrimaryModule.calendar => 'calendar',
+        PrimaryModule.matrix => 'matrix',
+      });
+
   Widget _withGlobalSearch(BuildContext context, Widget child) =>
       CallbackShortcuts(
         bindings: {
-          const SingleActivator(LogicalKeyboardKey.keyK, control: true): () =>
-              showGlobalSearchPalette(context),
+          if (!isPhoneLayout(context))
+            const SingleActivator(LogicalKeyboardKey.keyK, control: true): () =>
+                showGlobalSearchPalette(context),
         },
         child: NoteCloseGuard(
           child: Focus(
@@ -415,7 +448,8 @@ class AppShell extends ConsumerWidget {
       ref.read(orderExtensionProvider.notifier).state = OrderExtensionType.none;
     }
     context.go(switch (module) {
-      PrimaryModule.customers => '/customers/today',
+      PrimaryModule.customers =>
+        useCompactLayout(context) ? '/customers/all' : '/customers/today',
       PrimaryModule.dashboard => '/dashboard',
       PrimaryModule.orders => '/orders/all',
       PrimaryModule.tasks => '/tasks/today',

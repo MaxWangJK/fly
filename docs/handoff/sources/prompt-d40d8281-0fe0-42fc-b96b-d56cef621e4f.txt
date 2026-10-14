@@ -1,0 +1,2644 @@
+# Fly CRM / Order 微调 V1 — 客户详情、优先级、重复跟进、备注与跟进记录重构
+
+当前项目：
+
+```text
+E:\workSpace\fly
+```
+
+当前 Fly 已经完成：
+
+```text
+客户管理
+订单管理
+任务
+日历
+四象限
+```
+
+本轮：
+
+# 不新增大模块。
+
+只做 CRM / Order UI 与交互微调。
+
+不要破坏已经完成的数据层、Repository、Drift、SQLite 和现有业务逻辑。
+
+目标：
+
+```text
+减少点击
+减少视觉占用
+提高跟进效率
+让客户详情更紧凑
+让备注和跟进历史更适合长期积累
+```
+
+---
+
+# 一、客户详情新增“新建订单”
+
+这是强制需求。
+
+Customer Detail 顶部或订单区域增加：
+
+```text
++ 新建订单
+```
+
+点击以后：
+
+# 不要跳到订单列表再让用户重新选择客户。
+
+直接创建：
+
+```text
+Order.customerId = 当前客户.id
+```
+
+然后：
+
+自动进入：
+
+```text
+Order Detail
+```
+
+让用户继续填写订单信息。
+
+---
+
+# 二、新建订单交互
+
+例如：
+
+当前 Customer：
+
+```text
+Jack
+```
+
+点击：
+
+```text
++ 新建订单
+```
+
+自动：
+
+```text
+create Order
+customerId = Jack.id
+```
+
+然后跳转：
+
+```text
+Orders Workspace
+→ newly created order selected
+```
+
+Customer 字段已经自动填好。
+
+用户不需要再次搜索 Jack。
+
+---
+
+# 三、新建订单默认字段
+
+创建时自动：
+
+```text
+customerId = currentCustomer.id
+createdAt = now
+orderDate = today
+```
+
+Order Number：
+
+如果已有自动编号逻辑：
+
+复用。
+
+如果没有：
+
+使用当前订单编号策略生成。
+
+不要因为本轮微调重新设计订单编号系统。
+
+---
+
+# 四、Customer Priority 重做
+
+当前 Customer Priority 调整为：
+
+```text
+高
+中
+低
+```
+
+删除：
+
+```text
+无
+```
+
+默认：
+
+```text
+低
+```
+
+---
+
+# 五、Priority UI 不再使用 Dropdown
+
+Customer Detail：
+
+不要：
+
+```text
+优先级
+[ 高 ▼ ]
+```
+
+改成：
+
+# Segmented / Radio Selection
+
+例如：
+
+```text
+优先级
+
+○ 高    ○ 中    ● 低
+```
+
+或者：
+
+```text
+[ 高 ] [ 中 ] [ 低 ]
+```
+
+保持 Fly 当前视觉语言。
+
+---
+
+# 六、Priority 颜色
+
+使用统一 Design Token。
+
+建议：
+
+```text
+High
+浅红 / 淡橙红
+
+Medium
+浅橙 / 淡黄
+
+Low
+无背景色 / 默认白色
+```
+
+颜色必须：
+
+```text
+低饱和
+柔和
+```
+
+不要高饱和红黄。
+
+---
+
+# 七、Customer Detail Priority Selected State
+
+例如：
+
+选择：
+
+```text
+高
+```
+
+则：
+
+```text
+高
+```
+
+选项有：
+
+```text
+淡红背景
+红色文字 / Accent
+```
+
+其它：
+
+Normal。
+
+---
+
+# 八、Customer List 同步使用 Priority 颜色
+
+Customer List：
+
+如果：
+
+```text
+priority = High
+```
+
+整行使用：
+
+```text
+非常浅的 High Priority 背景色
+```
+
+如果：
+
+```text
+priority = Medium
+```
+
+整行：
+
+```text
+非常浅的 Medium Priority 背景色
+```
+
+如果：
+
+```text
+priority = Low
+```
+
+：
+
+```text
+默认白色
+```
+
+---
+
+# 九、Customer List Selected 状态
+
+注意：
+
+Priority Background
+和
+Selected Background
+
+不能冲突。
+
+设计状态层级：
+
+```text
+Priority Base Color
++
+Selected Overlay
+```
+
+例如：
+
+High：
+
+淡红。
+
+High + Selected：
+
+稍深一点淡红。
+
+不要 Selected 后完全看不到 Priority。
+
+---
+
+# 十、Order Priority 使用完全相同逻辑
+
+订单管理：
+
+Order Detail：
+
+```text
+高
+中
+低
+```
+
+默认：
+
+```text
+低
+```
+
+使用相同：
+
+```text
+Segmented / Radio
+```
+
+---
+
+# 十一、Order List Priority 颜色
+
+Order List：
+
+High：
+
+淡红背景。
+
+Medium：
+
+淡橙 / 黄背景。
+
+Low：
+
+无背景。
+
+Customer 和 Order：
+
+必须共享：
+
+```text
+PriorityColorTokens
+PrioritySelector
+```
+
+避免两套颜色。
+
+---
+
+# 十二、Priority 不等于 Importance / Urgency
+
+现有：
+
+```text
+重要
+紧急
+```
+
+如果仍存在：
+
+保留。
+
+不要删除 Domain。
+
+但是：
+
+本轮 Priority UI：
+
+只显示：
+
+```text
+高
+中
+低
+```
+
+不要把优先级与：
+
+```text
+重要
+紧急
+```
+
+混为一个字段。
+
+---
+
+# 十三、Customer Recurrence 简化
+
+客户详情：
+
+重复规则取消复杂自定义。
+
+只保留：
+
+```text
+从不
+三天
+每周
+两周
+每月
+```
+
+删除：
+
+```text
+自定义
+工作日
+每天
+```
+
+等其它选项。
+
+---
+
+# 十四、Recurrence UI 改为单选
+
+不要 Dropdown。
+
+使用：
+
+```text
+重复
+
+[ 从不 ] [ 三天 ] [ 每周 ] [ 两周 ] [ 每月 ]
+```
+
+如果空间不足：
+
+允许自动 Wrap。
+
+---
+
+# 十五、Recurrence Domain
+
+建立或确认：
+
+```text
+none
+every3Days
+weekly
+biweekly
+monthly
+```
+
+不要把：
+
+```text
+三天
+```
+
+仅仅存字符串。
+
+---
+
+# 十六、三天规则
+
+如果：
+
+```text
+recurrence = every3Days
+```
+
+计算基准：
+
+优先：
+
+```text
+nextFollowUpDate
+```
+
+如果：
+
+```text
+nextFollowUpDate != null
+```
+
+则：
+
+```text
+next occurrence = nextFollowUpDate + 3 days
+```
+
+---
+
+# 十七、没有 Next Follow-up Date
+
+如果：
+
+```text
+recurrence = every3Days
+```
+
+但是：
+
+```text
+nextFollowUpDate = null
+```
+
+则：
+
+```text
+baseDate = today
+```
+
+然后：
+
+```text
+nextFollowUpDate = today + 3 days
+```
+
+---
+
+# 十八、每周
+
+```text
+next = baseDate + 7 days
+```
+
+---
+
+# 十九、两周
+
+```text
+next = baseDate + 14 days
+```
+
+---
+
+# 二十、每月
+
+必须使用：
+
+# Calendar Month Arithmetic
+
+不要简单：
+
+```text
++ 30 days
+```
+
+例如：
+
+```text
+Jan 15
+→
+Feb 15
+```
+
+不是：
+
+```text
+Feb 14
+```
+
+月末：
+
+使用合理 Calendar Clamp。
+
+例如：
+
+```text
+Jan 31
+→
+Feb 28/29
+```
+
+---
+
+# 二十一、先检查现有 Recurrence
+
+本功能可能已经部分实现。
+
+不要重新写一套。
+
+先检查：
+
+```text
+Customer follow-up recurrence
+Task recurrence engine
+```
+
+如果已有可靠共用逻辑：
+
+扩展 / 简化 UI 即可。
+
+如果现有逻辑已经满足：
+
+```text
+基于 nextFollowUpDate
+没有则 today
+```
+
+只增加测试。
+
+---
+
+# 二十二、Recurrence Tests
+
+必须测试：
+
+```text
+every3Days
+weekly
+biweekly
+monthly
+```
+
+包括：
+
+```text
+nextFollowUpDate exists
+nextFollowUpDate null
+month end
+leap year
+```
+
+---
+
+# 二十三、Customer Detail 字段顺序调整
+
+调整为：
+
+```text
+客户名称
+
+客户级别
+客户状态
+
+客户来源
+
+优先级
+
+下次跟进
+重复
+
+标签
+
+备注
+
+跟进记录
+
+订单
+
+基本信息
+```
+
+具体细节可根据现有 UI 微调。
+
+---
+
+# 二十四、客户来源移动
+
+Customer Source：
+
+移动到：
+
+# Customer Status 下方。
+
+不要继续放在：
+
+```text
+Basic Information
+```
+
+最深处。
+
+因为：
+
+```text
+客户来源
+```
+
+是非常重要的销售分析字段。
+
+---
+
+# 二十五、Customer Detail 双列布局
+
+为了节约垂直空间：
+
+支持部分字段：
+
+# 一行两个。
+
+例如：
+
+```text
+客户级别      客户状态
+
+客户来源      优先级
+
+下次跟进      重复
+```
+
+不要强制所有字段单独一整行。
+
+---
+
+# 二十六、Responsive Detail Layout
+
+Customer Detail 宽度变化：
+
+宽：
+
+```text
+2 Columns
+```
+
+窄：
+
+```text
+1 Column
+```
+
+例如：
+
+```text
+>= 420px
+two columns
+
+< 420px
+single column
+```
+
+具体 Breakpoint 根据现有 Fly Detail 宽度调整。
+
+不要产生 Overflow。
+
+---
+
+# 二十七、Priority 单选区域可能占整行
+
+例如：
+
+```text
+优先级
+[高][中][低]
+```
+
+如果双栏显得太挤：
+
+允许优先级独占一行。
+
+目标：
+
+```text
+紧凑
+但不拥挤
+```
+
+---
+
+# 二十八、Customer Notes 全面重构
+
+当前：
+
+```text
+Customer Notes
+```
+
+不要再使用 Markdown。
+
+删除 Markdown 编辑依赖 / UI。
+
+Customer Notes 的定位变成：
+
+# CRM 内部时间流 Notes。
+
+类似：
+
+```text
+Notion block
++
+Timeline
+```
+
+但保持简单。
+
+---
+
+# 二十九、Notes 数据结构
+
+不要只存：
+
+```text
+customer.notes TEXT
+```
+
+作为唯一 Note。
+
+建立：
+
+```text
+CustomerNote
+```
+
+字段：
+
+```text
+id
+customerId
+
+content
+
+createdAt
+updatedAt
+
+color
+sortOrder optional
+deletedAt optional
+```
+
+---
+
+# 三十、Customer Detail 中 Notes 默认只展示一条
+
+在 Customer Detail：
+
+显示：
+
+```text
+备注
+```
+
+下面：
+
+# 最新一条 Note。
+
+例如：
+
+```text
+客户非常关注包装细节，要求下次报价明确包装方式。
+9月2日 10:35
+```
+
+不要直接展示全部历史 Notes。
+
+---
+
+# 三十一、Notes 点击行为
+
+点击整个：
+
+```text
+备注
+```
+
+区域。
+
+在 Fly 整个窗口：
+
+# 最右侧增加一个 Extension Panel。
+
+注意：
+
+不是替换 Customer Detail。
+
+而是：
+
+```text
+Rail
+Sidebar
+Customer List
+Customer Detail
+Notes Extension Panel
+```
+
+---
+
+# 三十二、Extension Panel
+
+类似：
+
+```text
+┌─────────────────────────────────┐
+│ 客户备注                    ×   │
+│ 搜索备注...                     │
+├─────────────────────────────────┤
+│                                 │
+│ [输入新的备注...]               │
+│                                 │
+├─────────────────────────────────┤
+│ 9月2日 10:35                    │
+│ 客户关注包装要求                │
+│                                 │
+│ 9月1日 16:20                    │
+│ 客户希望月底前收到样品          │
+└─────────────────────────────────┘
+```
+
+---
+
+# 三十三、Notes Extension Panel 宽度
+
+Desktop：
+
+建议：
+
+```text
+340 ~ 440px
+```
+
+支持 Resizable：
+
+如果现有 Layout System 容易支持：
+
+可以让用户拖动宽度。
+
+否则：
+
+先 Responsive 固定合理区间。
+
+---
+
+# 三十四、窗口宽度不足时
+
+如果打开 Extension Panel 后：
+
+总宽度不足。
+
+优先：
+
+```text
+缩小 Customer Detail
+```
+
+到最小宽度。
+
+如果仍不足：
+
+Extension Panel：
+
+使用：
+
+```text
+Overlay / Drawer
+```
+
+不要造成 Layout Overflow。
+
+---
+
+# 三十五、新增 Note
+
+Extension Panel 顶部：
+
+提供一个：
+
+# 单一输入区域。
+
+例如：
+
+```text
+记录客户信息...
+```
+
+输入：
+
+```text
+客户表示本周五确认最终数量
+```
+
+按：
+
+```text
+Enter
+```
+
+创建 Note。
+
+---
+
+# 三十六、Note Enter 行为
+
+要求：
+
+# Enter = 创建 Block。
+
+不要：
+
+```text
+Enter = 换行
+```
+
+如果需要多行：
+
+使用：
+
+```text
+Shift + Enter
+```
+
+插入换行。
+
+---
+
+# 三十七、创建后的 Note
+
+自动：
+
+```text
+createdAt = now
+```
+
+并出现在：
+
+# 最顶部。
+
+排序：
+
+```text
+createdAt DESC
+```
+
+---
+
+# 三十八、Note Blocks
+
+每条 Note：
+
+作为独立 Block。
+
+例如：
+
+```text
+┌───────────────────────────────┐
+│ 客户本周五确认最终数量        │
+│                               │
+│ 2026-09-02 10:35              │
+└───────────────────────────────┘
+```
+
+---
+
+# 三十九、Note 颜色
+
+不同 Note Block：
+
+可以使用不同：
+
+```text
+soft background color
+```
+
+例如：
+
+```text
+very light blue
+very light yellow
+very light green
+very light gray
+very light purple
+```
+
+目的：
+
+# 快速区分信息块。
+
+不要高饱和。
+
+---
+
+# 四十、Note Color Strategy
+
+V1：
+
+可以：
+
+```text
+自动轮换几种柔和色
+```
+
+或者：
+
+点击：
+
+```text
+...
+```
+
+允许用户选择颜色。
+
+如果用户选择功能会明显增加复杂度：
+
+第一阶段使用自动颜色即可。
+
+---
+
+# 四十一、Note 时间
+
+每一个 Block：
+
+必须显示：
+
+```text
+createdAt
+```
+
+例如：
+
+```text
+9月2日 10:35
+```
+
+今年：
+
+不用显示年份。
+
+非今年：
+
+显示完整：
+
+```text
+2025年12月20日
+```
+
+---
+
+# 四十二、Note 编辑
+
+建议支持：
+
+```text
+Double click / menu
+→ 编辑
+```
+
+编辑后保留：
+
+```text
+updatedAt
+```
+
+如果：
+
+```text
+updatedAt != createdAt
+```
+
+可以显示：
+
+```text
+已编辑
+```
+
+---
+
+# 四十三、Note 删除
+
+右键 / `...`：
+
+```text
+删除
+```
+
+建议 Soft Delete。
+
+---
+
+# 四十四、Notes Search
+
+Extension Panel 顶部：
+
+```text
+搜索备注...
+```
+
+支持：
+
+# 实时搜索。
+
+至少按：
+
+```text
+content
+```
+
+模糊匹配。
+
+---
+
+# 四十五、Search Highlight
+
+如果成本合理：
+
+命中关键词：
+
+轻量 Highlight。
+
+否则：
+
+只过滤即可。
+
+不要为了 Highlight 引入复杂文本组件。
+
+---
+
+# 四十六、Customer Detail Notes Preview
+
+因为 Customer Detail 只展示最新一条。
+
+展示：
+
+```text
+content first lines
+time
+```
+
+例如：
+
+```text
+备注
+
+客户本周五确认最终数量
+今天 10:35
+
+查看全部 >
+```
+
+整个区域都可点击。
+
+---
+
+# 四十七、Follow-up History 也重构
+
+当前跟进记录存在：
+
+```text
+两个输入框
+```
+
+需要删除这种 Form 风格。
+
+---
+
+# 四十八、Customer Detail 中 Follow-up Preview
+
+Customer Detail：
+
+只展示：
+
+# 最新一条 Follow-up。
+
+例如：
+
+```text
+跟进记录
+
+客户说月底前确认数量
+WhatsApp · 今天 09:20
+```
+
+如果空间允许：
+
+鼠标滚轮可以在该 Preview 区域：
+
+浏览最近几条。
+
+但：
+
+# 不要把整个历史展开。
+
+---
+
+# 四十九、点击 Follow-up 区域
+
+打开：
+
+# Follow-up Extension Panel。
+
+和 Notes 使用同一：
+
+```text
+Right Extension Panel framework
+```
+
+只是内容不同。
+
+---
+
+# 五十、Extension Panel State
+
+建立：
+
+```text
+DetailExtensionType
+```
+
+例如：
+
+```text
+none
+notes
+followUps
+```
+
+不要同时打开：
+
+```text
+Notes Panel
++
+FollowUp Panel
+```
+
+两个。
+
+点击备注：
+
+```text
+extension = notes
+```
+
+点击跟进：
+
+```text
+extension = followUps
+```
+
+---
+
+# 五十一、Follow-up Extension Panel
+
+结构：
+
+```text
+┌─────────────────────────────────┐
+│ 跟进记录                    ×   │
+│ 搜索跟进...                     │
+├─────────────────────────────────┤
+│                                 │
+│ [记录本次跟进...]               │
+│                                 │
+├─────────────────────────────────┤
+│ 今天 09:20                      │
+│ WhatsApp                        │
+│ 客户月底前确认数量              │
+│                                 │
+│ 8月29日 14:10                   │
+│ Email                           │
+│ 已发送报价                      │
+└─────────────────────────────────┘
+```
+
+---
+
+# 五十二、Follow-up 输入简化
+
+不要：
+
+```text
+Content Input
+Next Action Input
+```
+
+两个大框。
+
+只要：
+
+# 一个主要输入框。
+
+例如：
+
+```text
+记录本次跟进...
+```
+
+---
+
+# 五十三、新增 Follow-up
+
+输入：
+
+```text
+客户要求重新确认包装成本
+```
+
+Enter：
+
+保存。
+
+自动：
+
+```text
+followedUpAt = now
+lastFollowUpAt = now
+```
+
+---
+
+# 五十四、Follow-up 其他属性 Progressive Disclosure
+
+Channel：
+
+例如：
+
+```text
+WhatsApp
+Email
+Call
+Meeting
+```
+
+可以使用：
+
+```text
+小图标 / 小菜单
+```
+
+而不是占一个大输入框。
+
+---
+
+# 五十五、Next Action 简化
+
+如果现有：
+
+```text
+nextAction
+```
+
+继续保留。
+
+但是：
+
+不要强迫每条 Follow-up 填写。
+
+可以在 Follow-up Block：
+
+```text
+...
+→ 设置下一步
+```
+
+按需增加。
+
+---
+
+# 五十六、Follow-up Date 联动
+
+记录 Follow-up：
+
+不要自动强制修改：
+
+```text
+nextFollowUpDate
+```
+
+除非 recurrence 规则要求。
+
+如果用户在完成今日跟进 Checkbox 时：
+
+继续执行已有 recurrence logic。
+
+---
+
+# 五十七、Follow-up Search
+
+Extension Panel：
+
+支持：
+
+```text
+content
+channel
+```
+
+搜索。
+
+例如输入：
+
+```text
+报价
+```
+
+显示所有包含：
+
+```text
+报价
+```
+
+的历史跟进。
+
+---
+
+# 五十八、Follow-up Blocks
+
+与 Note Blocks：
+
+共享视觉结构。
+
+但 Follow-up：
+
+额外显示：
+
+```text
+Channel
+Follow-up Time
+```
+
+例如：
+
+```text
+WhatsApp · 今天 10:20
+```
+
+---
+
+# 五十九、Notes 与 Follow-ups 不要混表
+
+虽然 UI 相似：
+
+Domain 必须保持：
+
+```text
+CustomerNote
+```
+
+和：
+
+```text
+CustomerFollowUp
+```
+
+独立。
+
+因为语义不同。
+
+---
+
+# 六十、Extension Panel 共用组件
+
+可以建立：
+
+```text
+CustomerExtensionPanel
+```
+
+内部：
+
+```text
+NotesExtensionView
+FollowUpsExtensionView
+```
+
+共享：
+
+```text
+Header
+Search
+Close
+Scroll
+Input
+Block style
+```
+
+---
+
+# 六十一、Extension Panel 全局交互
+
+点击：
+
+```text
+×
+```
+
+关闭。
+
+Esc：
+
+如果 Focus 不在特殊编辑状态：
+
+关闭 Extension。
+
+切换 Customer：
+
+Extension Panel：
+
+可以：
+
+```text
+保持类型
+```
+
+但是内容更新为：
+
+当前 Customer。
+
+例如：
+
+当前打开：
+
+```text
+Notes
+```
+
+点击另一个 Customer：
+
+继续显示新 Customer 的 Notes。
+
+这是效率最高的行为。
+
+---
+
+# 六十二、Customer Detail 布局参考
+
+最终大致：
+
+```text
+客户名称
+
+[级别]          [状态]
+
+[来源]          [优先级]
+
+[下次跟进]      [重复]
+
+标签
+
+────────────
+
+备注
+最新一条...
+>
+
+────────────
+
+跟进记录
+最新一条...
+>
+
+────────────
+
+订单
+5 个订单
+[查看订单] [+ 新建订单]
+
+────────────
+
+基本信息 >
+```
+
+顺序可以根据当前 UI 微调。
+
+---
+
+# 六十三、订单区域
+
+Customer Detail：
+
+订单区域必须至少有：
+
+```text
+查看订单
+新建订单
+```
+
+例如：
+
+```text
+订单                    5
+
+[查看订单]   [+ 新建订单]
+```
+
+---
+
+# 六十四、按钮风格
+
+不要大 Filled Button。
+
+使用：
+
+```text
+轻量 Text Button
+Outline
+Icon + Text
+```
+
+与 Fly Design System 一致。
+
+---
+
+# 六十五、Order Priority 同步微调
+
+订单模块也需要：
+
+# Priority High / Medium / Low
+
+Customer / Order 共用：
+
+```text
+Priority enum / model
+Priority Selector
+Priority Colors
+Priority List Styling
+```
+
+---
+
+# 六十六、Order Detail Priority
+
+例如：
+
+```text
+优先级
+
+[ 高 ] [ 中 ] [ 低 ]
+```
+
+默认：
+
+```text
+低
+```
+
+---
+
+# 六十七、Order List Priority
+
+High：
+
+浅红背景。
+
+Medium：
+
+浅橙 / 黄。
+
+Low：
+
+默认白色。
+
+---
+
+# 六十八、Order List Status Accent
+
+Order 本身已经存在：
+
+```text
+状态
+重要
+紧急
+```
+
+不要因为 Priority Background：
+
+覆盖原有 Status Accent。
+
+需要重新检查：
+
+```text
+Priority
+Status
+Selected
+Hover
+Urgency
+```
+
+视觉叠加。
+
+建立明确 Design Rules。
+
+---
+
+# 六十九、视觉优先级
+
+建议：
+
+```text
+Row Background
+=
+Priority
+```
+
+```text
+Status
+=
+small colored text / dot
+```
+
+```text
+Urgent / Important
+=
+small icon / indicator
+```
+
+```text
+Selected
+=
+border / stronger overlay
+```
+
+不要所有信息都使用背景色。
+
+---
+
+# 七十、数据库 Migration
+
+CustomerNote 如果目前不存在独立表：
+
+建立 Migration。
+
+不要删除现有：
+
+```text
+customer.notes
+```
+
+里的数据。
+
+---
+
+# 七十一、旧 Notes 数据迁移
+
+如果：
+
+```text
+customers.notes
+```
+
+已经存在内容。
+
+Migration：
+
+为每一个非空：
+
+```text
+customer.notes
+```
+
+创建：
+
+```text
+CustomerNote
+```
+
+例如：
+
+```text
+content = old notes
+createdAt = customer.updatedAt / now
+```
+
+然后旧字段：
+
+可以暂时保留兼容。
+
+不要造成数据丢失。
+
+---
+
+# 七十二、Follow-up 旧数据
+
+已有 CustomerFollowUp：
+
+继续使用。
+
+不要重新创建另一套表。
+
+只重构 UI。
+
+---
+
+# 七十三、数据层原则
+
+CustomerDetail：
+
+不要一次：
+
+```text
+load all notes
+load all followups
+```
+
+如果数据可能很多。
+
+Preview：
+
+只 Query：
+
+```text
+latest 1
+```
+
+Extension Panel：
+
+分页 / Lazy Load。
+
+例如：
+
+```text
+20 items per page
+```
+
+或者 Stream Limited Query。
+
+避免未来客户有500条记录时卡顿。
+
+---
+
+# 七十四、Notes Search Query
+
+使用 Repository：
+
+不要 Widget 直接 SQL。
+
+例如：
+
+```text
+CustomerNoteRepository.search(
+ customerId,
+ query
+)
+```
+
+---
+
+# 七十五、Follow-up Search 同理
+
+通过：
+
+```text
+CustomerFollowUpRepository
+```
+
+实现。
+
+---
+
+# 七十六、Keyboard
+
+Notes Extension：
+
+```text
+Enter
+Create block
+```
+
+```text
+Shift+Enter
+New line
+```
+
+```text
+Esc
+Close / cancel
+```
+
+---
+
+# 七十七、Follow-up Extension
+
+同样：
+
+```text
+Enter
+Create follow-up
+```
+
+```text
+Shift+Enter
+New line
+```
+
+---
+
+# 七十八、Focus
+
+打开 Notes：
+
+自动 Focus：
+
+```text
+Search?
+```
+
+不要。
+
+默认：
+
+# Input New Note
+
+更适合快速录入。
+
+如果用户点击 Search：
+
+再 Focus Search。
+
+---
+
+# 七十九、输入框高度
+
+Notes / Follow-up：
+
+默认：
+
+```text
+2~3 lines
+```
+
+随着内容：
+
+可以轻量 grow。
+
+不要巨大 Editor。
+
+---
+
+# 八十、保存反馈
+
+Enter 创建：
+
+立即：
+
+```text
+new block appears at top
+input clears
+focus remains
+```
+
+不要 Snackbar：
+
+```text
+保存成功
+```
+
+这种重复反馈。
+
+---
+
+# 八十一、Auto-save Existing Blocks
+
+编辑已有 Note：
+
+使用：
+
+```text
+debounce
+```
+
+Auto Save。
+
+或者：
+
+Enter / Ctrl+Enter Complete Edit。
+
+根据现有 Fly 交互选择。
+
+---
+
+# 八十二、日期显示统一
+
+建立统一：
+
+```text
+RelativeDateFormatter
+```
+
+例如：
+
+```text
+今天 10:30
+昨天 16:20
+8月30日
+2025年12月20日
+```
+
+Customer List：
+
+```text
+上次跟进
+```
+
+也复用。
+
+---
+
+# 八十三、Customer Detail 自适应
+
+打开 Extension Panel 后：
+
+Customer Detail 的：
+
+```text
+2-column layout
+```
+
+如果宽度不足：
+
+自动变：
+
+```text
+1-column
+```
+
+这是本轮强制要求。
+
+---
+
+# 八十四、不要破坏主列表宽度
+
+打开 Extension：
+
+优先：
+
+```text
+Detail shrinking
+```
+
+而不是：
+
+把 Customer List 压缩到100px。
+
+设置各 Pane：
+
+```text
+minWidth
+preferredWidth
+```
+
+---
+
+# 八十五、测试 — 新建订单
+
+Customer：
+
+```text
+Jack
+```
+
+点击：
+
+```text
++ 新建订单
+```
+
+必须：
+
+```text
+Order created
+customerId = Jack.id
+```
+
+自动跳到：
+
+```text
+Orders
+```
+
+并选中：
+
+新订单。
+
+---
+
+# 八十六、测试 — Priority
+
+Customer：
+
+```text
+Low
+```
+
+默认 Row：
+
+白色。
+
+切：
+
+```text
+Medium
+```
+
+Customer Row：
+
+淡黄色。
+
+切：
+
+```text
+High
+```
+
+Row：
+
+淡红色。
+
+---
+
+# 八十七、测试 — Order Priority
+
+同样测试。
+
+---
+
+# 八十八、测试 — Three Days
+
+今天：
+
+```text
+2026-09-02
+```
+
+Customer：
+
+```text
+recurrence = every3Days
+nextFollowUp = null
+```
+
+设置后：
+
+期望：
+
+```text
+nextFollowUp = 2026-09-05
+```
+
+---
+
+# 八十九、三天已有日期测试
+
+```text
+nextFollowUp = 2026-09-10
+```
+
+触发下一个周期：
+
+```text
+2026-09-13
+```
+
+---
+
+# 九十、每周
+
+```text
+Sep 10
+→
+Sep 17
+```
+
+---
+
+# 九十一、两周
+
+```text
+Sep 10
+→
+Sep 24
+```
+
+---
+
+# 九十二、每月
+
+```text
+Jan 31
+→
+Feb 28/29
+```
+
+测试。
+
+---
+
+# 九十三、Notes 测试
+
+Customer：
+
+添加：
+
+```text
+Note A
+Note B
+Note C
+```
+
+列表：
+
+```text
+C
+B
+A
+```
+
+Customer Detail：
+
+只 Preview：
+
+```text
+Note C
+```
+
+---
+
+# 九十四、Notes Search
+
+搜索：
+
+```text
+报价
+```
+
+只返回包含报价的 Notes。
+
+---
+
+# 九十五、Follow-up Preview
+
+已有：
+
+```text
+3 FollowUps
+```
+
+Customer Detail：
+
+只展示最新。
+
+点击：
+
+打开 Extension：
+
+显示全部历史。
+
+---
+
+# 九十六、Follow-up Input
+
+Enter：
+
+创建。
+
+必须：
+
+```text
+lastFollowUpAt = now
+```
+
+---
+
+# 九十七、Windows UX
+
+Extension Panel 动画：
+
+```text
+120~200ms
+```
+
+轻微 Slide / Fade。
+
+不要复杂动画。
+
+---
+
+# 九十八、设计文档
+
+新增：
+
+```text
+docs/design/crm_polish/
+```
+
+至少：
+
+```text
+customer_detail_v2.md
+priority_states.md
+recurrence.md
+notes_extension.md
+followup_extension.md
+responsive_detail.md
+```
+
+---
+
+# 九十九、Screenshot
+
+完成后保存：
+
+```text
+docs/screenshots/crm_polish/
+```
+
+至少：
+
+```text
+customer_detail.png
+customer_priority_high.png
+customer_notes_preview.png
+customer_notes_extension.png
+customer_followup_extension.png
+order_priority.png
+```
+
+---
+
+# 一百、最终验证
+
+运行：
+
+```bash
+flutter analyze
+```
+
+必须：
+
+```text
+PASS
+0 issues
+```
+
+运行：
+
+```bash
+flutter test
+```
+
+全部通过。
+
+运行：
+
+```bash
+flutter build windows --release
+```
+
+PASS。
+
+运行：
+
+```bash
+flutter run -d windows --release
+```
+
+实际视觉检查。
+
+---
+
+# 一百零一、本轮最终验收
+
+## Customer Detail
+
+必须：
+
+```text
++ 新建订单
+```
+
+直接绑定当前客户。
+
+---
+
+## Priority
+
+Customer：
+
+```text
+高
+中
+低
+```
+
+Order：
+
+```text
+高
+中
+低
+```
+
+均使用：
+
+```text
+Single-select
+```
+
+Low：
+
+无背景。
+
+Medium：
+
+柔和黄/橙。
+
+High：
+
+柔和红。
+
+列表同步。
+
+---
+
+## Recurrence
+
+Customer：
+
+```text
+从不
+三天
+每周
+两周
+每月
+```
+
+不再有自定义。
+
+---
+
+## Customer Source
+
+移动到：
+
+```text
+Status
+```
+
+附近高频区域。
+
+---
+
+## Detail Fields
+
+支持：
+
+```text
+2-column responsive
+```
+
+---
+
+## Notes
+
+不使用 Markdown。
+
+Customer Detail：
+
+只显示最新 Note。
+
+点击：
+
+打开右侧 Extension Panel。
+
+Extension：
+
+```text
+搜索
+新增
+历史 Blocks
+时间
+颜色
+```
+
+Enter：
+
+创建 Block。
+
+---
+
+## Follow-up
+
+Customer Detail：
+
+只展示最新。
+
+不要两个 Input。
+
+点击：
+
+打开右侧 Follow-up Extension。
+
+一个主输入框。
+
+Enter：
+
+新增 Follow-up。
+
+支持搜索历史。
+
+---
+
+# 一百零二、最终产品判断标准
+
+不要只检查：
+
+```text
+功能是否存在
+```
+
+需要确认：
+
+# 客户详情是不是明显更短、更紧凑？
+
+# 新建客户订单是不是不需要重新选客户？
+
+# 优先级高的客户是不是一眼就能找到？
+
+# 重复跟进设置是不是5秒内完成？
+
+# 我能不能在客户详情只看最新备注，需要历史时再展开？
+
+# 我能不能像使用 Notion block 一样连续输入客户信息？
+
+# 我能不能搜索半年以前写过的客户备注？
+
+# 跟进记录是不是从“填表”变成了“记录事情”？
+
+如果这些没有达到：
+
+继续优化。
+
+现在开始修改：
+
+```text
+E:\workSpace\fly
+```
+
+不要开发新模块。
+
+完成本轮 CRM / Order Polish 后停止。

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
+import 'package:open_filex/open_filex.dart';
 import 'package:uuid/uuid.dart';
 
 import 'attachment.dart';
@@ -40,7 +41,7 @@ class LocalAttachmentStorage {
     final originalName = p.basename(source.path);
     final safeName = originalName.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_');
     final fileName = '$id-$safeName';
-    final relativePath = p.join(
+    final relativePath = p.posix.join(
       'attachments',
       ownerType.folder,
       ownerId,
@@ -60,7 +61,7 @@ class LocalAttachmentStorage {
   }
 
   String absolutePath(String relativePath) =>
-      p.normalize(p.join(dataRootPath, relativePath));
+      p.normalize(p.join(dataRootPath, relativePath.replaceAll('\\', '/')));
 
   Future<void> delete(String relativePath) async {
     final file = File(absolutePath(relativePath));
@@ -94,7 +95,20 @@ class PlatformAttachmentOpener {
   }
 
   Future<void> open(String absolutePath) async {
-    if (Platform.isWindows) {
+    if (await FileSystemEntity.type(absolutePath) ==
+        FileSystemEntityType.notFound) {
+      throw StateError('文件内容尚未下载到此设备，请检查同步状态');
+    }
+    if (Platform.isAndroid || Platform.isIOS) {
+      final result = await OpenFilex.open(absolutePath);
+      if (result.type != ResultType.done) {
+        throw StateError(
+          result.type == ResultType.noAppToOpen
+              ? '未安装可以打开此文件的应用，请安装对应应用后重试'
+              : '打开文件失败：${result.message}',
+        );
+      }
+    } else if (Platform.isWindows) {
       await Process.start('rundll32.exe', [
         'url.dll,FileProtocolHandler',
         absolutePath,

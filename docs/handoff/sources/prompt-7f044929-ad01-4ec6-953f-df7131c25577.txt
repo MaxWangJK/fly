@@ -1,0 +1,3059 @@
+# Fly Container Loading Planner V2
+# Section-based Loading / Cargo Library / 3D Packing Polish
+# 项目目录：E:\workSpace\fly
+
+当前 Fly 已经存在：
+
+- 工具一级模块
+- 装柜模拟
+- 20GP / 40HQ
+- Cargo Package
+- Loading Plan
+- 3D Container
+- Auto Packing
+- Cargo Group
+- Pallet / Package 等货物
+- 3D Camera / Container Scene
+- 当前 Fly Design System
+
+本轮不要推倒现有装柜工具重写。
+
+需要保留：
+
+- 当前已经可以工作的3D引擎
+- 当前集装箱绘制
+- 当前货物库
+- 当前 LoadingPlan 数据
+- 当前装柜算法中仍有价值的代码
+- 当前 Fly 整体UI、颜色和交互设计
+
+但是装柜工具的核心业务逻辑要修改为：
+
+# Container
+   ↓
+# Sections
+   ↓
+# 每一个 Section 分别添加货物
+   ↓
+# 每一个 Section 分别自动装柜
+   ↓
+# 3D人工调整
+   ↓
+# 保存整个方案
+
+不要再把整个 Container 视为一个不可拆分的大 Bin 直接一次计算。
+
+==================================================
+PART A — 装柜工具信息架构重构
+==================================================
+
+一级导航：
+
+工具
+
+保持不变。
+
+点击：
+
+工具
+→
+装柜模拟
+
+进入 Container Loading Workspace。
+
+整个 Workspace 建议维持：
+
+Primary Rail
++
+Tool Secondary Sidebar
++
+Loading Editor
++
+3D Scene
+
+不要改变 Fly 已有四栏/多栏设计语言。
+
+==================================================
+PART B — Tool Secondary Sidebar
+==================================================
+
+装柜模拟二级 Sidebar 从上到下重新组织：
+
+装柜模拟
+
+-----------------
+
+集装箱
+
+40HQ
+20GP
+用户自定义 Container...
+
+[ + 添加集装箱 ]
+
+-----------------
+
+保存的方案
+
+最近方案 1
+最近方案 2
+最近方案 3
+最近方案 4
+最近方案 5
+
+更多 >
+
+-----------------
+
+货物
+
+WPC01
+WPC02
+Bamboo Panel 托盘
+门扇
+UV托盘
+...
+
+[ + 添加货物 ]
+
+==================================================
+PART C — Container Preset 改到二级目录
+==================================================
+
+当前 Container 选择如果存在于 Workspace 内部：
+
+调整。
+
+用户选择：
+
+20GP
+40HQ
+
+应该直接在：
+
+Tool Secondary Sidebar → 集装箱
+
+完成。
+
+不要再把20GP / 40HQ作为 Workspace 中的主要选择器。
+
+点击：
+
+40HQ
+
+立即：
+
+1. activeContainerPreset = 40HQ
+2. 三级 Workspace 更新 Container 信息
+3. 3D Scene 立即切换为 40HQ
+4. Section 默认方案更新/检查
+
+点击20GP同理。
+
+==================================================
+PART D — Container Preset
+==================================================
+
+默认：
+
+40HQ
+
+内部：
+
+Length = 11900 mm
+Width  = 2200 mm
+Height = 2690 mm
+Max Payload = 28000 kg
+
+默认 Section：
+
+4 Sections
+
+每节：
+
+2900 mm
+
+总 Section Length：
+
+11600 mm
+
+剩余：
+
+300 mm
+
+这个300mm不要偷偷平均掉。
+
+在 UI 可以显示：
+
+未分配长度：300 mm
+
+--------------------------------------------------
+
+20GP
+
+Length = 5800 mm
+Width  = 2200 mm
+Height = 2320 mm
+Max Payload = 28000 kg
+
+默认：
+
+2 Sections
+
+每节：
+
+2900 mm
+
+总计：
+
+5800 mm
+
+==================================================
+PART E — Container Preset 可以编辑
+==================================================
+
+用户对：
+
+40HQ
+20GP
+自定义 Container
+
+右键 / ...
+
+支持：
+
+编辑尺寸
+
+字段：
+
+名称
+内部长度
+内部宽度
+内部高度
+最大货重
+
+20GP / 40HQ：
+
+允许编辑。
+
+但增加：
+
+恢复默认值
+
+避免用户修改以后无法恢复。
+
+--------------------------------------------------
+
+允许：
+
++ 添加集装箱
+
+例如：
+
+40GP
+45HQ
+客户特殊箱体
+
+ContainerPreset：
+
+id
+name
+innerLengthMm
+innerWidthMm
+innerHeightMm
+maxPayloadKg
+isBuiltIn
+createdAt
+updatedAt
+
+==================================================
+PART F — Workspace 顶部只展示当前 Container 信息
+==================================================
+
+选择 Container 后：
+
+Workspace 顶部显示：
+
+40HQ
+
+内部尺寸
+11.90 × 2.20 × 2.69 m
+
+最大货重
+28,000 kg
+
+安全间隙
+0 mm
+
+Sections
+4
+
+不要在这里再次提供一个大型：
+
+20GP / 40HQ
+
+选择器。
+
+Container Selection 已经属于 Sidebar。
+
+==================================================
+PART G — 保存方案重构
+==================================================
+
+Sidebar：
+
+保存的方案
+
+默认只展开：
+
+最近修改的5条。
+
+如果实际有：
+
+20个方案
+
+默认仍然只显示：
+
+5个。
+
+下面：
+
+更多 >
+
+点击：
+
+更多
+
+显示全部保存方案。
+
+可以使用：
+
+Popover
+Extension
+Expanded list
+
+选择最符合当前 Sidebar UI 的方式。
+
+不要一次性在 Sidebar 塞几十条。
+
+==================================================
+PART H — Loading Plan 默认名字
+==================================================
+
+保存时：
+
+如果用户没有输入名字：
+
+自动生成。
+
+例如：
+
+40HQ · 2026-09-06 11:20
+
+或者：
+
+40HQ-装柜方案-20260906-1120
+
+推荐中文：
+
+40HQ · 09月06日 11:20
+
+==================================================
+PART I — Saved Plan Context Menu
+==================================================
+
+保存方案：
+
+Right Click / ...
+
+支持：
+
+打开方案
+重命名
+编辑方案
+删除方案
+
+其中：
+
+打开方案 / 编辑方案
+
+都进入 Loading Workspace。
+
+“编辑方案”：
+
+明确进入可修改状态。
+
+--------------------------------------------------
+
+删除：
+
+提示：
+
+确定删除装柜方案 “XXX”？
+
+不要删除：
+
+Cargo Library
+Container Preset
+
+只删除 Plan 自己的数据。
+
+==================================================
+PART J — Cargo Library
+==================================================
+
+保存方案下面增加：
+
+# 货物
+
+Cargo Library。
+
+用户可以：
+
++ 添加货物
+
+例如：
+
+WPC01
+WPC02
+WPC03
+Bamboo Panel 托盘
+门扇
+UV托盘
+
+==================================================
+PART K — Cargo Master Data
+==================================================
+
+CargoPackage：
+
+字段建议：
+
+id
+name
+
+lengthMm
+widthMm
+heightMm
+
+weightKg
+
+cargoType
+
+defaultSectionQuantity nullable
+
+color
+
+createdAt
+updatedAt
+deletedAt
+
+--------------------------------------------------
+
+这里不要保存：
+
+靠边
+居中
+底部
+是否堆叠
+平放
+立放
+
+这些不是 Cargo 固有属性。
+
+这些属于：
+
+# 某一次装柜
+# 某一个 Section
+
+的 Placement Options。
+
+==================================================
+PART L — 每节默认装货数量
+==================================================
+
+Cargo Master 增加一个选填字段：
+
+每节装箱数
+
+例如：
+
+WPC01
+
+290 × 16 × 12 cm
+
+18 kg / package
+
+每节装箱数：
+286
+
+这个字段：
+
+optional。
+
+--------------------------------------------------
+
+例如：
+
+Bamboo Panel 托盘
+
+280 × 120 × 100 cm
+
+重量：
+XXX kg
+
+每节装箱数：
+
+空
+
+这是合法的。
+
+==================================================
+PART M — 默认每节数量的用途
+==================================================
+
+用户把 WPC01 拖到：
+
+Section 1
+
+如果：
+
+defaultSectionQuantity = 286
+
+则：
+
+Quantity 默认预填：
+
+286
+
+但用户仍然可以改：
+
+284
+280
+300
+
+等等。
+
+==================================================
+PART N — 用户经验优先 Override
+==================================================
+
+重要业务要求：
+
+用户经常知道：
+
+“一节实际可以装多少”
+
+但纯尺寸算法未必理解：
+
+包装挤压
+人工错位排列
+实际装柜经验
+包装形变
+预留方式
+
+因此：
+
+如果：
+
+defaultSectionQuantity / 用户输入数量
+
+大于算法理论可装数量，
+
+不要直接拒绝。
+
+显示：
+
+⚠ 当前数量超过系统根据尺寸计算的理论容量。
+
+系统计算：
+280
+
+用户设置：
+286
+
+[修改数量]
+[仍按286继续]
+
+--------------------------------------------------
+
+如果用户选择：
+
+仍按286继续
+
+则：
+
+Plan Item：
+
+manualQuantityOverride = true
+
+quantity = 286
+
+后续：
+
+# 不再次阻止用户
+# 不再次自动修改这个数量
+
+但是 UI 需要有一个轻量警告：
+
+“用户覆盖理论容量”
+
+避免软件假装数学上完全成立。
+
+--------------------------------------------------
+
+不要每次重新计算又把286改回280。
+
+用户确认后：
+
+尊重用户业务经验。
+
+==================================================
+PART O — Cargo Context Menu
+==================================================
+
+Sidebar Cargo：
+
+Right Click / ...
+
+支持：
+
+编辑
+复制规格
+删除
+
+编辑：
+
+名称
+尺寸
+重量
+每节默认数量
+颜色
+
+==================================================
+PART P — Section 是新版核心
+==================================================
+
+LoadingPlan：
+
+必须建立真正的 Section Model。
+
+例如：
+
+LoadingPlan
+├── ContainerPreset
+├── Section 1
+├── Section 2
+├── Section 3
+└── Section 4
+
+--------------------------------------------------
+
+ContainerSection：
+
+id
+loadingPlanId
+
+index
+name
+
+startXmm
+lengthMm
+
+createdAt
+updatedAt
+
+--------------------------------------------------
+
+X：
+
+定义为集装箱长度方向。
+
+==================================================
+PART Q — Section 默认配置
+==================================================
+
+20GP：
+
+Section 1
+2900mm
+
+Section 2
+2900mm
+
+--------------------------------------------------
+
+40HQ：
+
+Section 1
+2900mm
+
+Section 2
+2900mm
+
+Section 3
+2900mm
+
+Section 4
+2900mm
+
+剩余：
+
+300mm
+
+==================================================
+PART R — 用户自定义 Section
+==================================================
+
+Workspace：
+
+增加：
+
+集装箱分节
+
+节数
+[ 4 ]
+
+然后：
+
+Section 1
+[ 2.90m ]
+
+Section 2
+[ 2.90m ]
+
+Section 3
+[ 2.90m ]
+
+Section 4
+[ 2.90m ]
+
+剩余：
+0.30m
+
+--------------------------------------------------
+
+用户可以：
+
+3 Sections
+
+例如：
+
+3m
+4m
+4m
+
+只要：
+
+SUM(section.length)
+<=
+container.innerLength
+
+即可。
+
+==================================================
+PART S — Section Validation
+==================================================
+
+要求：
+
+每一个 Section：
+
+length > 0
+
+并且：
+
+sum(sectionLength)
+<= containerLength
+
+如果超过：
+
+阻止保存。
+
+提示：
+
+Section 总长度 12.2m
+超过 Container 11.9m
+
+--------------------------------------------------
+
+如果：
+
+sum < containerLength
+
+允许。
+
+显示：
+
+未分配区域：
+X m
+
+==================================================
+PART T — 3D Section Boundaries
+==================================================
+
+3D Container 底部：
+
+根据：
+
+Section start/end X
+
+绘制明显但克制的：
+
+Section 分界线。
+
+例如：
+
+| Section 1 | Section 2 | Section 3 | Section 4 |
+
+可以：
+
+底部竖线
++
+文字：
+
+Section 1
+Section 2
+...
+
+或者：
+
+brace / bracket
+
+选择视觉更清晰的方式。
+
+--------------------------------------------------
+
+Section Label：
+
+不要遮挡 Cargo。
+
+建议放：
+
+Container Floor 下方
+或者顶部辅助层。
+
+==================================================
+PART U — 三级 Workspace Section Editor
+==================================================
+
+Container 信息下面：
+
+按 Section 展示。
+
+例如：
+
+第一节
+2.90m
+
+[ 自动装柜 ]
+
+选择货物 / Drag Cargo Here
+
+WPC01
+数量 286
+
+Bamboo Panel 托盘
+数量 2
+
+--------------------------------------------------
+
+第二节
+
+[ 自动装柜 ]
+
+...
+
+第三节
+
+...
+
+==================================================
+PART V — 去掉“加入装柜方案”
+==================================================
+
+删除：
+
+加入装柜方案
+
+这个按钮。
+
+新的流程：
+
+Cargo Library
+↓
+Drag
+↓
+Section
+↓
+输入数量
+↓
+Section Auto Pack
+↓
+3D
+
+不再需要：
+
+加入装柜方案
+
+这一中间步骤。
+
+==================================================
+PART W — Drag Cargo From Sidebar
+==================================================
+
+用户从：
+
+Tool Sidebar → Cargo Library
+
+鼠标拖：
+
+WPC01
+
+到：
+
+Section 1
+
+Section 1：
+
+显示 Drop Target。
+
+Drop 后：
+
+创建：
+
+SectionCargoEntry
+
+并自动 Focus：
+
+Quantity。
+
+==================================================
+PART X — SectionCargoEntry
+==================================================
+
+字段：
+
+id
+sectionId
+cargoPackageId
+
+quantity
+
+orientation
+placeOnBottom
+allowStack
+horizontalPlacement
+
+manualQuantityOverride
+
+colorOverride nullable
+
+createdAt
+updatedAt
+
+==================================================
+PART Y — 每一节的 Placement Options
+==================================================
+
+这些参数属于：
+
+# 当前 Section 中的当前 Cargo
+
+不是 Cargo Master。
+
+UI必须简单。
+
+例如：
+
+WPC01        数量 286
+
+方向
+[平放] [立放] [侧放]
+
+位置
+[自动] [靠左] [居中] [靠右]
+
+[✓] 放在底部
+
+[✓] 允许堆叠
+
+--------------------------------------------------
+
+不需要做几十个复杂参数。
+
+全部尽量使用：
+
+Segmented
+Checkbox
+Toggle Chip
+
+单击即可。
+
+==================================================
+PART Z — 默认 Placement
+==================================================
+
+普通 Package：
+
+orientation:
+平放 / 自动根据算法
+
+placeOnBottom:
+false / auto
+
+allowStack:
+true
+
+horizontalPlacement:
+auto
+
+--------------------------------------------------
+
+Pallet：
+
+orientation:
+平放
+
+placeOnBottom:
+true
+
+allowStack:
+false
+
+horizontalPlacement:
+auto
+
+但用户可以改：
+
+允许堆叠。
+
+==================================================
+PART AA — Pallet 靠边 / 居中
+==================================================
+
+例如 Pallet：
+
+2800 × 1200 × 1000 mm
+
+Container：
+
+2200mm宽。
+
+Section：
+
+2900mm长。
+
+用户可以选择：
+
+位置：
+
+靠左
+居中
+靠右
+
+--------------------------------------------------
+
+如果：
+
+靠左
+
+Pallet：
+
+Y = 0
+
+剩余宽度：
+
+1000mm
+
+WPC可以放：
+
+Pallet右侧。
+
+--------------------------------------------------
+
+如果：
+
+居中
+
+Pallet：
+
+Y = 500mm
+
+左右：
+
+各约500mm
+
+WPC可以：
+
+左侧
+右侧
+顶部
+
+根据剩余 Free Space 自动寻找。
+
+==================================================
+PART AB — Pallet 顶部放 WPC
+==================================================
+
+如果：
+
+Pallet.allowStack = true
+
+或者：
+
+WPC允许放在 Pallet 上，
+
+Auto Pack：
+
+可以把 WPC：
+
+放在 Pallet 顶部剩余空间。
+
+必须满足：
+
+Pallet top Z
++
+WPC height
+<=
+Container Height
+
+--------------------------------------------------
+
+如果 Pallet 不允许上方堆货：
+
+则 Pallet 的上方空间：
+
+标记为不可使用。
+
+==================================================
+PART AC — Pallet 叠放
+==================================================
+
+案例：
+
+Pallet：
+
+2800 × 1200 × 1000
+
+Section：
+
+2900
+
+Container Width：
+
+2200
+
+两个 Pallet：
+
+1200 + 1200
+=
+2400
+
+无法横向并排。
+
+如果：
+
+allowStack = true
+
+则：
+
+可以垂直叠放：
+
+Pallet 1：
+
+Z = 0
+
+Pallet 2：
+
+Z = 1000
+
+前提：
+
+2000 <= Container Height
+
+--------------------------------------------------
+
+两个 Pallet：
+
+保持相同：
+
+X
+Y
+
+根据：
+
+靠左
+居中
+靠右
+
+共同定位。
+
+==================================================
+PART AD — Pallet Side Placement
+==================================================
+
+Pallet：
+
+默认平放。
+
+允许：
+
+侧放。
+
+例如：
+
+Orientation：
+
+平放
+侧放
+
+如果用户选择侧放：
+
+Dimensions 根据90度 Rotation变换。
+
+不要允许任意17°等角度。
+
+装柜只处理：
+
+Orthogonal Rotation。
+
+==================================================
+PART AE — Door / Upright Cargo
+==================================================
+
+门扇属于一个重要场景。
+
+例如：
+
+Height:
+2000mm
+
+Width:
+800mm
+
+Thickness:
+43mm
+
+正常装法：
+
+# 立放
+
+Section Length：
+
+800mm
+
+Container Height：
+
+使用2000mm
+
+Container Width：
+
+按 Thickness：
+
+2200 / 43
+=
+51
+
+因此：
+
+理论一节：
+
+51门扇
+
+如果 Section Length：
+
+800mm。
+
+==================================================
+PART AF — Cargo Dimensions 语义
+==================================================
+
+为了支持门：
+
+Cargo Master 可以使用：
+
+length
+width
+height
+
+但 UI可以根据 CargoType：
+
+展示：
+
+门扇：
+
+高度
+宽度
+厚度
+
+内部最终仍转换成：
+
+3D dimensions。
+
+--------------------------------------------------
+
+对于 Upright Door：
+
+Mapping：
+
+Section X:
+door width = 800
+
+Container Y:
+door thickness = 43
+
+Container Z:
+door height = 2000
+
+==================================================
+PART AG — Door Unit Test
+==================================================
+
+Container Width：
+
+2200mm
+
+Door Thickness：
+
+43mm
+
+floor:
+
+2200 / 43
+=
+51
+
+Section Length：
+
+800mm
+
+Container Height：
+
+2690mm
+
+Door Height：
+
+2000mm
+
+Expected:
+
+51 doors
+
+在一节内。
+
+==================================================
+PART AH — Mixed Cargo Packing
+==================================================
+
+Section 现在允许：
+
+同时：
+
+Pallet
+WPC
+Carton
+Door
+其它 Cargo
+
+核心算法变为：
+
+# Section-level Mixed Packing
+
+而不是：
+
+Container-global packing。
+
+==================================================
+PART AI — Section Packing Algorithm
+==================================================
+
+每次点击：
+
+Section 1
+→
+自动装柜
+
+只计算：
+
+Section 1。
+
+Section 2/3/4：
+
+保持不变。
+
+==================================================
+PART AJ — Section Packing Space
+==================================================
+
+Section Container：
+
+Length =
+section.length
+
+Width =
+container.innerWidth
+
+Height =
+container.innerHeight
+
+Origin：
+
+Container global:
+
+X = section.startX
+
+Y = 0
+Z = 0
+
+==================================================
+PART AK — Packing Priority
+==================================================
+
+Section Auto Pack 建议步骤：
+
+1.
+先处理 placeOnBottom = true 的 Cargo
+
+2.
+先处理 Pallet / 大体积货物
+
+3.
+处理明确：
+靠左 / 居中 / 靠右
+
+4.
+处理不允许堆叠的货物
+
+5.
+建立剩余 Free Spaces
+
+6.
+使用较小货物填充：
+
+侧面空间
+顶部空间
+剩余角落
+
+7.
+最后处理普通规则 Package
+
+==================================================
+PART AL — Free Space Algorithm
+==================================================
+
+混合货物：
+
+建议继续使用现有 heuristic，
+
+但在 Section 内实现：
+
+Maximal Empty Spaces
+或
+Extreme Points
+
+不要追求数学最优。
+
+目标：
+
+# 业务上看起来合理
+# 不碰撞
+# 不越界
+# 尊重用户Placement约束
+
+==================================================
+PART AM — Manual Override 优先
+==================================================
+
+如果用户明确选择：
+
+靠左
+居中
+靠右
+底部
+立放
+平放
+允许堆叠
+
+算法必须：
+
+优先尊重用户。
+
+不要为了提高所谓空间利用率：
+
+偷偷改变用户选择。
+
+==================================================
+PART AN — Section Auto Pack Button
+==================================================
+
+每一节都有自己的：
+
+[ 自动装柜 ]
+
+例如：
+
+Section 1   [自动装柜]
+Section 2   [自动装柜]
+Section 3   [自动装柜]
+Section 4   [自动装柜]
+
+删除或弱化：
+
+全局 Auto Pack
+
+避免用户误以为整个 Container 一次重排。
+
+==================================================
+PART AO — Auto Pack 重新执行
+==================================================
+
+如果 Section 已经：
+
+人工拖动过3D位置
+
+再次点击：
+
+自动装柜
+
+提示：
+
+重新自动装柜将覆盖本节的手动位置。
+
+[取消]
+[重新计算]
+
+只影响当前 Section。
+
+==================================================
+PART AP — Manual 3D Adjustment
+==================================================
+
+自动计算后：
+
+用户仍然可以在3D Scene：
+
+拖动 Cargo Group。
+
+但是：
+
+Cargo Group 不能：
+
+跨出 Container
+
+默认也不能：
+
+跨出自己的 Section。
+
+--------------------------------------------------
+
+如果未来用户确实需要跨 Section：
+
+可以V3增加。
+
+本轮：
+
+Section boundary 是硬边界。
+
+==================================================
+PART AQ — 3D Cargo Color Strategy
+==================================================
+
+不同 Cargo：
+
+必须使用不同稳定颜色。
+
+例如：
+
+WPC01：
+Green
+
+Pallet Bamboo:
+Blue
+
+Door:
+Orange
+
+UV:
+Purple
+
+--------------------------------------------------
+
+颜色来自：
+
+CargoPackage.color。
+
+在所有 Plan 中保持一致。
+
+==================================================
+PART AR — Mixed Cargo 颜色
+==================================================
+
+同一 Section：
+
+Pallet + WPC：
+
+Pallet保持自己的蓝色。
+
+WPC保持自己的绿色。
+
+WPC在：
+
+Pallet左右
+Pallet顶部
+
+仍然：
+
+Green。
+
+不要因为位置不同变颜色。
+
+==================================================
+PART AS — Pallet Visual Difference
+==================================================
+
+除了颜色：
+
+Pallet 可以增加：
+
+更粗的底边
+轻微横向纹理
+或 Base Platform Line
+
+让用户一眼知道：
+
+这是 Pallet。
+
+但不要开发复杂真实木托模型。
+
+性能优先。
+
+==================================================
+PART AT — 修复截图中的货物缺面 Bug
+==================================================
+
+当前截图中：
+
+红箭头指出的 Cargo Cuboid：
+
+有一个面没有正常显示货物颜色。
+
+必须修复。
+
+--------------------------------------------------
+
+注意：
+
+长方体：
+
+是6个面，
+不是8个面。
+
+8是顶点数量。
+
+--------------------------------------------------
+
+标准 Cargo Cuboid：
+
+必须：
+
+6 faces
+
+12 triangles
+
+所有 faces：
+
+应用相同 Cargo Base Material。
+
+==================================================
+PART AU — Box Material
+==================================================
+
+建议：
+
+同一 Cargo：
+
+基础颜色一致。
+
+但是通过 Lighting：
+
+Top Face：
+稍亮
+
+Front：
+正常
+
+Side：
+稍暗
+
+这样：
+
+保持同色系
+
+同时增加3D立体感。
+
+不要每个面随机颜色。
+
+==================================================
+PART AV — Box Mesh Bug 检查
+==================================================
+
+检查：
+
+Face winding
+Normals
+Back-face culling
+Material assignment
+Index order
+
+确保：
+
+任何正常观察角度：
+
+Cargo Cuboid 都不会出现：
+
+透明洞
+无色面
+缺面
+
+--------------------------------------------------
+
+如果使用自定义 Geometry：
+
+建议直接使用：
+
+成熟 BoxGeometry
+
+而不是手写错误 mesh。
+
+==================================================
+PART AW — Edge Lines
+==================================================
+
+Cargo Cuboid：
+
+添加很细的深色 Edge。
+
+类似截图中：
+
+格子线。
+
+目的：
+
+清楚看到：
+
+Rows
+Layers
+Packages
+
+--------------------------------------------------
+
+不要：
+
+粗黑框。
+
+==================================================
+PART AX — Cargo Group Rendering
+==================================================
+
+例如：
+
+WPC:
+
+286 packages
+
+应该清楚看到：
+
+13 × 22
+
+Grid。
+
+如果 Quantity 284：
+
+实际：
+
+284。
+
+可以留两个 Empty Slots。
+
+==================================================
+PART AY — 修复 Pallet 不显示 Bug
+==================================================
+
+当前 Bug：
+
+用户：
+
+添加托盘类碳晶板
+
+点击进入装柜 / Auto Pack
+
+3D：
+
+完全没有展示 Pallet。
+
+必须查根因。
+
+==================================================
+PART AZ — 不允许 Renderer 按 CargoType 漏掉 Pallet
+==================================================
+
+统一：
+
+所有 Cargo：
+
+package
+pallet
+crate
+door
+custom
+
+都必须经过：
+
+CargoSceneRenderer
+
+至少有：
+
+# BoxGeometry fallback
+
+--------------------------------------------------
+
+即使：
+
+没有 pallet.glb
+
+也必须：
+
+根据：
+
+length
+width
+height
+
+生成一个 Box。
+
+不能因为模型文件缺失：
+
+3D完全不显示。
+
+==================================================
+PART BA — Pallet Render Fallback
+==================================================
+
+Pseudo:
+
+if customModelAvailable:
+    render custom model
+else:
+    render box geometry
+
+永远需要：
+
+fallback。
+
+==================================================
+PART BB — Auto Pack 不得过滤 Pallet
+==================================================
+
+检查现有：
+
+PackingRequest
+
+是否只加入：
+
+cargoType == package
+
+如果是：
+
+修复。
+
+Packing Engine 输入：
+
+所有：
+
+active SectionCargoEntry
+
+不论：
+
+package
+pallet
+door
+custom
+
+都必须参与。
+
+==================================================
+PART BC — Pallet Bug Tests
+==================================================
+
+Cargo:
+
+type = pallet
+dimensions = 2800 × 1200 × 1000
+
+quantity = 1
+
+Section 1
+
+Auto Pack
+
+Expected:
+
+packedCount = 1
+
+3D Scene:
+
+visible object count >= 1
+
+--------------------------------------------------
+
+quantity = 2
+allowStack = true
+
+Expected:
+
+vertical stack if needed and height permits。
+
+==================================================
+PART BD — Drag Cargo Workflow
+==================================================
+
+新的完整使用流程：
+
+1.
+点击工具
+
+2.
+选择40HQ
+
+3.
+设置Sections
+
+4.
+从货物库拖：
+WPC01
+
+到 Section 1
+
+5.
+Quantity：
+286
+
+6.
+选择：
+平放
+允许堆叠
+自动位置
+
+7.
+再拖：
+Bamboo Pallet
+
+到 Section 1
+
+8.
+Quantity：
+2
+
+9.
+选择：
+平放
+放在底部
+允许堆叠
+居中
+
+10.
+点击：
+Section 1 → 自动装柜
+
+11.
+3D只更新Section 1
+
+12.
+人工拖动调整
+
+13.
+继续配置Section 2
+
+14.
+最后保存方案
+
+==================================================
+PART BE — 保存 Loading Plan
+==================================================
+
+页面底部 / Toolbar：
+
+只保留：
+
+保存
+
+例如：
+
+[ 保存方案 ]
+
+如果：
+
+新方案：
+
+生成默认名字。
+
+如果：
+
+编辑已有方案：
+
+更新原方案。
+
+可以提供：
+
+另存为
+
+但不是本阶段必须。
+
+==================================================
+PART BF — 保存内容
+==================================================
+
+LoadingPlan 保存：
+
+ContainerPreset snapshot / ref
+
+Safety Clearance
+
+Sections
+
+每一个 Section：
+- length
+- cargo entries
+
+每一个 Cargo Entry：
+- cargoId
+- quantity
+- orientation
+- bottom
+- stack
+- horizontal placement
+- manual override
+
+每一个 Packed Group：
+- position
+- rotation
+
+==================================================
+PART BG — Container 修改后的行为
+==================================================
+
+如果 Plan 已经有 Cargo，
+
+然后用户点击：
+
+40HQ
+→
+20GP
+
+需要提示：
+
+切换集装箱会导致当前 Section 和货物位置重新验证。
+
+[取消]
+[切换]
+
+--------------------------------------------------
+
+切换后：
+
+Cargo Entry 保留。
+
+但是：
+
+旧 Packed Positions：
+
+invalidate。
+
+需要重新计算各 Section。
+
+==================================================
+PART BH — Section 数量修改
+==================================================
+
+如果减少：
+
+4 Sections
+→
+2 Sections
+
+Section 3/4 有 Cargo：
+
+不能直接静默删除。
+
+提示：
+
+Section 3 和 Section 4 中已有货物。
+
+减少节数将删除这些Section的装柜布局。
+
+[取消]
+[继续]
+
+==================================================
+PART BI — Weight Calculation
+==================================================
+
+每一个 Section：
+
+显示：
+
+货物数量
+总重量
+
+例如：
+
+Section 1
+
+286 WPC
+2 Pallets
+
+Weight:
+6,800kg
+
+--------------------------------------------------
+
+整个 Container：
+
+显示：
+
+Total Weight
+Max Payload
+Remaining Payload
+
+==================================================
+PART BJ — Section Capacity Summary
+==================================================
+
+每一个 Section：
+
+Auto Pack 后：
+
+显示：
+
+已装：
+X
+
+未装：
+Y
+
+空间利用率：
+X%
+
+重量：
+X kg
+
+==================================================
+PART BK — Default Section Quantity Behavior
+==================================================
+
+WPC01：
+
+defaultSectionQuantity = 286
+
+拖入：
+
+Section 1
+
+Quantity：
+
+默认286。
+
+拖入：
+
+Section 2
+
+也默认286。
+
+但是：
+
+Section 3：
+
+用户可以手动改成180。
+
+这是：
+
+Section-specific quantity。
+
+==================================================
+PART BL — Door Example
+==================================================
+
+Cargo:
+
+Door01
+
+Height:
+2000
+
+Width:
+800
+
+Thickness:
+43
+
+Section:
+
+Length:
+800
+
+Orientation:
+立放
+
+Expected:
+
+Container Width:
+floor(2200 / 43)
+=
+51 doors
+
+Height:
+2000 <= container height
+
+Section length:
+800
+
+3D：
+
+门扇应该显示：
+
+一排竖直薄板。
+
+==================================================
+PART BM — Pallet Center Example
+==================================================
+
+Section:
+
+2900 × 2200 × 2690
+
+Pallet:
+
+2800 × 1200 × 1000
+
+Placement:
+
+居中
+底部
+
+Expected:
+
+Y ≈ 500mm
+
+左右分别约：
+
+500mm Free Space。
+
+如果WPC尺寸允许：
+
+算法可填充左右。
+
+顶部：
+
+ContainerHeight - 1000
+
+可以继续放 WPC。
+
+==================================================
+PART BN — Pallet Edge Example
+==================================================
+
+Placement：
+
+靠左
+
+Expected:
+
+Y = 0
+
+右侧：
+
+1000mm Free Space
+
+算法可以：
+
+用WPC填充。
+
+==================================================
+PART BO — 2 Pallets Stacking Example
+==================================================
+
+Pallet：
+
+2800 × 1200 × 1000
+
+Quantity:
+2
+
+Section:
+2900
+
+ContainerWidth:
+2200
+
+side-by-side impossible
+
+AllowStack:
+true
+
+Expected:
+
+Pallet1:
+Z=0
+
+Pallet2:
+Z=1000
+
+same X/Y
+
+TotalHeight:
+2000
+
+valid in 2690 container。
+
+==================================================
+PART BP — Section Packing Tests
+==================================================
+
+至少新增：
+
+section_layout_test
+section_length_validation_test
+section_wpc_grid_test
+section_pallet_edge_test
+section_pallet_center_test
+section_pallet_stack_test
+section_mixed_cargo_test
+door_upright_test
+manual_quantity_override_test
+
+==================================================
+PART BQ — 3D Tests / Smoke Tests
+==================================================
+
+至少：
+
+cargo_box_all_faces_visible_test
+pallet_render_test
+pallet_autopack_render_test
+section_boundary_render_test
+section_label_render_test
+
+如果无法做真实像素测试：
+
+至少：
+
+Scene node / mesh generation test。
+
+==================================================
+PART BR — WPC 标准测试
+==================================================
+
+40HQ：
+
+11900 × 2200 × 2690
+
+Sections：
+
+4 × 2900
+
+Cargo:
+
+2900 × 160 × 120
+
+Section 1：
+
+286
+
+Expected:
+
+13 × 22
+
+286 packed
+
+Section 1 bounds：
+
+0~2900
+
+--------------------------------------------------
+
+Section 2：
+
+X：
+
+2900~5800
+
+同理。
+
+==================================================
+PART BS — 40HQ Section Labels
+==================================================
+
+3D：
+
+Container：
+
+0-----------2900-----------5800-----------8700-----------11600----11900
+
+显示：
+
+Section 1
+Section 2
+Section 3
+Section 4
+Unallocated 300mm
+
+这个效果必须直观。
+
+==================================================
+PART BT — UI设计
+==================================================
+
+不要把 Section Editor 做成 ERP Form。
+
+保持 Fly：
+
+Flat
+Compact
+Modular
+Apple-inspired
+Desktop-first
+
+--------------------------------------------------
+
+Section Card：
+
+可以轻量 Surface。
+
+不要巨大 Card。
+
+Cargo Item：
+
+保持紧凑。
+
+==================================================
+PART BU — Sidebar Drag Visual
+==================================================
+
+Cargo Hover：
+
+显示 Drag Cursor。
+
+拖动：
+
+有轻量 Ghost Preview。
+
+Section Drop Zone：
+
+Hover时：
+
+浅色高亮。
+
+==================================================
+PART BV — Cargo Colors
+==================================================
+
+默认 palette：
+
+至少：
+
+Green
+Blue
+Orange
+Purple
+Teal
+Rose
+Amber
+Indigo
+
+全部低饱和。
+
+--------------------------------------------------
+
+用户可以在 Cargo Library：
+
+编辑颜色。
+
+==================================================
+PART BW — Section Focus
+==================================================
+
+点击：
+
+Section 2
+
+3D Scene：
+
+可以轻微：
+
+highlight Section 2
+
+其它 Section：
+
+稍微降低 opacity。
+
+不要完全隐藏。
+
+这样方便人工调整。
+
+==================================================
+PART BX — 3D Camera
+==================================================
+
+现有：
+
+Orbit
+Zoom
+Pan
+
+保持。
+
+增加：
+
+聚焦当前 Section
+
+如果实现成本低。
+
+例如：
+
+Focus Section
+
+==================================================
+PART BY — 不需要每个包独立可拖
+==================================================
+
+例如：
+
+286 WPC。
+
+用户拖的是：
+
+CargoGroup。
+
+不是：
+
+286个包分别拖。
+
+内部 Grid：
+
+只是视觉。
+
+性能和UX都更好。
+
+==================================================
+PART BZ — 组与组碰撞
+==================================================
+
+Pallet Group
+
+与：
+
+WPC Group
+
+使用：
+
+AABB / Free Space collision
+
+不能重叠。
+
+但是：
+
+WPC在Pallet顶部
+
+如果算法判定：
+
+support surface + stacking allowed
+
+属于合法。
+
+==================================================
+PART CA — Support Surface
+==================================================
+
+为了支持：
+
+WPC放Pallet顶部
+
+Packing Engine 需要知道：
+
+Cargo Group top surface。
+
+如果：
+
+bottomGroup.allowCargoOnTop = true
+
+则：
+
+top surface
+
+可以作为新的 support plane。
+
+--------------------------------------------------
+
+为了保持UI简单：
+
+可以把：
+
+allowStack
+
+理解为：
+
+允许其它货物放在它上面
++
+允许自身同类叠放
+
+如果后面不够精确再拆字段。
+
+==================================================
+PART CB — Manual Drag Vertical
+==================================================
+
+普通鼠标拖动：
+
+默认：
+
+XY / floor plane。
+
+如果需要调整高度：
+
+提供：
+
+Z handle
+或
+Shift + Drag
+
+选择当前3D引擎更自然的方案。
+
+Pallet顶部放WPC时：
+
+用户也应该能人工调整。
+
+==================================================
+PART CC — Data Migration
+==================================================
+
+现有 LoadingPlan：
+
+如果没有 Sections：
+
+Migration：
+
+自动生成默认 Section。
+
+例如：
+
+旧40HQ Plan：
+
+create 4×2900 sections
+
+旧20GP：
+
+create 2×2900 sections
+
+旧 CargoGroup：
+
+根据 positionX
+
+分配到对应 Section。
+
+如果无法确定：
+
+放入：
+
+Section 1
+
+并标记：
+
+needsReview = true
+
+不要删除旧方案。
+
+==================================================
+PART CD — 删除旧全局装柜逻辑的UI
+==================================================
+
+旧：
+
+全局加入装柜方案
+全局自动装柜
+
+如果和新版逻辑冲突：
+
+从 UI 移除。
+
+底层旧代码如果还有 Migration / compatibility价值：
+
+可以保留。
+
+不要冒险直接删核心类。
+
+==================================================
+PART CE — 文档
+==================================================
+
+更新：
+
+docs/tools/container_loading_v2/
+
+至少：
+
+information_architecture.md
+container_presets.md
+cargo_library.md
+section_model.md
+section_packing.md
+placement_options.md
+mixed_cargo.md
+pallet_packing.md
+upright_cargo.md
+3d_rendering.md
+manual_override.md
+migration.md
+
+==================================================
+PART CF — 开发顺序
+==================================================
+
+严格执行：
+
+STEP 1
+检查当前 Container Loading 架构和 Pallet Bug
+
+STEP 2
+修复 Pallet Render / Auto Pack Bug
+
+STEP 3
+修复 Cargo Cuboid 缺面
+
+STEP 4
+Container Preset 移到 Sidebar
+
+STEP 5
+Saved Plans Sidebar
+
+STEP 6
+Cargo Library Sidebar
+
+STEP 7
+Section Domain + Migration
+
+STEP 8
+Section Editor
+
+STEP 9
+Drag Cargo → Section
+
+STEP 10
+Section Placement Options
+
+STEP 11
+Section-level Auto Pack
+
+STEP 12
+Pallet Edge / Center / Stack
+
+STEP 13
+Door Upright Packing
+
+STEP 14
+Mixed Cargo Free-Space Packing
+
+STEP 15
+3D Section Boundaries / Labels
+
+STEP 16
+Manual 3D Adjust
+
+STEP 17
+Save / Edit Plan
+
+STEP 18
+Tests
+
+STEP 19
+Windows Release Build
+
+==================================================
+PART CG — 每一步都验证
+==================================================
+
+每完成一个相对独立阶段：
+
+flutter analyze
+flutter test
+
+不要最后一起修几百个问题。
+
+==================================================
+PART CH — 最终 Windows 验证
+==================================================
+
+必须：
+
+flutter analyze
+PASS / 0 issues
+
+flutter test
+PASS
+
+flutter build windows --release
+PASS
+
+flutter run -d windows --release
+PASS
+
+==================================================
+PART CI — 最终强制验收
+==================================================
+
+必须全部满足：
+
+1.
+Sidebar 中直接选择：
+
+20GP / 40HQ / 自定义Container
+
+3D立即切换。
+
+2.
+Container尺寸可以编辑。
+
+3.
+40HQ默认：
+
+4 × 2.9m Sections
+
+4.
+20GP默认：
+
+2 × 2.9m Sections
+
+5.
+3D Container 显示：
+
+Section 1 / Section 2 / ...
+
+6.
+Saved Plans：
+
+默认只显示最近5个。
+
+7.
+Saved Plan：
+
+支持重命名、编辑、删除。
+
+8.
+Cargo Library：
+
+可以保存多个WPC规格、托盘、门扇。
+
+9.
+Cargo：
+
+可以设置 optional 每节默认数量。
+
+10.
+Cargo 从 Sidebar：
+
+Drag 到某个 Section。
+
+11.
+每个 Section：
+
+独立 Quantity。
+
+12.
+每个 Section：
+
+独立 Auto Pack。
+
+13.
+每个 SectionCargo：
+
+可以设置：
+
+平放 / 立放 / 侧放
+底部
+允许堆叠
+自动 / 靠左 / 居中 / 靠右
+
+14.
+Pallet 能在3D显示。
+
+15.
+Pallet Auto Pack 后能显示。
+
+16.
+Pallet 可以：
+
+靠边
+居中
+叠放
+
+17.
+WPC 可以：
+
+填 Pallet 左右剩余空间
+填 Pallet 顶部剩余空间
+
+只要尺寸允许。
+
+18.
+门扇支持：
+
+立放。
+
+19.
+不同 Cargo：
+
+不同颜色。
+
+20.
+Cargo Cuboid：
+
+6个面全部正确渲染。
+
+不能再出现截图红箭头所示的缺面。
+
+21.
+用户自定义每节装箱数量：
+
+超过理论容量时可以确认Override。
+
+确认后不反复重新否决。
+
+22.
+删除：
+
+“加入装柜方案”
+
+按钮。
+
+23.
+最终只有一个：
+
+保存方案
+
+入口。
+
+24.
+保存后：
+
+再次打开方案
+
+Section / Cargo / Quantity / Placement / 3D Position
+
+全部恢复。
+
+==================================================
+PART CJ — 最终产品判断
+==================================================
+
+完成后实际用以下场景测试：
+
+场景A：
+
+40HQ
+4节
+每节2.9m
+
+WPC01：
+290×16×12cm
+默认286包/节
+
+把WPC拖到Section1
+
+自动：
+286
+
+点击：
+Section1自动装柜
+
+应该清楚显示：
+13×22
+
+--------------------------------------------------
+
+场景B：
+
+Section1：
+
+Pallet：
+280×120×100cm
+2个
+允许堆叠
+居中
+底部
+
+WPC：
+若干
+
+Auto Pack：
+
+两个Pallet如果横向放不下：
+
+应该叠放。
+
+WPC：
+
+利用左右 / 顶部剩余空间。
+
+--------------------------------------------------
+
+场景C：
+
+Pallet：
+
+靠左
+
+应该：
+
+一侧留下约1m空间
+
+WPC：
+
+填充该空间。
+
+--------------------------------------------------
+
+场景D：
+
+Door：
+
+200×80×4.3cm
+
+Section：
+80cm
+
+立放
+
+Container Width：
+220cm
+
+应该理论：
+51扇
+
+--------------------------------------------------
+
+场景E：
+
+重新打开保存方案：
+
+所有Section及3D位置保持。
+
+如果这些场景不能自然完成：
+
+继续开发。
+
+现在开始修改：
+
+E:\workSpace\fly
+
+完成 Container Loading Planner V2 后停止，
+不要继续新增其它工具模块。

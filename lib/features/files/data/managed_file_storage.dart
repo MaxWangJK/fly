@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
@@ -31,15 +32,55 @@ class ManagedFileStorage {
   final String root;
   String absolute(String relative) {
     final base = p.normalize(p.absolute(root));
-    final path = p.normalize(p.join(base, relative));
-    if (p.isAbsolute(relative) || !p.isWithin(base, path)) {
+    final portable = relative.replaceAll('\\', '/');
+    final path = p.normalize(p.join(base, portable));
+    if (p.posix.isAbsolute(portable) ||
+        p.windows.isAbsolute(relative) ||
+        !p.isWithin(base, path)) {
       throw ArgumentError('文件路径不在 FlyData 中');
     }
     return path;
   }
 
+  Future<void> deleteOwned(String relative) async {
+    final file = File(absolute(relative));
+    if (await FileSystemEntity.type(file.path, followLinks: false) ==
+        FileSystemEntityType.notFound) {
+      return;
+    }
+    final resolvedRoot = await Directory(root).resolveSymbolicLinks();
+    final resolved = await file.resolveSymbolicLinks();
+    if (!p.isWithin(resolvedRoot, resolved)) throw StateError('拒绝删除数据目录外的文件');
+    await file.delete();
+  }
+
+  Future<void> removeShareCopies({String? fileId, Duration? olderThan}) async {
+    final cache = Directory(absolute('cache/share'));
+    if (!await cache.exists()) return;
+    final before = olderThan == null
+        ? null
+        : DateTime.now().subtract(olderThan);
+    await for (final session in cache.list(followLinks: false)) {
+      if (session is! Directory) continue;
+      await for (final folder in session.list(followLinks: false)) {
+        if (folder is! Directory ||
+            (fileId != null && p.basename(folder.path) != fileId)) {
+          continue;
+        }
+        await for (final copy in folder.list(followLinks: false)) {
+          if (copy is! File) continue;
+          if (before != null && !(await copy.lastModified()).isBefore(before)) {
+            continue;
+          }
+          await deleteOwned(p.relative(copy.path, from: root));
+        }
+      }
+    }
+  }
+
   Future<ImportedFile> import(
     String source, {
+    XFile? pickedFile,
     String? folderId,
     ImportCancellation? cancellation,
     void Function(int copied, int total)? progress,
@@ -48,25 +89,28 @@ class ManagedFileStorage {
       throw ArgumentError('无效文件夹 ID');
     }
     final input = File(source);
-    if (await FileSystemEntity.type(source, followLinks: false) !=
-        FileSystemEntityType.file) {
+    if (pickedFile == null &&
+        await FileSystemEntity.type(source, followLinks: false) !=
+            FileSystemEntityType.file) {
       throw ArgumentError('仅支持普通文件');
     }
     final id = const Uuid().v7();
     final name = p
-        .basename(source)
+        .basename(pickedFile?.name ?? source)
         .replaceAll(RegExp(r'[<>:"/\\|?*\x00-\x1f]'), '_');
-    final relative = p.join('files', folderId ?? 'inbox', id, name);
+    final relative = p.posix.join('files', folderId ?? 'inbox', id, name);
     final target = File(absolute(relative));
     final partial = File('${target.path}.importing');
     await target.parent.create(recursive: true);
-    final length = await input.length();
+    final length = pickedFile == null
+        ? await input.length()
+        : await pickedFile.length();
     final output = await partial.open(mode: FileMode.writeOnly);
     var closed = false;
     var copied = 0;
     try {
       cancellation?.check();
-      await for (final chunk in input.openRead()) {
+      await for (final chunk in pickedFile?.openRead() ?? input.openRead()) {
         cancellation?.check();
         await output.writeFrom(chunk);
         copied += chunk.length;

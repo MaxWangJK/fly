@@ -27,9 +27,20 @@ class SyncOutboxRepository {
     'INSERT INTO sync_state(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value',
     [key, value],
   );
+  Future<String> successStateKey(String cursorKey) async =>
+      '$cursorKey:lastSuccess:${jsonEncode(await state('workspace') ?? 'local')}';
   Future<int> pendingCount() async =>
       (await db
               .customSelect('SELECT count(*) AS count FROM sync_outbox')
+              .getSingle())
+          .read<int>('count');
+  Future<int> pendingRecordCount() async =>
+      (await db
+              .customSelect(
+                'SELECT count(*) AS count FROM '
+                '(SELECT entity_type,record_key FROM sync_outbox '
+                'GROUP BY entity_type,record_key)',
+              )
               .getSingle())
           .read<int>('count');
   Future<Map<String, int>> initialCounts() async {
@@ -126,7 +137,10 @@ class SyncOutboxRepository {
         'recordId': id,
         'baseVersion': version,
         'changedFields': operation == 'delete'
-            ? <String>[]
+            ? (entity == 'attachments' &&
+                      payload['deletion_batch'] == 'permanent'
+                  ? <String>['deletion_batch']
+                  : <String>[])
             : (version == 0 ? payload.keys.toList() : fields.toSet().toList()),
         'payload': payload,
         'operation': operation,
@@ -305,6 +319,12 @@ class SyncOutboxRepository {
           variables: sqlVariables(keyValues),
         )
         .getSingleOrNull();
+    // Permanent file tombstones cannot be restored by an older/offline device.
+    if (entity == 'attachments' &&
+        existing?.data['deletion_batch'] == 'permanent') {
+      data['deletion_batch'] = 'permanent';
+      data['deleted_at'] = existing!.data['deleted_at'];
+    }
     if (record['deletedAt'] != null) {
       if (columns.contains('deleted_at')) {
         data['deleted_at'] =

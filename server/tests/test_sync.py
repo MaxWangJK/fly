@@ -35,6 +35,25 @@ def headers(session):
     return {'Authorization': 'Bearer ' + session['accessToken']}
 
 
+def test_official_file_allowlist_enforced_for_all_binary_endpoints(client):
+    settings = client.app.state.settings.model_copy(update={
+        'file_sync_allowed_emails': 'max@ceiling-arts.com',
+    })
+    with TestClient(create_app(settings, client.app.state.engine)) as official:
+        blocked = register(official, 'other@example.com')
+        allowed = register(official, 'max@ceiling-arts.com')
+        body = {'sha256': hashlib.sha256(b'photo').hexdigest(), 'size': 5}
+        assert official.post('/api/files/upload/init', headers=headers(blocked), json=body).status_code == 403
+        upload = official.post('/api/files/upload/init', headers=headers(allowed), json=body)
+        assert upload.status_code == 200
+        upload_id = upload.json()['uploadId']
+        assert official.put(f'/api/files/upload/{upload_id}/chunk?offset=0', headers=headers(blocked), content=b'photo').status_code == 403
+        assert official.post(f'/api/files/upload/{upload_id}/complete', headers=headers(blocked)).status_code == 403
+        assert official.get(f'/api/files/{uuid4()}/download', headers=headers(blocked)).status_code == 403
+        assert official.put(f'/api/files/upload/{upload_id}/chunk?offset=0', headers=headers(allowed), content=b'photo').status_code == 200
+        assert official.post(f'/api/files/upload/{upload_id}/complete', headers=headers(allowed)).status_code == 200
+
+
 def mutation(record=None, base=0, payload=None, fields=None, operation='upsert', entity='customers'):
     payload = payload or {'name': 'Jack', 'phone': '', 'address': ''}
     return {'mutationId': str(uuid4()), 'entityType': entity, 'recordId': record or str(uuid4()),
@@ -276,3 +295,55 @@ def test_delete_before_first_upload_retains_keys_for_other_devices(client):
     assert result['status'] == 'conflict'
     assert result['record']['data']['id'] == business_id
     assert result['record']['deletedAt'] is not None
+
+
+def test_permanent_delete_removes_blob_and_cannot_restore_or_copy(client):
+    account = register(client)
+    content = b'permanently-deleted-test'
+    digest = hashlib.sha256(content).hexdigest()
+    init = client.post('/api/files/upload/init', headers=headers(account),
+                       json={'sha256': digest, 'size': len(content)}).json()
+    upload = init['uploadId']
+    assert client.put(f'/api/files/upload/{upload}/chunk?offset=0', headers=headers(account), content=content).status_code == 200
+    assert client.post(f'/api/files/upload/{upload}/complete', headers=headers(account)).status_code == 200
+    rid = str(uuid4())
+    payload = {'id': str(uuid4()), 'original_name': 'synthetic.txt', 'sha256': digest, 'deleted_at': None}
+    created = push(client, account, mutation(record=rid, payload=payload, entity='attachments'))[0]['record']
+    deleted = push(client, account, mutation(record=rid, base=created['version'], payload={'deleted_at': 1},
+                                           operation='delete', entity='attachments'))[0]['record']
+    purged = push(client, account, mutation(record=rid, base=deleted['version'], payload={'deletion_batch': 'permanent'},
+                                          operation='delete', entity='attachments'))[0]['record']
+    assert purged['deletedAt'] is not None
+    assert list(client.app.state.settings.storage_root.rglob(digest)) == []
+    from sqlalchemy.orm import Session
+    from app.models import FileBlob
+    with Session(client.app.state.engine) as db:
+        assert db.scalar(select(FileBlob)) is None
+    for operation, base, data in [('restore', purged['version'], {'deleted_at': None}),
+                                   ('upsert', 1, {'sha256': 'a' * 64})]:
+        result = push(client, account, mutation(record=rid, base=base, payload=data,
+                                                operation=operation, entity='attachments'))[0]['record']
+        assert result['data']['deletion_batch'] == 'permanent'
+        assert result['deletedAt'] is not None
+    with Session(client.app.state.engine) as db:
+        assert len(db.scalars(select(SyncRecord).where(SyncRecord.entity_type == 'attachments')).all()) == 1
+
+
+def test_permanent_delete_preserves_shared_blob(client):
+    account = register(client)
+    content = b'shared-content'
+    digest = hashlib.sha256(content).hexdigest()
+    init = client.post('/api/files/upload/init', headers=headers(account),
+                       json={'sha256': digest, 'size': len(content)}).json()
+    upload = init['uploadId']
+    client.put(f'/api/files/upload/{upload}/chunk?offset=0', headers=headers(account), content=content)
+    client.post(f'/api/files/upload/{upload}/complete', headers=headers(account))
+    first, second = str(uuid4()), str(uuid4())
+    for rid in [first, second]:
+        push(client, account, mutation(record=rid, payload={'id': str(uuid4()), 'sha256': digest}, entity='attachments'))
+    push(client, account, mutation(record=first, base=1, payload={'deletion_batch': 'permanent'},
+                                   operation='delete', entity='attachments'))
+    assert len(list(client.app.state.settings.storage_root.rglob(digest))) == 1
+    push(client, account, mutation(record=second, base=1, payload={'deletion_batch': 'permanent'},
+                                   operation='delete', entity='attachments'))
+    assert list(client.app.state.settings.storage_root.rglob(digest)) == []

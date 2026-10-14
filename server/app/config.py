@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     max_request_bytes: int = 8 * 1024 * 1024
     max_file_bytes: int = 2 * 1024 * 1024 * 1024
     chunk_bytes: int = 4 * 1024 * 1024
+    # Empty for self-hosting; official deployment sets an explicit account allowlist.
+    file_sync_allowed_emails: str = ''
 
     @model_validator(mode='after')
     def production_secret(self):

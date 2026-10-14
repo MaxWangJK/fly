@@ -2,10 +2,24 @@ import 'dart:convert';
 
 class SyncServerConfig {
   static const defaultBaseUrl = 'https://world-workshop.cn/api';
+  static const officialFileEmail = 'max@ceiling-arts.com';
+  static bool isOfficial(String input) =>
+      validate(input).host.toLowerCase().replaceFirst(RegExp(r'\.$'), '') ==
+      'world-workshop.cn';
+  static bool allowsCloudFiles(String input, String? email) =>
+      !isOfficial(input) || email?.trim().toLowerCase() == officialFileEmail;
+  static String displayAddress(String input) =>
+      validate(input).toString().replaceFirst(RegExp(r'^https?://'), '');
   static Uri validate(String input) {
     final address = input.trim();
+    final official = RegExp(
+      r'^world-workshop\.cn(?::\d+)?(?:/|$)',
+      caseSensitive: false,
+    ).hasMatch(address);
     final uri = Uri.tryParse(
-      address.contains('://') ? address : 'http://$address',
+      address.contains('://')
+          ? address
+          : '${official ? 'https' : 'http'}://$address',
     );
     if (uri == null ||
         !{'https', 'http'}.contains(uri.scheme) ||
@@ -54,6 +68,51 @@ class SyncServerConfig {
 }
 
 enum LanSyncMode { bidirectional, desktopToMobile, mobileToDesktop }
+
+enum SyncConnectionMode { cloud, lan }
+
+class LanPairingPayload {
+  const LanPairingPayload(this.endpoints, this.code, this.expiresAt);
+  final List<String> endpoints;
+  final String code;
+  final DateTime expiresAt;
+  String encode() => jsonEncode({
+    'type': 'fly-lan-pair',
+    'version': 1,
+    'endpoints': endpoints,
+    'code': code,
+    'expiresAt': expiresAt.toUtc().toIso8601String(),
+  });
+  static LanPairingPayload decode(String raw, {DateTime? now}) {
+    if (raw.length > 4096) throw const FormatException('二维码内容无效');
+    final data = jsonObject(raw);
+    if (data['type'] != 'fly-lan-pair' ||
+        data['version'] != 1 ||
+        data['endpoints'] is! List ||
+        data['code'] is! String ||
+        !RegExp(r'^\d{6}$').hasMatch(data['code'] as String)) {
+      throw const FormatException('请扫描 Fly 电脑端的配对二维码');
+    }
+    final expires = DateTime.tryParse('${data['expiresAt']}');
+    if (expires == null || !expires.isAfter(now ?? DateTime.now())) {
+      throw const FormatException('二维码已过期，请在电脑端刷新');
+    }
+    final endpoints = (data['endpoints'] as List).map((value) {
+      final uri = SyncServerConfig.validate('$value');
+      if (!SyncServerConfig.isPrivateHost(uri.host) ||
+          uri.host == 'localhost' ||
+          uri.host == '127.0.0.1' ||
+          uri.host == '::1') {
+        throw const FormatException('二维码不包含有效的电脑局域网地址');
+      }
+      return uri.toString();
+    }).toList();
+    if (endpoints.isEmpty || endpoints.length > 8) {
+      throw const FormatException('电脑地址无效');
+    }
+    return LanPairingPayload(endpoints, data['code'] as String, expires);
+  }
+}
 
 abstract interface class SyncTransport {
   Future<Map<String, dynamic>> request(

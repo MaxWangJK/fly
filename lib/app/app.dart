@@ -28,6 +28,8 @@ import '../features/tools/container_loading/presentation/workspace/container_loa
 import '../l10n/fly_localizations.dart';
 import '../shared/design_system/app_theme.dart';
 import 'shell/app_shell.dart';
+import 'shell/my_page.dart';
+import '../shared/design_system/responsive_layout.dart';
 import 'settings/navigation_settings.dart';
 
 const _initialLocation = String.fromEnvironment(
@@ -52,11 +54,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   navigation.value,
                 )
             ? _initialLocation
-            : StartupWorkspaceResolver.resolve(navigation.value);
+            : StartupWorkspaceResolver.resolve(
+                navigation.value,
+                mobile: isPhoneLayout(context),
+              );
       }
       if (path == '/' ||
           !StartupWorkspaceResolver.allowed(path, navigation.value)) {
-        return StartupWorkspaceResolver.resolve(navigation.value);
+        return StartupWorkspaceResolver.resolve(
+          navigation.value,
+          mobile: isPhoneLayout(context),
+        );
       }
       return null;
     },
@@ -70,6 +78,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ShellRoute(
         builder: (context, state, child) => AppShell(child: child),
         routes: [
+          GoRoute(path: '/me', builder: (_, _) => const MyPage()),
           GoRoute(
             path: '/files',
             builder: (context, state) => FilesWorkspace(

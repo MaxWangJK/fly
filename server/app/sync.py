@@ -68,7 +68,8 @@ def accept(db, device, mutation):
     delete_conflict = bool(record and ((record.deleted_at and mutation.operation == 'upsert') or
                                        (mutation.operation == 'delete' and changed) or
                                        ('__lifecycle__' in changed)))
-    binary_conflict = mutation.entity_type == 'attachments' and bool(overlap & {'sha256'})
+    binary_conflict = (mutation.entity_type == 'attachments' and bool(overlap & {'sha256'})
+                       and record.data.get('deletion_batch') != 'permanent')
     conflict = None
     if overlap or delete_conflict:
         conflict = SyncConflict(id=uid(), user_id=user_id, entity_type=mutation.entity_type,
@@ -86,7 +87,8 @@ def accept(db, device, mutation):
             record_id=str(mutation.record_id), version=0, data={}, last_device_id=device.id)
         db.add(record)
     # An explicit restore must be based on the current tombstone; stale restore cannot resurrect.
-    blocked = bool(record.deleted_at and mutation.operation != 'delete' and
+    blocked = bool((mutation.entity_type == 'attachments' and record.data.get('deletion_batch') == 'permanent') or
+                   record.deleted_at and mutation.operation != 'delete' and
                    not (mutation.operation == 'restore' and mutation.base_version == current))
     if not blocked and not binary_conflict:
         data = dict(record.data)

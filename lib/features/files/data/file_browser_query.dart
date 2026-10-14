@@ -41,13 +41,15 @@ class FileBrowserQuery {
     String? fileId,
   }) {
     final vars = <Variable>[];
-    final where = <String>[];
+    final where = <String>["COALESCE(a.deletion_batch,'') <> 'permanent'"];
     if (fileId != null) {
       where.add('a.id=?');
       vars.add(Variable(fileId));
     }
     if (collection == FileCollection.deleted) {
-      where.add("a.deleted_at IS NOT NULL AND a.owner_type='library'");
+      where.add(
+        "a.deleted_at IS NOT NULL AND (a.owner_type='library' OR a.deletion_batch IS NULL)",
+      );
     } else {
       where.add('a.deleted_at IS NULL');
     }

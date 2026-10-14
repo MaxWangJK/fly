@@ -93,23 +93,25 @@ void main() {
           await file.writeAsBytes(bytes!.buffer.asUint8List());
           image.dispose();
         });
+        await tester.ensureVisible(find.text('创建账号'));
         await tester.tap(find.text('创建账号'));
         await tester.pump();
         await tester.enterText(
-          find.byType(TextField).at(0),
+          find.byKey(const ValueKey('sync-email')),
           'synthetic@example.com',
         );
         await tester.enterText(
-          find.byType(TextField).at(1),
+          find.byKey(const ValueKey('sync-password')),
           'synthetic-password',
         );
         await tester.enterText(
-          find.byType(TextField).at(2),
+          find.byKey(const ValueKey('sync-confirm')),
           'different-password',
         );
+        await tester.ensureVisible(find.text('注册'));
         await tester.tap(find.text('注册'));
         await tester.pump();
-        expect(find.textContaining('两次密码不一致'), findsOneWidget);
+        expect(find.text('两次密码不一致'), findsOneWidget);
         expect(c.auth.userId, isNull);
         await tester.pumpWidget(const SizedBox.shrink());
         await tester.runAsync(db.close);

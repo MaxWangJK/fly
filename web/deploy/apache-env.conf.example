@@ -1,0 +1,8 @@
+# Copy to /etc/fly/apache-env.conf and restrict it to administrators.
+SetEnv FLY_BASE_URL https://fly.example.com
+SetEnv FLY_DB_PATH /var/lib/fly/fly.sqlite
+SetEnv FLY_PRICE_BASIC_CENTS 0
+SetEnv FLY_PRICE_PRO_CENTS 0
+SetEnv FLY_SALES_ENABLED 0
+SetEnv FLY_ISSUER_PRIVATE_KEY_FILE /etc/fly/issuer.pem
+# SetEnv FLY_DOWNLOAD_FILE /srv/fly-download/Fly-Setup.exe

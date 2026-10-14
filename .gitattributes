@@ -1,0 +1,4 @@
+# Preserve portable requirement attachment bytes for SHA-256 verification.
+/docs/handoff/sources/*.txt -text whitespace=-trailing-space,-blank-at-eof,cr-at-eol
+# Historical excerpts retain the whitespace present in user messages.
+/docs/handoff/USER_REQUIREMENTS_ARCHIVE.md whitespace=-trailing-space,-blank-at-eof

@@ -8,6 +8,8 @@ import '../data/cloud_sync_transport.dart';
 import '../data/sync_schema.dart';
 import '../domain/sync_protocol.dart';
 import 'file_sync_service.dart';
+import '../../files/data/permanent_file_deletion.dart';
+import '../../files/data/managed_file_storage.dart';
 
 class SyncEngine extends ChangeNotifier {
   SyncEngine({
@@ -16,7 +18,14 @@ class SyncEngine extends ChangeNotifier {
     required this.cursorKey,
     required this.files,
     this.syncFiles = false,
-  });
+    this.failureLimit,
+    this.pollInterval = const Duration(seconds: 20),
+  }) {
+    files.onProgress = _notify;
+  }
+  final int? failureLimit;
+  final Duration pollInterval;
+  int consecutiveFailures = 0;
   final SyncOutboxRepository outbox;
   final SyncTransport transport;
   final String cursorKey;
@@ -34,15 +43,12 @@ class SyncEngine extends ChangeNotifier {
   void start() {
     enabled = true;
     _timer?.cancel();
-    _timer = Timer.periodic(
-      const Duration(seconds: 20),
-      (_) => unawaited(synchronize()),
-    );
+    _timer = Timer.periodic(pollInterval, (_) => unawaited(synchronize()));
     _writes ??= outbox.db.tableUpdates().listen((updates) {
       if (updates.any((u) => syncTables.contains(u.table))) {
         _debounce?.cancel();
         _debounce = Timer(
-          const Duration(seconds: 1),
+          const Duration(milliseconds: 250),
           () => unawaited(synchronize()),
         );
       }
@@ -99,6 +105,8 @@ class SyncEngine extends ChangeNotifier {
           body: {'mutations': mutations},
         );
         await outbox.acknowledge(ack['results'] as List);
+        pending = await outbox.pendingCount();
+        _notify();
       }
       var cursor = int.parse(await outbox.state(cursorKey) ?? '0');
       for (var page = 0; page < 100 && enabled && pullEnabled; page++) {
@@ -114,6 +122,7 @@ class SyncEngine extends ChangeNotifier {
         cursor = next;
         if (data['hasMore'] != true) break;
       }
+      if (!enabled || _disposed) return;
       pending = await outbox.pendingCount();
       final conflicts = await transport.request('GET', '/sync/conflicts');
       await outbox.storeConflicts(conflicts['items'] as List);
@@ -133,13 +142,25 @@ class SyncEngine extends ChangeNotifier {
       if (lanFiles != null) {
         await lanFiles!.synchronize();
       }
+      await PermanentFileDeletion(
+        outbox.db,
+        ManagedFileStorage(files.root),
+      ).cleanup();
+      if (!enabled || _disposed) return;
+      consecutiveFailures = 0;
       lastSuccess = DateTime.now();
       await outbox.saveState(
         '$cursorKey:lastSuccess',
         lastSuccess!.toIso8601String(),
       );
+      await outbox.saveState(
+        await outbox.successStateKey(cursorKey),
+        lastSuccess!.toIso8601String(),
+      );
       status = conflictCount > 0
           ? '有 $conflictCount 项同步冲突'
+          : syncFiles && files.waiting > 0
+          ? '数据已同步，${files.waiting} 个文件等待其它设备提供内容'
           : pending > 0
           ? '正在同步'
           : '已同步';
@@ -151,6 +172,15 @@ class SyncEngine extends ChangeNotifier {
       error = '$e';
     } finally {
       running = false;
+      if (error != null && enabled) {
+        consecutiveFailures++;
+        if (failureLimit != null && consecutiveFailures >= failureLimit!) {
+          stop();
+          transport.close();
+          lanFiles?.transport.close();
+          status = "连接失败，已停止重试";
+        }
+      }
       _notify();
     }
   }
@@ -162,9 +192,9 @@ class SyncEngine extends ChangeNotifier {
   Future<void> shutdown() async {
     stop();
     await _writes?.cancel();
-    await _inFlight;
     transport.close();
     lanFiles?.transport.close();
+    await _inFlight;
   }
 
   @override
@@ -176,6 +206,7 @@ class SyncEngine extends ChangeNotifier {
     unawaited(_writes?.cancel());
     transport.close();
     lanFiles?.transport.close();
+    files.onProgress = null;
     super.dispose();
   }
 }

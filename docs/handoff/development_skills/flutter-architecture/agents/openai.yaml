@@ -1,0 +1,4 @@
+interface:
+  display_name: "Flutter Architecture"
+  short_description: "Design maintainable Flutter feature boundaries"
+  default_prompt: "Use $flutter-architecture to review this Flutter feature and propose the smallest justified architectural change."
