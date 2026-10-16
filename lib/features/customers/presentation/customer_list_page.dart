@@ -25,6 +25,7 @@ import '../import/customer_import_dialog.dart';
 import 'customer_providers.dart';
 import '../../../app/shell/mobile_details.dart';
 import '../../../shared/design_system/responsive_layout.dart';
+import '../../../shared/design_system/mobile_workspace_actions.dart';
 
 class CustomerListPage extends ConsumerStatefulWidget {
   const CustomerListPage({
@@ -565,140 +566,136 @@ class _CustomerListPageState extends ConsumerState<CustomerListPage> {
     List<CrmTag> allTags,
   ) {
     final zh = context.l10n.isZh;
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        for (final option in [
-                          ('/customers/all', '全部'),
-                          ('/customers/today', '今天'),
-                          for (final c in categories)
-                            ('/customers/category/${c.id}', c.name),
-                        ])
-                          Padding(
-                            padding: const EdgeInsets.only(right: 6),
-                            child: ChoiceChip(
-                              label: Text(option.$2),
-                              selected:
-                                  GoRouterState.of(context).uri.path ==
-                                  option.$1,
-                              onSelected: (_) {
-                                ref
-                                        .read(
-                                          customerTagFilterProvider.notifier,
-                                        )
-                                        .state =
-                                    {};
-                                context.go(option.$1);
-                              },
+    return MobileWorkspaceActions(
+      actionId: 'customer',
+      query: ref.watch(customerSearchProvider),
+      searchHint: zh ? '搜索客户' : 'Search customers',
+      onSearchChanged: (value) =>
+          ref.read(customerSearchProvider.notifier).state = value,
+      onAdd: widget.projection == CustomerProjection.deleted
+          ? null
+          : _addOnPhone,
+      addLabel: zh ? '添加客户' : 'Add customer',
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          for (final option in [
+                            ('/customers/all', '全部'),
+                            ('/customers/today', '今天'),
+                            for (final c in categories)
+                              ('/customers/category/${c.id}', c.name),
+                          ])
+                            Padding(
+                              padding: const EdgeInsets.only(right: 6),
+                              child: ChoiceChip(
+                                label: Text(option.$2),
+                                selected:
+                                    GoRouterState.of(context).uri.path ==
+                                    option.$1,
+                                onSelected: (_) {
+                                  ref
+                                          .read(
+                                            customerTagFilterProvider.notifier,
+                                          )
+                                          .state =
+                                      {};
+                                  context.go(option.$1);
+                                },
+                              ),
                             ),
-                          ),
-                        for (final tag in allTags.where(
-                          (t) => !categories.any((c) => c.name == t.name),
-                        ))
-                          Padding(
-                            padding: const EdgeInsets.only(right: 6),
-                            child: FilterChip(
-                              label: Text(tag.name),
-                              selected: ref
-                                  .watch(customerTagFilterProvider)
-                                  .contains(tag.id),
-                              onSelected: (selected) {
-                                ref
-                                    .read(customerTagFilterProvider.notifier)
-                                    .state = selected
-                                    ? {tag.id}
-                                    : {};
-                                context.go('/customers/all');
-                              },
+                          for (final tag in allTags.where(
+                            (t) => !categories.any((c) => c.name == t.name),
+                          ))
+                            Padding(
+                              padding: const EdgeInsets.only(right: 6),
+                              child: FilterChip(
+                                label: Text(tag.name),
+                                selected: ref
+                                    .watch(customerTagFilterProvider)
+                                    .contains(tag.id),
+                                onSelected: (selected) {
+                                  ref
+                                      .read(customerTagFilterProvider.notifier)
+                                      .state = selected
+                                      ? {tag.id}
+                                      : {};
+                                  context.go('/customers/all');
+                                },
+                              ),
                             ),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                IconButton(
-                  key: const ValueKey('customer-quick-add-button'),
-                  tooltip: '添加客户',
-                  onPressed: _addOnPhone,
-                  icon: const Icon(Icons.person_add_alt_1_outlined),
-                ),
-              ],
-            ),
-            TextField(
-              key: const ValueKey('customer-search'),
-              controller: _searchController,
-              onChanged: (value) =>
-                  ref.read(customerSearchProvider.notifier).state = value,
-              decoration: InputDecoration(
-                isDense: true,
-                hintText: zh ? '搜索客户' : 'Search customers',
-                prefixIcon: const Icon(Icons.search),
+                ],
               ),
-            ),
-            Expanded(
-              child: customers.when(
-                loading: () =>
-                    const Center(child: CircularProgressIndicator.adaptive()),
-                error: (e, _) => Center(child: Text(context.flyError(e))),
-                data: (items) => items.isEmpty
-                    ? WorkspaceEmptyState(
-                        icon: Icons.people_outline,
-                        title: context.crmCopy('这里还没有客户'),
-                        actionLabel: context.crmCopy('添加客户'),
-                        onCreate: _addOnPhone,
-                      )
-                    : ListView.builder(
-                        itemCount: items.length,
-                        itemBuilder: (_, i) {
-                          final customer = items[i];
-                          return ListTile(
-                            key: ValueKey('phone-customer-${customer.id}'),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 4,
-                            ),
-                            leading: const CircleAvatar(
-                              child: Icon(Icons.person_outline),
-                            ),
-                            title: Text(
-                              customer.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            subtitle: Text(
-                              [
-                                customer.companyName,
-                                customer.phone,
-                                customer.email,
-                              ].where((v) => v.trim().isNotEmpty).join(' · '),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            trailing:
-                                widget.projection == CustomerProjection.deleted
-                                ? IconButton(
-                                    icon: const Icon(Icons.restore),
-                                    onPressed: () => ref
-                                        .read(customerRepositoryProvider)
-                                        .restoreCustomer(customer.id),
-                                  )
-                                : const Icon(Icons.chevron_right),
-                            onTap: () =>
-                                showCustomerDetailSheet(context, customer.id),
-                          );
-                        },
-                      ),
+              Expanded(
+                child: customers.when(
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator.adaptive()),
+                  error: (e, _) => Center(child: Text(context.flyError(e))),
+                  data: (items) => items.isEmpty
+                      ? WorkspaceEmptyState(
+                          icon: Icons.people_outline,
+                          title: context.crmCopy('这里还没有客户'),
+                          actionLabel: context.crmCopy('添加客户'),
+                          onCreate: _addOnPhone,
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.only(bottom: 144),
+                          itemCount: items.length,
+                          itemBuilder: (_, i) {
+                            final customer = items[i];
+                            return ListTile(
+                              key: ValueKey('phone-customer-${customer.id}'),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                              ),
+                              leading: const CircleAvatar(
+                                child: Icon(Icons.person_outline),
+                              ),
+                              title: Text(
+                                customer.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              subtitle: Text(
+                                [
+                                  customer.companyName,
+                                  customer.phone,
+                                  customer.email,
+                                ].where((v) => v.trim().isNotEmpty).join(' · '),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              trailing:
+                                  widget.projection ==
+                                      CustomerProjection.deleted
+                                  ? IconButton(
+                                      icon: const Icon(Icons.restore),
+                                      onPressed: () => ref
+                                          .read(customerRepositoryProvider)
+                                          .restoreCustomer(customer.id),
+                                    )
+                                  : const Icon(Icons.chevron_right),
+                              onTap: () =>
+                                  showCustomerDetailSheet(context, customer.id),
+                            );
+                          },
+                        ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -18,6 +18,7 @@ import '../domain/order.dart';
 import 'order_providers.dart';
 import '../../../app/shell/mobile_details.dart';
 import '../../../shared/design_system/responsive_layout.dart';
+import '../../../shared/design_system/mobile_workspace_actions.dart';
 
 class OrderListPage extends ConsumerStatefulWidget {
   const OrderListPage({required this.projection, this.tagId, super.key});
@@ -65,6 +66,47 @@ class _OrderListPageState extends ConsumerState<OrderListPage> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _addOnPhone() async {
+    final customers =
+        ref.read(allCustomersProvider).valueOrNull ?? <Customer>[];
+    if (customers.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            context.l10n.isZh
+                ? '请先添加客户，再创建订单。'
+                : 'Add a customer before creating an order.',
+          ),
+        ),
+      );
+      return;
+    }
+    final customerId = await showModalBottomSheet<String>(
+      context: context,
+      useRootNavigator: true,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (_) => _PhoneOrderCreation(customers: customers),
+    );
+    if (!mounted || customerId == null) return;
+    try {
+      final order = await ref
+          .read(orderRepositoryProvider)
+          .createOrder(customerId: customerId);
+      if (!mounted) return;
+      ref.read(orderSearchProvider.notifier).state = '';
+      ref.read(orderCustomerFilterProvider.notifier).state = null;
+      context.go('/orders/all');
+      await showOrderDetailSheet(context, order.id);
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(context.flyError(error))));
+      }
+    }
   }
 
   Future<void> _showOrderDeleteMenu(SalesOrder order, Offset position) async {
@@ -118,7 +160,7 @@ class _OrderListPageState extends ConsumerState<OrderListPage> {
       OrderProjection.tag => selectedTag?.name ?? context.crmCopy('订单标签'),
       OrderProjection.deleted => context.crmCopy('已删除'),
     };
-    return SafeArea(
+    final page = SafeArea(
       child: Material(
         color: Theme.of(context).colorScheme.surface,
         child: Padding(
@@ -204,25 +246,27 @@ class _OrderListPageState extends ConsumerState<OrderListPage> {
                   ),
                 ),
               ],
-              const SizedBox(height: FlySpacing.sm),
-              SizedBox(
-                height: 36,
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (value) =>
-                      ref.read(orderSearchProvider.notifier).state = value,
-                  decoration: InputDecoration(
-                    isDense: true,
-                    hintText: context.crmCopy('搜索订单号、客户、公司、产品或工厂'),
-                    prefixIcon: const Icon(Icons.search, size: 17),
-                    prefixIconColor: Theme.of(context)
-                        .colorScheme
-                        .onSurfaceVariant,
-                    prefixIconConstraints: const BoxConstraints(minWidth: 36),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 8),
+              if (!isPhoneLayout(context))
+                const SizedBox(height: FlySpacing.sm),
+              if (!isPhoneLayout(context))
+                SizedBox(
+                  height: 36,
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (value) =>
+                        ref.read(orderSearchProvider.notifier).state = value,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      hintText: context.crmCopy('搜索订单号、客户、公司、产品或工厂'),
+                      prefixIcon: const Icon(Icons.search, size: 17),
+                      prefixIconColor: Theme.of(context)
+                          .colorScheme
+                          .onSurfaceVariant,
+                      prefixIconConstraints: const BoxConstraints(minWidth: 36),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                    ),
                   ),
                 ),
-              ),
               const SizedBox(height: FlySpacing.xs),
               const SizedBox(height: FlySpacing.xs),
               Expanded(
@@ -239,7 +283,9 @@ class _OrderListPageState extends ConsumerState<OrderListPage> {
                   data: (items) => items.isEmpty
                       ? const _EmptyOrders()
                       : ListView.separated(
-                          padding: const EdgeInsets.only(bottom: 16),
+                          padding: EdgeInsets.only(
+                            bottom: isPhoneLayout(context) ? 144 : 16,
+                          ),
                           itemCount: items.length,
                           separatorBuilder: (_, _) => const SizedBox(height: 5),
                           itemBuilder: (context, index) {
@@ -311,7 +357,70 @@ class _OrderListPageState extends ConsumerState<OrderListPage> {
         ),
       ),
     );
+    return isPhoneLayout(context)
+        ? MobileWorkspaceActions(
+            actionId: 'order',
+            query: ref.watch(orderSearchProvider),
+            searchHint: context.l10n.isZh ? '搜索订单' : 'Search orders',
+            onSearchChanged: (value) =>
+                ref.read(orderSearchProvider.notifier).state = value,
+            onAdd: widget.projection == OrderProjection.deleted
+                ? null
+                : _addOnPhone,
+            addLabel: context.l10n.isZh ? '新建订单' : 'New order',
+            child: page,
+          )
+        : page;
   }
+}
+
+class _PhoneOrderCreation extends StatefulWidget {
+  const _PhoneOrderCreation({required this.customers});
+  final List<Customer> customers;
+  @override
+  State<_PhoneOrderCreation> createState() => _PhoneOrderCreationState();
+}
+
+class _PhoneOrderCreationState extends State<_PhoneOrderCreation> {
+  String? selected;
+  @override
+  Widget build(BuildContext context) => SingleChildScrollView(
+    padding: EdgeInsets.fromLTRB(
+      16,
+      8,
+      16,
+      MediaQuery.viewInsetsOf(context).bottom + 16,
+    ),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          context.l10n.isZh ? '新建订单' : 'New order',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        const SizedBox(height: 12),
+        DropdownMenu<String>(
+          expandedInsets: EdgeInsets.zero,
+          menuHeight: 240,
+          enableFilter: true,
+          label: Text(context.l10n.isZh ? '选择客户' : 'Choose customer'),
+          dropdownMenuEntries: [
+            for (final customer in widget.customers)
+              DropdownMenuEntry(value: customer.id, label: customer.name),
+          ],
+          onSelected: (id) => setState(() => selected = id),
+        ),
+        const SizedBox(height: 12),
+        FilledButton(
+          onPressed: selected == null
+              ? null
+              : () => Navigator.pop(context, selected),
+          child: Text(context.l10n.isZh ? '创建' : 'Create'),
+        ),
+      ],
+    ),
+  );
 }
 
 class _OrderRow extends StatelessWidget {

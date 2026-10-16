@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../shared/design_system/responsive_layout.dart';
+import '../../../shared/design_system/mobile_workspace_actions.dart';
 import 'widgets/task_view_links.dart';
 import 'widgets/task_completion_feedback.dart';
 
@@ -19,7 +20,7 @@ import 'task_providers.dart';
 import 'task_delete_action.dart';
 import 'widgets/task_components.dart';
 
-enum TaskCollection { today, inbox, upcoming, custom, completed, trash }
+enum TaskCollection { all, today, inbox, upcoming, custom, completed, trash }
 
 class TaskListPage extends ConsumerStatefulWidget {
   const TaskListPage({required this.collection, this.listId, super.key});
@@ -60,6 +61,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
   }
 
   AsyncValue<List<FlyTask>> _tasks() => switch (widget.collection) {
+    TaskCollection.all => ref.watch(allTasksProvider),
     TaskCollection.today => ref.watch(todayWorkspaceTasksProvider),
     TaskCollection.inbox => ref.watch(inboxTasksProvider),
     TaskCollection.upcoming => ref.watch(upcomingTasksProvider),
@@ -76,6 +78,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
 
   String _title(BuildContext context, List<FlyTaskList> lists) =>
       switch (widget.collection) {
+        TaskCollection.all => context.l10n.isZh ? '全部任务' : 'All tasks',
         TaskCollection.today => context.l10n.t('today'),
         TaskCollection.inbox => context.l10n.t('inbox'),
         TaskCollection.upcoming => context.l10n.t('next7'),
@@ -110,9 +113,58 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
   }
 
   void _beginAdd() {
+    if (isPhoneLayout(context)) {
+      _addOnPhone();
+      return;
+    }
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => _quickAddFocus.requestFocus(),
     );
+  }
+
+  Future<void> _addOnPhone() async {
+    final title = await showModalBottomSheet<String>(
+      context: context,
+      useRootNavigator: true,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (_) => _PhoneTaskCreation(
+        listName: _title(
+          context,
+          ref.read(taskListsProvider).valueOrNull ?? [],
+        ),
+      ),
+    );
+    if (!mounted || title == null || title.trim().isEmpty) return;
+    try {
+      final day = ref.read(localTodayProvider);
+      await ref
+          .read(taskRepositoryProvider)
+          .createTask(
+            title: title,
+            listId: widget.collection == TaskCollection.custom
+                ? widget.listId ?? 'inbox'
+                : 'inbox',
+            dueDate:
+                widget.collection == TaskCollection.today ||
+                    widget.collection == TaskCollection.upcoming
+                ? DateTime(day.year, day.month, day.day)
+                : null,
+          );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              context.l10n.isZh
+                  ? '任务创建失败：$error'
+                  : 'Unable to create task: $error',
+            ),
+          ),
+        );
+      }
+    }
   }
 
   void _cancelAdd() {
@@ -122,6 +174,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
   }
 
   KeyEventResult _handleKeys(KeyEvent event, List<FlyTask> tasks) {
+    if (isPhoneLayout(context)) return KeyEventResult.ignored;
     if (event is! KeyDownEvent || _quickAddFocus.hasFocus) {
       return KeyEventResult.ignored;
     }
@@ -162,9 +215,10 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
 
   @override
   Widget build(BuildContext context) {
+    final phone = isPhoneLayout(context);
     final tasks = _tasks();
     final query = _search.trim();
-    final visibleTasks = _canAdd || query.isEmpty
+    final visibleTasks = (!phone && _canAdd) || query.isEmpty
         ? tasks
         : tasks.whenData(
             (items) => items
@@ -176,7 +230,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                 )
                 .toList(),
           );
-    final searchTasks = _canAdd && query.isNotEmpty
+    final searchTasks = !phone && _canAdd && query.isNotEmpty
         ? ref.watch(allTasksProvider).whenData((items) {
             final matches =
                 items
@@ -232,7 +286,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
       }
     }
 
-    return SafeArea(
+    final page = SafeArea(
       child: Focus(
         focusNode: _listFocus,
         autofocus: true,
@@ -257,7 +311,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                   ),
                   const SizedBox(height: FlySpacing.md),
                 ],
-                if (_canAdd) ...[
+                if (_canAdd && !phone) ...[
                   Focus(
                     onKeyEvent: (_, event) {
                       if (event is KeyDownEvent &&
@@ -293,7 +347,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                   ),
                   const SizedBox(height: FlySpacing.xs),
                 ],
-                if (!_canAdd)
+                if (!_canAdd && !phone)
                   SizedBox(
                     height: 36,
                     child: TextField(
@@ -311,7 +365,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                 const SizedBox(height: FlySpacing.xs),
                 if (isPhoneLayout(context))
                   const TaskViewLinks(current: 'tasks'),
-                if (_canAdd && query.isNotEmpty)
+                if (_canAdd && !phone && query.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(bottom: FlySpacing.xs),
                     child: Row(
@@ -337,7 +391,7 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
                         ? query.isNotEmpty
                               ? Center(
                                   child: Text(
-                                    _canAdd
+                                    _canAdd && !phone
                                         ? context.l10n.isZh
                                               ? '没有匹配的历史任务，按 Enter 新建'
                                               : 'No matching tasks. Press Enter to create.'
@@ -379,7 +433,78 @@ class _TaskListPageState extends ConsumerState<TaskListPage> {
         ),
       ),
     );
+    return phone
+        ? MobileWorkspaceActions(
+            actionId: 'task',
+            query: _search,
+            searchHint: context.l10n.isZh ? '搜索任务' : 'Search tasks',
+            onSearchChanged: (value) => setState(() => _search = value),
+            onAdd: _canAdd ? _beginAdd : null,
+            addLabel: context.l10n.t('addTask'),
+            child: page,
+          )
+        : page;
   }
+}
+
+class _PhoneTaskCreation extends StatefulWidget {
+  const _PhoneTaskCreation({required this.listName});
+  final String listName;
+  @override
+  State<_PhoneTaskCreation> createState() => _PhoneTaskCreationState();
+}
+
+class _PhoneTaskCreationState extends State<_PhoneTaskCreation> {
+  final controller = TextEditingController();
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => SingleChildScrollView(
+    padding: EdgeInsets.fromLTRB(
+      16,
+      8,
+      16,
+      MediaQuery.viewInsetsOf(context).bottom + 16,
+    ),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          context.l10n.t('addTask'),
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        Text(widget.listName, style: Theme.of(context).textTheme.bodySmall),
+        const SizedBox(height: 12),
+        TextField(
+          key: const ValueKey('phone-task-title'),
+          controller: controller,
+          autofocus: true,
+          textInputAction: TextInputAction.done,
+          decoration: InputDecoration(
+            labelText: context.l10n.isZh ? '任务名称' : 'Task name',
+          ),
+          onSubmitted: (value) {
+            if (value.trim().isNotEmpty) Navigator.pop(context, value.trim());
+          },
+        ),
+        const SizedBox(height: 12),
+        FilledButton(
+          key: const ValueKey('phone-create-task'),
+          onPressed: () {
+            if (controller.text.trim().isNotEmpty) {
+              Navigator.pop(context, controller.text.trim());
+            }
+          },
+          child: Text(context.l10n.isZh ? '创建' : 'Create'),
+        ),
+      ],
+    ),
+  );
 }
 
 class _ListHeader extends StatelessWidget {
@@ -501,6 +626,7 @@ class _TaskRows extends ConsumerWidget {
             ..sort(compareTaskCreatedNewestFirst);
       return ListView(
         controller: scrollController,
+        padding: EdgeInsets.only(bottom: isPhoneLayout(context) ? 144 : 0),
         children: [
           if (!isPhoneLayout(context))
             ListTile(
@@ -556,6 +682,7 @@ class _TaskRows extends ConsumerWidget {
 
     final list = ListView.builder(
       controller: scrollController,
+      padding: EdgeInsets.only(bottom: isPhoneLayout(context) ? 144 : 0),
       itemCount: tasks.length,
       itemBuilder: (context, index) => row(index),
     );

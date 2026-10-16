@@ -196,6 +196,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ),
           ),
           GoRoute(
+            path: '/tasks/all',
+            builder: (context, state) =>
+                const TaskListPage(collection: TaskCollection.all),
+          ),
+          GoRoute(
             path: '/tasks/today',
             builder: (context, state) =>
                 const TaskListPage(collection: TaskCollection.today),

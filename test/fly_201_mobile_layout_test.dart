@@ -127,7 +127,10 @@ void main() {
         await tester.tap(find.byKey(const ValueKey('settings-back')));
         await settle();
         await tester.scrollUntilVisible(
-          find.byKey(const ValueKey('settings-category-7')),
+          find.descendant(
+            of: find.byKey(const ValueKey('settings-center')),
+            matching: find.text('同步'),
+          ),
           160,
           scrollable: find
               .descendant(
@@ -136,7 +139,12 @@ void main() {
               )
               .first,
         );
-        await tester.tap(find.byKey(const ValueKey('settings-category-7')));
+        await tester.tap(
+          find.descendant(
+            of: find.byKey(const ValueKey('settings-center')),
+            matching: find.text('同步'),
+          ),
+        );
         await settle();
         expect(find.byKey(const ValueKey('sync-mode-cloud')), findsOneWidget);
         await tester.tap(find.byKey(const ValueKey('sync-mode-lan')));

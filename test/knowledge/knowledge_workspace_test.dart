@@ -9,11 +9,11 @@ import 'package:fly/config/feature_flags.dart';
 import 'package:fly/shared/search/global_search_providers.dart';
 import 'package:fly/core/database/app_database.dart';
 import 'package:fly/core/storage/data_root_providers.dart';
-import 'package:fly/features/knowledge/presentation/knowledge_providers.dart';
+import 'package:fly/features/knowledge/presentation/fly_book_providers.dart';
 import 'package:fly/features/tasks/presentation/task_providers.dart';
 
 void main() {
-  testWidgets('version gate preserves notes and reserves Knowledge for 2.0', (
+  testWidgets('desktop library exposes book import and hides personal notes', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1400, 900);
@@ -43,20 +43,19 @@ void main() {
     }
     await tester.tap(find.byKey(const ValueKey('primary-notes')));
     if (enableKnowledgeHub) {
-      await tester.runAsync(
-        () => container.read(knowledgeCatalogProvider.future),
-      );
+      await tester.runAsync(() => container.read(flyBooksProvider.future));
     }
     for (var i = 0; i < 12; i++) {
       await tester.pump(const Duration(milliseconds: 100));
     }
     if (enableKnowledgeHub) {
-      expect(find.text('外贸SOP总览'), findsWidgets);
-      expect(
-        find.byKey(const ValueKey('knowledge-sidebar-sop')),
-        findsOneWidget,
-      );
-      await tester.tap(find.byKey(const ValueKey('knowledge-sidebar-notes')));
+      expect(find.byKey(const ValueKey('book-import')), findsOneWidget);
+      expect(find.byKey(const ValueKey('new-note-title')), findsNothing);
+      expect(find.byType(TextField), findsNothing);
+      expect(container.read(globalSearchServiceProvider).knowledge, isNull);
+      container.read(appRouterProvider).go('/knowledge?view=notes');
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('new-note-title')), findsNothing);
     } else {
       expect(find.text('外贸SOP总览'), findsNothing);
       expect(
@@ -87,7 +86,10 @@ void main() {
     for (var i = 0; i < 12; i++) {
       await tester.pump(const Duration(milliseconds: 100));
     }
-    expect(find.byKey(const ValueKey('new-note-title')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('new-note-title')),
+      enableKnowledgeHub ? findsNothing : findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
     container.dispose();

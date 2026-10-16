@@ -36,6 +36,17 @@ class DailyReviewRepository {
     return Map<String, String>.from(jsonDecode(row.answersJson) as Map);
   }
 
+  Stream<Map<String, String>> watchAnswers(String day) {
+    date(day);
+    return (db.select(
+      db.dailyReviews,
+    )..where((r) => r.dayKey.equals(day))).watchSingleOrNull().map(
+      (row) => row == null
+          ? <String, String>{}
+          : Map<String, String>.from(jsonDecode(row.answersJson) as Map),
+    );
+  }
+
   Future<void> saveAnswer(String day, String field, String value) =>
       db.transaction(() async {
         date(day);

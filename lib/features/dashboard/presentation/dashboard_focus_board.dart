@@ -87,6 +87,13 @@ class DashboardFocusBoard extends ConsumerWidget {
               data: (snapshot) => Column(
                 children: [
                   _FocusSection(
+                    key: const ValueKey('focus-section-motto'),
+                    type: DashboardFocusType.motto,
+                    content: snapshot.motto,
+                    day: day,
+                  ),
+                  Divider(height: 22, color: colors.divider),
+                  _FocusSection(
                     key: const ValueKey('focus-section-mainMission'),
                     type: DashboardFocusType.mainMission,
                     content: snapshot.mainMission,
@@ -167,6 +174,7 @@ class _FocusSectionState extends ConsumerState<_FocusSection> {
 
   String _label(BuildContext context) =>
       context.focusCopy(switch (widget.type) {
+        DashboardFocusType.motto => '我的座右铭',
         DashboardFocusType.mainMission => '人生主线',
         DashboardFocusType.monthlyFocus => '本月重点',
         DashboardFocusType.weeklyFocus => '本周重点',
@@ -175,6 +183,7 @@ class _FocusSectionState extends ConsumerState<_FocusSection> {
 
   String _placeholder(BuildContext context) =>
       context.focusCopy(switch (widget.type) {
+        DashboardFocusType.motto => '写下一句话，提醒自己为什么出发',
         DashboardFocusType.mainMission => '点击这里写下你当前最重要的长期目标',
         DashboardFocusType.monthlyFocus => '这个月最重要的成果是什么？',
         DashboardFocusType.weeklyFocus => '这周最重要的一件事是什么？',
@@ -430,6 +439,7 @@ class DashboardFocusHistoryPanel extends ConsumerWidget {
                       itemBuilder: (context, index) {
                         final entry = entries[index];
                         final label = context.focusCopy(switch (entry.type) {
+                          DashboardFocusType.motto => '我的座右铭',
                           DashboardFocusType.mainMission => '人生主线',
                           DashboardFocusType.monthlyFocus => '本月重点',
                           DashboardFocusType.weeklyFocus => '本周重点',

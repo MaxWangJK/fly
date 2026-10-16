@@ -1,6 +1,6 @@
 # Fly 官网部署手册：Ubuntu Server 24.04 LTS
 
-本手册适用于当前仓库的 `web/` 网站。部署后可以公开展示产品页面；账户登录和支付适配器尚未接入，方案价格尚未确定，因此保持购买关闭。服务器只运行 Apache、PHP 和 SQLite，不需要 Node.js、Composer 或独立数据库服务。
+本手册适用于当前仓库的 `web/` 网站。部署后可以公开展示产品页面；账户登录和支付适配器尚未接入，方案价格尚未确定，因此保持购买关闭。以下正文使用 Apache、PHP 和 SQLite。如果服务器已经运行 Nginx 并占用 80/443 端口，请改用 [Nginx 部署步骤](ubuntu-24.04-nginx.md)，不要同时启动两个 Web 服务。
 
 > 如果云服务器控制台显示的是“Ubuntu 24.04”，它就是本手册对应的版本。下文的 `fly.example.com`、`SERVER_IP`、`SSH_USER` 都要替换成自己的真实值。以下命令分为 **Windows PowerShell** 和 **Ubuntu SSH** 两种环境，不要混用。
 
@@ -58,7 +58,34 @@ sudo ufw status verbose
 
 ## 3. 从 Windows 打包并上传网站
 
-在 **Windows PowerShell** 中，位于 `E:\workSpace\fly` 时执行：
+### 方法 A：用 Windows 图形界面压缩和上传
+
+可以直接压缩整个 `web` 文件夹作为**传输文件**。目前仓库中的 `web` 包含 `public`、`src`、`deploy`、`tests`、`README.md` 和公钥，没有部署密钥。不过压缩前仍须检查 `web` 内没有 `config.php`、`.env`、`*.pem`、`*.sqlite`、日志或其他含密钥的文件；以后新增加的文件也要检查。整个压缩包只放在服务器登录用户的家目录，**不能直接解压到 Apache 网站根目录**。
+
+1. 在 Windows 文件管理器中打开 `E:\workSpace\fly`，右键 `web` 文件夹，选择“压缩为 ZIP 文件”（或“发送到 → 压缩(zipped)文件夹”），得到 `web.zip`。
+2. 使用能连接 SFTP 的图形工具，或云服务器控制台提供的文件上传功能，把 `web.zip` 上传到 SSH 用户的家目录，通常是 `/home/SSH_USER/web.zip`。SFTP 使用与 SSH 相同的地址、端口、用户名和密钥/密码。
+3. SSH 登录 Ubuntu，检查 ZIP 内容、解压到家目录，再仅安装网站必需的三个项目：
+
+   ```bash
+   sudo apt install -y unzip
+   unzip -l ~/web.zip
+   mkdir -p ~/fly-upload
+   unzip -q ~/web.zip -d ~/fly-upload
+   ls ~/fly-upload/web
+   sudo install -d -o root -g root -m 755 /var/www/fly
+   sudo cp -a ~/fly-upload/web/public ~/fly-upload/web/src ~/fly-upload/web/issuer_public_key.txt /var/www/fly/
+   sudo chown -R root:root /var/www/fly
+   sudo find /var/www/fly -type d -exec chmod 755 {} +
+   sudo find /var/www/fly -type f -exec chmod 644 {} +
+   sudo test -f /var/www/fly/public/index.php
+   sudo test -f /var/www/fly/src/Core.php
+   ```
+
+如果 `ls ~/fly-upload/web` 提示不存在，ZIP 可能没有包含最外层 `web` 文件夹：先执行 `ls ~/fly-upload`，若直接看到 `public`、`src` 和 `issuer_public_key.txt`，将上面 `sudo cp -a` 命令中的 `~/fly-upload/web/` 改为 `~/fly-upload/`。
+
+### 方法 B：使用 PowerShell 命令行
+
+若 Windows 已安装 `tar` 和 `scp`，可在 **Windows PowerShell** 中进入 `E:\workSpace\fly` 后执行：
 
 ```powershell
 tar -czf "$env:TEMP\fly-web.tar.gz" -C web public src issuer_public_key.txt
@@ -66,7 +93,7 @@ tar -tzf "$env:TEMP\fly-web.tar.gz"
 scp "$env:TEMP\fly-web.tar.gz" SSH_USER@SERVER_IP:~/fly-web.tar.gz
 ```
 
-检查打包清单仅包含 `public/`、`src/`、`issuer_public_key.txt`。如 SSH 使用自定义端口，上传命令添加 `-P 实际端口`；登录命令添加 `-p 实际端口`。
+检查打包清单仅包含 `public/`、`src/`、`issuer_public_key.txt`。`SSH_USER@SERVER_IP` 是占位符，必须替换成真实登录信息。如果提示找不到 `tar` 或 `scp`，直接使用方法 A。如 SSH 使用自定义端口，上传命令添加 `-P 实际端口`；登录命令添加 `-p 实际端口`。
 
 在 **Ubuntu SSH** 中安装网站文件：
 
@@ -80,7 +107,7 @@ sudo test -f /var/www/fly/public/index.php
 sudo test -f /var/www/fly/src/Core.php
 ```
 
-安装后，`/var/www/fly/public` 是唯一对外目录；程序代码由 root 持有，网页进程只读。保存 Windows 端本次打包文件，以便需要时回滚。
+两种方法任选一种。安装后，`/var/www/fly/public` 是唯一对外目录；程序代码由 root 持有，网页进程只读。保存 Windows 端本次打包文件，以便需要时回滚。
 
 ## 4. 创建数据目录和网站配置（Ubuntu SSH）
 
@@ -147,14 +174,14 @@ sudo nano /etc/apache2/sites-available/fly.conf
 sudo a2dissite 000-default.conf
 sudo a2ensite fly.conf
 sudo apache2ctl configtest
-sudo systemctl reload apache2
+sudo systemctl enable --now apache2
 sudo systemctl status apache2 --no-pager
 ```
 
-`configtest` 必须显示 `Syntax OK`。用浏览器先访问 `http://fly.example.com/`，应能看到 Fly 首页和产品截图。也可在服务器上检查：
+首次部署应使用 `enable --now` 启动 Apache 并设置开机自启；`reload` 只能用于已在运行的服务。`configtest` 必须显示 `Syntax OK`，服务状态应显示 `active (running)`。如果启动失败，执行 `sudo journalctl -u apache2 -n 80 --no-pager` 查看错误；常见原因是配置错误或 80 端口已被其他程序占用。用浏览器先访问 `http://fly.example.com/`，应能看到 Fly 首页和产品截图。也可在服务器上检查：
 
 ```bash
-curl -I -H 'Host: fly.example.com' http://127.0.0.1/
+curl -sS -o /dev/null -w '%{http_code}\n' -H 'Host: fly.example.com' http://127.0.0.1/
 ```
 
 如果首页正常但站内页面出现 404，请确认 `rewrite` 模块已启用、`public/.htaccess` 已上传，以及 Apache 配置中的 `AllowOverride All` 存在。
@@ -183,9 +210,9 @@ sudo certbot certificates
 把以下命令中的域名替换为自己的域名，在 Ubuntu SSH 中执行：
 
 ```bash
-curl -I https://fly.example.com/
-curl -I https://fly.example.com/assets/screens/customer.png
-curl -I https://fly.example.com/config.php
+curl -sS -o /dev/null -w '%{http_code}\n' https://fly.example.com/
+curl -sS -o /dev/null -w '%{http_code}\n' https://fly.example.com/assets/screens/customer.png
+curl -sS -o /dev/null -w '%{http_code}\n' https://fly.example.com/config.php
 curl -s -o /dev/null -w '%{http_code}\n' -X POST https://fly.example.com/api/checkout
 ```
 
@@ -221,11 +248,21 @@ sudo ls -lh /var/backups/fly/
 
 ### 网站更新
 
-在 Windows 重新执行第 3 节的打包和上传。更新前先备份数据库及当前网站文件，然后在 Ubuntu SSH 中执行：
+在 Windows 重新执行第 3 节的打包和上传。更新前先按上文备份数据库，再在 Ubuntu SSH 中备份当前网站文件：
 
 ```bash
 sudo tar -czf "/var/backups/fly/site-$(date +%Y%m%d-%H%M%S).tar.gz" -C /var/www/fly public src issuer_public_key.txt
+```
+
+如果使用方法 A 上传 `web.zip`，重复第 3 节的解压和 `sudo cp -a` 安装步骤。如果使用方法 B 上传 `fly-web.tar.gz`，执行：
+
+```bash
 sudo tar -xzf ~/fly-web.tar.gz -C /var/www/fly
+```
+
+最后统一执行：
+
+```bash
 sudo chown -R root:root /var/www/fly
 sudo find /var/www/fly -type d -exec chmod 755 {} +
 sudo find /var/www/fly -type f -exec chmod 644 {} +

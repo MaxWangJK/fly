@@ -2,5 +2,5 @@
 /// The fallback keeps local IDE runs identifiable without an extra dependency.
 const flyAppVersion = String.fromEnvironment(
   'FLY_APP_VERSION',
-  defaultValue: '2.0.2+38',
+  defaultValue: '2.0.4+40',
 );

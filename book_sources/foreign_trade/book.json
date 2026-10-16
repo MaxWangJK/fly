@@ -1,0 +1,90 @@
+{
+  "id": "fly-trade-fieldbook",
+  "title": "外贸工作手册：从客户开发到订单复盘",
+  "author": "Fly 编辑部",
+  "version": 1,
+  "description": "把现有外贸资料整理为可实践的客户工作路径。16 章涵盖线索、沟通、报价、样品、付款提醒、输单与复购，附原创流程图和实践清单。",
+  "stylesheet": "styles/book.css",
+  "chapters": [
+    {
+      "id": "reading-guide",
+      "title": "导读：把知识变成下一步",
+      "file": "chapters/reading-guide.html"
+    },
+    {
+      "id": "sop-overview",
+      "title": "外贸SOP总览",
+      "file": "chapters/sop-overview.html"
+    },
+    {
+      "id": "lead-screening",
+      "title": "如何筛选潜在客户",
+      "file": "chapters/lead-screening.html"
+    },
+    {
+      "id": "customer-background",
+      "title": "客户背调应该看什么",
+      "file": "chapters/customer-background.html"
+    },
+    {
+      "id": "first-contact",
+      "title": "第一次联系客户的目标是什么",
+      "file": "chapters/first-contact.html"
+    },
+    {
+      "id": "before-quote",
+      "title": "报价前应该确认哪些信息",
+      "file": "chapters/before-quote.html"
+    },
+    {
+      "id": "product-value",
+      "title": "如何介绍产品价值",
+      "file": "chapters/product-value.html"
+    },
+    {
+      "id": "quote-followup",
+      "title": "报价后的跟进原则",
+      "file": "chapters/quote-followup.html"
+    },
+    {
+      "id": "price-objection",
+      "title": "客户说价格高怎么办",
+      "file": "chapters/price-objection.html"
+    },
+    {
+      "id": "silent-customer",
+      "title": "客户长时间不回复怎么办",
+      "file": "chapters/silent-customer.html"
+    },
+    {
+      "id": "sample-progress",
+      "title": "样品如何推进",
+      "file": "chapters/sample-progress.html"
+    },
+    {
+      "id": "natural-order-nudge",
+      "title": "如何自然催单",
+      "file": "chapters/natural-order-nudge.html"
+    },
+    {
+      "id": "payment-followup",
+      "title": "如何催付款",
+      "file": "chapters/payment-followup.html"
+    },
+    {
+      "id": "lost-deal-review",
+      "title": "输单以后复盘什么",
+      "file": "chapters/lost-deal-review.html"
+    },
+    {
+      "id": "reactivate-customer",
+      "title": "老客户如何重新激活",
+      "file": "chapters/reactivate-customer.html"
+    },
+    {
+      "id": "practice-workbook",
+      "title": "工作表：让每周工作形成闭环",
+      "file": "chapters/practice-workbook.html"
+    }
+  ]
+}

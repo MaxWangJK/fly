@@ -26,8 +26,9 @@ class TaskViewLinks extends ConsumerWidget {
         phone ? (context.l10n.isZh ? '今天' : 'Today') : context.l10n.t('tasks'),
         '/tasks/today',
       ),
-      if (phone) ('review', '复盘', '/tasks/review'),
-      if (phone) ('lists', '清单', ''),
+      if (phone) ('lists', context.l10n.isZh ? '清单' : 'Lists', '/tasks/all'),
+      if (phone)
+        ('review', context.l10n.isZh ? '复盘' : 'Review', '/tasks/review'),
       ('calendar', context.l10n.t('calendar'), '/calendar'),
       ('matrix', context.l10n.t('matrix'), '/matrix'),
     ];
@@ -57,22 +58,17 @@ class TaskViewLinks extends ConsumerWidget {
                       minimumSize: const Size(48, 44),
                       padding: const EdgeInsets.symmetric(horizontal: 10),
                     ),
-                    onPressed: () => link.$1 == 'lists'
-                        ? showModalBottomSheet<void>(
-                            context: context,
-                            useRootNavigator: true,
-                            isScrollControlled: true,
-                            useSafeArea: true,
-                            showDragHandle: true,
-                            builder: (_) => const _ListPicker(),
-                          )
-                        : context.go(link.$3),
+                    onPressed: () {
+                      if (link.$1 == 'lists' && active == 'lists') return;
+                      context.go(link.$3);
+                    },
                     child: Text(link.$2),
                   ),
                 ),
             ],
           ),
         ),
+        if (phone && active == 'lists') const _InlineListFilters(),
         if (path.isNotEmpty)
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 2, 8, 8),
@@ -90,6 +86,79 @@ class TaskViewLinks extends ConsumerWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+class _InlineListFilters extends ConsumerWidget {
+  const _InlineListFilters();
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final path = GoRouterState.of(context).uri.path;
+    final lists = (ref.watch(taskListsProvider).valueOrNull ?? <FlyTaskList>[])
+        .where((list) => list.id != 'inbox')
+        .toList();
+    final ordered = <FlyTaskList>[];
+    final seen = <String>{};
+    void visit(FlyTaskList list) {
+      if (!seen.add(list.id)) return;
+      ordered.add(list);
+      for (final child in lists.where((child) => child.parentId == list.id)) {
+        visit(child);
+      }
+    }
+
+    for (final list in lists.where(
+      (list) =>
+          list.parentId == null ||
+          !lists.any((parent) => parent.id == list.parentId),
+    )) {
+      visit(list);
+    }
+    for (final list in lists) {
+      visit(list);
+    }
+    final zh = context.l10n.isZh;
+    return SingleChildScrollView(
+      key: const ValueKey('mobile-inline-list-filters'),
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (final item in [
+            (zh ? '全部任务' : 'All tasks', '/tasks/all', 'all'),
+            (context.l10n.t('inbox'), '/tasks/inbox', 'inbox'),
+            for (final list in ordered)
+              (list.name, '/tasks/list/${list.id}', list.id),
+            (context.l10n.t('next7'), '/tasks/next7days', 'next7days'),
+            (context.l10n.t('completed'), '/tasks/completed', 'completed'),
+            (context.l10n.t('trash'), '/tasks/trash', 'trash'),
+          ])
+            Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: Tooltip(
+                message: taskListPath(lists, item.$3).join(' / '),
+                child: ChoiceChip(
+                  key: ValueKey('mobile-list-${item.$3}'),
+                  label: Text(item.$1),
+                  selected: path == item.$2,
+                  onSelected: (_) => context.go(item.$2),
+                ),
+              ),
+            ),
+          IconButton(
+            tooltip: zh ? '管理清单' : 'Manage lists',
+            onPressed: () => showModalBottomSheet<void>(
+              context: context,
+              useRootNavigator: true,
+              isScrollControlled: true,
+              useSafeArea: true,
+              showDragHandle: true,
+              builder: (_) => const _ListPicker(),
+            ),
+            icon: const Icon(Icons.account_tree_outlined),
+          ),
+        ],
+      ),
     );
   }
 }

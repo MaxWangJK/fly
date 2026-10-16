@@ -16,30 +16,34 @@ Future<void> completeTaskWithFeedback(
   try {
     await repository.setCompleted(id, completed: value);
     if (!context.mounted || !isPhoneLayout(context) || !value) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Row(
-          children: [
-            Icon(Icons.check_circle, color: Colors.lightGreenAccent),
-            SizedBox(width: 8),
-            Text('任务已完成'),
-          ],
-        ),
-        action: SnackBarAction(
-          label: '撤销',
-          onPressed: () async {
-            try {
-              await repository.setCompleted(id, completed: false);
-            } catch (error) {
-              if (context.mounted) {
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(SnackBar(content: Text('撤销失败：$error')));
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 4),
+          persist: false,
+          content: const Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.lightGreenAccent),
+              SizedBox(width: 8),
+              Text('任务已完成'),
+            ],
+          ),
+          action: SnackBarAction(
+            label: '撤销',
+            onPressed: () async {
+              try {
+                await repository.setCompleted(id, completed: false);
+              } catch (error) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context)
+                      .showSnackBar(SnackBar(content: Text('撤销失败：$error')));
+                }
               }
-            }
-          },
+            },
+          ),
         ),
-      ),
-    );
+      );
     if (MediaQuery.disableAnimationsOf(context)) return;
     late OverlayEntry entry;
     entry = OverlayEntry(

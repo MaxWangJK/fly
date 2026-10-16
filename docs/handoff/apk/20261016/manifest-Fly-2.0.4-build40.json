@@ -1,0 +1,32 @@
+{
+  "version": "2.0.4+40",
+  "branch": "codex/fly-2-sync",
+  "sourceBaseCommit": "6b59521571e522474f9f6d7303d5fe6d3df60e27",
+  "includesUncommittedChanges": true,
+  "artifacts": [
+    {
+      "name": "Fly-Setup-2.0.4-build40-testing.exe",
+      "bytes": 13371460,
+      "sha256": "7D0444A61FF1FA9C620CF2F9BF6F03A51EC73D235DEC6BDEC78FE34B91FF52A4"
+    },
+    {
+      "name": "Fly-2.0.4-build40-windows-test-20261014.zip",
+      "bytes": 15956951,
+      "sha256": "9B667922DE0B5B11477E26ABAF9AB2720FD32D8A7CAA69BCAA920667A2A8D9A8"
+    },
+    {
+      "name": "Fly-2.0.4-build40-android-test-20261014.apk",
+      "bytes": 93928596,
+      "sha256": "67160ABFD7E7AEE1791A348A780DD328467B105FC60BA470CD27DC884E308A7A"
+    },
+    {
+      "name": "Fly-Foreign-Trade-Fieldbook-v1.fly",
+      "bytes": 114856,
+      "sha256": "7C27E28E1E687487F8F51EC0D353CF02FDD154B87C0916976BA38ACD956A1EB1"
+    }
+  ],
+  "verifiedClientTests": 328,
+  "privateConfigurationFilesIncluded": false,
+  "compiledBookReaderConfigured": true,
+  "androidSignatureMatchesBuild39": true
+}

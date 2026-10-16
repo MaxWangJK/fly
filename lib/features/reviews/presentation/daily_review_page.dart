@@ -613,7 +613,30 @@ class _ReviewEditorState extends ConsumerState<_ReviewEditor> {
       'q$i': TextEditingController(text: widget.session.values['q$i'] ?? ''),
   };
   @override
+  void initState() {
+    super.initState();
+    widget.session.addListener(_refreshAnswers);
+  }
+
+  void _refreshAnswers() {
+    for (final entry in controllers.entries) {
+      final value = widget.session.values[entry.key] ?? '';
+      if (entry.value.text != value) entry.value.text = value;
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _ReviewEditor oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (identical(oldWidget.session, widget.session)) return;
+    oldWidget.session.removeListener(_refreshAnswers);
+    widget.session.addListener(_refreshAnswers);
+    _refreshAnswers();
+  }
+
+  @override
   void dispose() {
+    widget.session.removeListener(_refreshAnswers);
     for (final c in controllers.values) {
       c.dispose();
     }

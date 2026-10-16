@@ -35,6 +35,7 @@ import '../data/platform_file_transfer.dart';
 import 'file_providers.dart';
 import 'file_entry_content.dart';
 import '../../../shared/design_system/responsive_layout.dart';
+import '../../../shared/design_system/mobile_workspace_actions.dart';
 import '../../../app/shell/mobile_details.dart';
 import 'image_file_viewer.dart';
 
@@ -64,6 +65,49 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
   final customerTags = <String>{};
   final _imagePicker = ImagePicker();
   bool _cameraRecoveryStarted = false;
+
+  Future<void> _addOnPhone() async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      useRootNavigator: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (sheet) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.file_upload_outlined),
+            title: Text(context.l10n.t('filesImport')),
+            onTap: () => Navigator.pop(sheet, 'import'),
+          ),
+          ListTile(
+            key: const ValueKey('file-take-photo'),
+            leading: const Icon(Icons.camera_alt_outlined),
+            title: Text(context.l10n.isZh ? '拍照上传' : 'Take photo'),
+            onTap: () => Navigator.pop(sheet, 'camera'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.create_new_folder_outlined),
+            title: Text(context.l10n.t('filesNewFolder')),
+            onTap: () => Navigator.pop(sheet, 'folder'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || action == null) return;
+    if (action == 'camera') {
+      await attempt(takePhoto);
+    }
+    if (action == 'folder') {
+      await createFolder(folderId);
+    }
+    if (action == 'import') {
+      await attempt(() async {
+        await importPicked(await openFiles());
+      });
+    }
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -1128,8 +1172,9 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
                         ),
                     ],
                   ),
-                  if (collection == FileCollection.folder ||
-                      collection == FileCollection.recent)
+                  if (!isPhoneLayout(context) &&
+                      (collection == FileCollection.folder ||
+                          collection == FileCollection.recent))
                     TextButton.icon(
                       onPressed: importing
                           ? null
@@ -1140,7 +1185,8 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
                       icon: const Icon(Icons.file_upload_outlined),
                       label: Text(context.l10n.t('filesImport')),
                     ),
-                  if ((Platform.isAndroid || Platform.isIOS) &&
+                  if (!isPhoneLayout(context) &&
+                      (Platform.isAndroid || Platform.isIOS) &&
                       (collection == FileCollection.folder ||
                           collection == FileCollection.recent))
                     TextButton.icon(
@@ -1163,23 +1209,24 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
               ),
             ),
           ),
-          ColoredBox(
-            color: context.flyColors.surface,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: TextField(
-                decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.search),
-                  hintText: context.l10n.t('filesSearch'),
+          if (!isPhoneLayout(context))
+            ColoredBox(
+              color: context.flyColors.surface,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: TextField(
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.search),
+                    hintText: context.l10n.t('filesSearch'),
+                  ),
+                  onChanged: (s) {
+                    search = s;
+                    _selectedFiles.clear();
+                    reload();
+                  },
                 ),
-                onChanged: (s) {
-                  search = s;
-                  _selectedFiles.clear();
-                  reload();
-                },
               ),
             ),
-          ),
           if (collection == FileCollection.folder)
             Material(
               type: MaterialType.transparency,
@@ -1293,7 +1340,32 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
                           ],
                         ),
                       ),
-                    Expanded(child: browser),
+                    Expanded(
+                      child: isPhoneLayout(context)
+                          ? MobileWorkspaceActions(
+                              actionId: 'file',
+                              query: search,
+                              searchHint: context.l10n.t('filesSearch'),
+                              onSearchChanged: (value) {
+                                search = value;
+                                _selectedFiles.clear();
+                                reload();
+                              },
+                              onAdd:
+                                  !_selecting &&
+                                      !importing &&
+                                      !_batchBusy &&
+                                      (collection == FileCollection.folder ||
+                                          collection == FileCollection.recent)
+                                  ? _addOnPhone
+                                  : null,
+                              addLabel: context.l10n.isZh
+                                  ? '添加文件'
+                                  : 'Add files',
+                              child: browser,
+                            )
+                          : browser,
+                    ),
                   ],
                 )
               : Row(
@@ -1340,7 +1412,12 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
     }
     final listing = viewMode != FileViewMode.list
         ? GridView.builder(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.fromLTRB(
+              12,
+              12,
+              12,
+              isPhoneLayout(context) ? 144 : 12,
+            ),
             gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
               maxCrossAxisExtent: viewMode == FileViewMode.small ? 150 : 170,
               mainAxisExtent:
@@ -1360,7 +1437,12 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
                     ? constraints.maxWidth
                     : constraints.maxWidth.clamp(800, double.infinity),
                 child: ListView.builder(
-                  padding: const EdgeInsets.all(12),
+                  padding: EdgeInsets.fromLTRB(
+                    12,
+                    12,
+                    12,
+                    isPhoneLayout(context) ? 144 : 12,
+                  ),
                   itemCount: entries.length,
                   itemBuilder: (_, i) => Padding(
                     padding: EdgeInsets.only(

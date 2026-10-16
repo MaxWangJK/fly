@@ -8,6 +8,7 @@ import 'package:fly/app/settings/navigation_settings.dart';
 import 'package:fly/core/database/app_database.dart';
 import 'package:fly/features/customers/data/drift_customer_repository.dart';
 import 'package:fly/features/notes/data/note_repository.dart';
+import 'package:fly/config/feature_flags.dart';
 import 'package:fly/features/orders/data/drift_order_repository.dart';
 import 'package:fly/features/tasks/data/drift_task_repository.dart';
 import 'package:fly/features/tasks/presentation/task_providers.dart';
@@ -132,23 +133,34 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('primary-notes')));
     await _pumpUi(tester);
-    await tester.tap(find.text('我的笔记').first);
-    await _pumpUi(tester);
-    expect(find.text('客户开发方法'), findsOneWidget);
-    await tester.tap(find.text('客户开发方法'));
-    await _pumpUi(tester);
-    expect(find.text('客户开发方法'), findsWidgets);
-    expect(find.byKey(const ValueKey('note-continuous-body')), findsOneWidget);
-    await tester.enterText(
-      find.byKey(const ValueKey('note-continuous-body')),
-      '# 客户开发\n\n- [ ] 跟进报价\n\n记录客户需求与下一步。',
-    );
-    await _pumpUi(tester);
-    expect(find.textContaining('跟进报价'), findsOneWidget);
-    await tester.runAsync(
-      () =>
-          _capture(boundaryKey, 'artifacts/$captureFolder/notes.png', capture),
-    );
+    if (enableKnowledgeHub) {
+      expect(find.byKey(const ValueKey('book-import')), findsOneWidget);
+      expect(find.byKey(const ValueKey('note-continuous-body')), findsNothing);
+    } else {
+      await tester.tap(find.text('我的笔记').first);
+      await _pumpUi(tester);
+      expect(find.text('客户开发方法'), findsOneWidget);
+      await tester.tap(find.text('客户开发方法'));
+      await _pumpUi(tester);
+      expect(find.text('客户开发方法'), findsWidgets);
+      expect(
+        find.byKey(const ValueKey('note-continuous-body')),
+        findsOneWidget,
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('note-continuous-body')),
+        '# 客户开发\n\n- [ ] 跟进报价\n\n记录客户需求与下一步。',
+      );
+      await _pumpUi(tester);
+      expect(find.textContaining('跟进报价'), findsOneWidget);
+      await tester.runAsync(
+        () => _capture(
+          boundaryKey,
+          'artifacts/$captureFolder/notes.png',
+          capture,
+        ),
+      );
+    }
     await tester.tap(find.byKey(const ValueKey('primary-settings')));
     await _pumpUi(tester);
     await tester.tap(find.byKey(const ValueKey('settings-category-1')));

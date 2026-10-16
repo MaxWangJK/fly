@@ -249,9 +249,29 @@ void main() {
           find.byKey(const ValueKey('mobile-sync-button')),
           findsOneWidget,
         );
-        await tester.tap(
-          find.byKey(const ValueKey('customer-quick-add-button')),
+        expect(
+          find.byKey(const ValueKey('customer-search-input')),
+          findsNothing,
         );
+        await tester.tap(find.byKey(const ValueKey('customer-search-button')));
+        await settle();
+        await tester.enterText(
+          find.byKey(const ValueKey('customer-search-input')),
+          'Desktop customer',
+        );
+        await tester.testTextInput.receiveAction(TextInputAction.search);
+        await settle();
+        expect(
+          find.byKey(ValueKey('phone-customer-$customerId')),
+          findsOneWidget,
+        );
+        await tester.tap(find.byTooltip('关闭搜索'));
+        await settle();
+        expect(
+          find.byKey(const ValueKey('customer-search-input')),
+          findsNothing,
+        );
+        await tester.tap(find.byKey(const ValueKey('customer-add-button')));
         await settle();
         await tester.enterText(
           find.byKey(const ValueKey('customer-quick-add-input')),
@@ -287,6 +307,21 @@ void main() {
         await settle();
         container.read(appRouterProvider).go('/orders/all');
         await settle();
+        expect(find.byKey(const ValueKey('order-add-button')), findsOneWidget);
+        expect(find.byKey(const ValueKey('order-search-input')), findsNothing);
+        await tester.tap(find.byKey(const ValueKey('order-search-button')));
+        await settle();
+        final orderNumber = (await tester.runAsync(
+          () => DriftOrderRepository(db).watchOrder(orderId).first,
+        ))!.orderNumber;
+        await tester.enterText(
+          find.byKey(const ValueKey('order-search-input')),
+          orderNumber,
+        );
+        await settle();
+        expect(find.byKey(ValueKey('phone-order-$orderId')), findsOneWidget);
+        await tester.tap(find.byTooltip('关闭搜索'));
+        await settle();
         await tester.tap(find.byKey(ValueKey('phone-order-$orderId')));
         await settle();
         expect(
@@ -314,6 +349,25 @@ void main() {
         await settle();
         expect(find.byKey(const ValueKey('file-view-mode')), findsOneWidget);
         expect(find.byType(GridView), findsOneWidget);
+        expect(find.byKey(const ValueKey('file-search-input')), findsNothing);
+        await tester.tap(find.byKey(const ValueKey('file-search-button')));
+        await settle();
+        await tester.enterText(
+          find.byKey(const ValueKey('file-search-input')),
+          'report',
+        );
+        await settle();
+        expect(find.text('report.pdf'), findsOneWidget);
+        expect(find.text('photo.png'), findsNothing);
+        await tester.tap(find.byTooltip('关闭搜索'));
+        await settle();
+        await tester.tap(find.byKey(const ValueKey('file-add-button')));
+        await settle();
+        expect(find.byKey(const ValueKey('file-take-photo')), findsOneWidget);
+        Navigator.of(
+          tester.element(find.byKey(const ValueKey('file-take-photo'))),
+        ).pop();
+        await settle();
         expect(
           tester.getTopLeft(find.text('photo.png')).dy,
           lessThanOrEqualTo(tester.getTopLeft(find.text('report.pdf')).dy),
@@ -557,11 +611,11 @@ void main() {
         await tester.tap(find.byKey(const ValueKey('task-view-lists')));
         await settle();
         await tester.scrollUntilVisible(
-          find.text('Deliveries'),
+          find.byKey(ValueKey('mobile-list-$childListId')),
           130,
           scrollable: find
               .descendant(
-                of: find.byKey(const ValueKey('mobile-list-picker')),
+                of: find.byKey(const ValueKey('mobile-inline-list-filters')),
                 matching: find.byType(Scrollable),
               )
               .first,
@@ -582,6 +636,54 @@ void main() {
         );
         expect(find.text('Nested list task'), findsOneWidget);
         expect(find.text('Work project / Deliveries'), findsOneWidget);
+        expect(find.byKey(const ValueKey('quick-add-input')), findsNothing);
+        final viewKeys = ['tasks', 'lists', 'review', 'calendar', 'matrix'];
+        for (var index = 1; index < viewKeys.length; index++) {
+          expect(
+            tester
+                .getTopLeft(
+                  find.byKey(ValueKey('task-view-${viewKeys[index]}')),
+                )
+                .dx,
+            greaterThan(
+              tester
+                  .getTopLeft(
+                    find.byKey(ValueKey('task-view-${viewKeys[index - 1]}')),
+                  )
+                  .dx,
+            ),
+          );
+        }
+        await tester.tap(find.byKey(const ValueKey('task-add-button')));
+        await settle();
+        await tester.enterText(
+          find.byKey(const ValueKey('phone-task-title')),
+          'Phone task in selected list',
+        );
+        await tester.tap(find.byKey(const ValueKey('phone-create-task')));
+        await settle();
+        final createdTask = (await tester.runAsync(
+          () => DriftTaskRepository(db).watchAllTasks().first,
+        ))!.singleWhere((task) => task.title == 'Phone task in selected list');
+        expect(createdTask.listId, childListId);
+        await tester.tap(find.byKey(const ValueKey('task-search-button')));
+        await settle();
+        await tester.enterText(
+          find.byKey(const ValueKey('task-search-input')),
+          'Search must not create',
+        );
+        await tester.testTextInput.receiveAction(TextInputAction.search);
+        await settle();
+        expect(find.byKey(const ValueKey('phone-task-title')), findsNothing);
+        expect(
+          (await tester.runAsync(
+            () => DriftTaskRepository(db).watchAllTasks().first,
+          ))!.where((task) => task.title == 'Search must not create'),
+          isEmpty,
+        );
+        await tester.tap(find.byTooltip('关闭搜索'));
+        await settle();
+        await capture('tasks-inline-actions');
         container.read(appRouterProvider).go('/files');
         await settle();
         expect(find.byType(GridView), findsNothing);

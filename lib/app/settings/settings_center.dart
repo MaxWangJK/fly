@@ -15,7 +15,7 @@ import '../../l10n/settings_copy.dart';
 import '../../core/storage/data_root_providers.dart';
 import '../../features/tasks/presentation/task_providers.dart';
 import '../../features/customers/import/customer_import_dialog.dart';
-import '../../features/knowledge/presentation/knowledge_providers.dart';
+import '../../features/knowledge/presentation/fly_book_providers.dart';
 import '../../shared/design_system/fly_color_scheme.dart';
 import '../../shared/design_system/responsive_layout.dart';
 import '../../shared/backup/backup_settings_dialog.dart';
@@ -196,27 +196,28 @@ class _SettingsCenterState extends ConsumerState<SettingsCenter> {
                 padding: const EdgeInsets.all(12),
                 children: [
                   for (var i = 0; i < categories.length; i++)
-                    ListTile(
-                      key: ValueKey('settings-category-$i'),
-                      leading: Icon(_categoryIcon(categories[i])),
-                      title: Text(tr(categories[i])),
-                      selected: !compact && selected == i,
-                      trailing: compact
-                          ? const Icon(Icons.chevron_right)
-                          : null,
-                      selectedTileColor: Theme.of(context).colorScheme.primary
-                          .withValues(alpha: .09),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                    if (categories[i] != '资料库' || !isPhoneLayout(context))
+                      ListTile(
+                        key: ValueKey('settings-category-$i'),
+                        leading: Icon(_categoryIcon(categories[i])),
+                        title: Text(tr(categories[i])),
+                        selected: !compact && selected == i,
+                        trailing: compact
+                            ? const Icon(Icons.chevron_right)
+                            : null,
+                        selectedTileColor: Theme.of(context).colorScheme.primary
+                            .withValues(alpha: .09),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        onTap: busy
+                            ? null
+                            : () => setState(() {
+                                selected = i;
+                                mobileCategoryOpen = true;
+                                error = null;
+                              }),
                       ),
-                      onTap: busy
-                          ? null
-                          : () => setState(() {
-                              selected = i;
-                              mobileCategoryOpen = true;
-                              error = null;
-                            }),
-                    ),
                 ],
               );
               if (compact || bounds.maxWidth < 680) {
@@ -445,62 +446,21 @@ class _SettingsCenterState extends ConsumerState<SettingsCenter> {
           ),
         ];
       case 7:
-        final catalog = ref.watch(knowledgeCatalogProvider);
-        final repository = ref.watch(knowledgeRepositoryProvider);
+        final books = ref.watch(flyBooksProvider);
         return [
           _heading(context.l10n.t('knowledgeHub')),
           _row(
-            context.l10n.isZh ? '当前内容版本' : 'Current content version',
-            catalog.when(
-              data: (value) => value.packVersion,
-              loading: () => '…',
-              error: (error, _) => '$error',
-            ),
-          ),
-          _row(
-            context.l10n.isZh ? '文章数量' : 'Articles',
-            catalog.when(
-              data: (value) => '${value.articles.length}',
+            context.l10n.isZh ? '已导入书籍' : 'Imported books',
+            books.when(
+              data: (value) => '${value.length}',
               loading: () => '…',
               error: (_, _) => '—',
             ),
           ),
-          const Divider(),
           _row(
-            context.l10n.isZh ? '导入官方资料包' : 'Import official pack',
-            context.l10n.isZh ? '仅接受签名有效且版本更新的 .flykb 文件；失败不会替换当前内容。' : 'Only newer, validly signed .flykb packs are accepted. Failed imports leave current content unchanged.',
-            control: TextButton.icon(
-              onPressed: busy || repository.publicKey.length != 32
-                  ? null
-                  : () => _run(() async {
-                      final file = await openFile(
-                        acceptedTypeGroups: [
-                          XTypeGroup(
-                            label: 'Fly Knowledge Pack',
-                            extensions: ['flykb'],
-                          ),
-                        ],
-                      );
-                      if (file == null) return;
-                      final bytes = await File(file.path).readAsBytes();
-                      final result = await repository.importPack(bytes);
-                      ref.invalidate(knowledgeCatalogProvider);
-                      if (mounted) {
-                        setState(
-                          () => knowledgeImportSummary =
-                              '${result.version} · +${result.added} / ↻${result.updated} / −${result.archived}',
-                        );
-                      }
-                    }),
-              icon: const Icon(Icons.file_upload_outlined),
-              label: Text(context.l10n.isZh ? '选择资料包' : 'Choose pack'),
-            ),
+            context.l10n.isZh ? '书籍阅读' : 'Book reading',
+            context.l10n.isZh ? '在资料库页面导入 .fly 书籍，查看阅读进度和历史。私人笔记数据保留，入口暂时隐藏。' : 'Import .fly books from the library. Progress and history are saved locally. Personal notes are retained with their entry hidden.',
           ),
-          if (repository.publicKey.length != 32)
-            Text(
-              context.l10n.isZh ? '此构建未配置官方验签公钥，资料包导入已禁用。内置资料仍可阅读。' : 'This build has no official verification key. Import is disabled; bundled articles remain readable.',
-            ),
-          if (knowledgeImportSummary != null) Text(knowledgeImportSummary!),
         ];
       default:
         return [

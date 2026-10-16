@@ -440,6 +440,7 @@ void main() {
           await tester.pumpAndSettle();
           final snapshot = await DashboardFocusRepository(db).read(oct6);
           final saved = switch (type) {
+            DashboardFocusType.motto => snapshot.motto,
             DashboardFocusType.mainMission => snapshot.mainMission,
             DashboardFocusType.monthlyFocus => snapshot.monthlyFocus,
             DashboardFocusType.weeklyFocus => snapshot.weeklyFocus,

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -21,10 +23,12 @@ final reviewSessionProvider = FutureProvider.family<ReviewSession, String>((
 ) async {
   final repository = ref.watch(dailyReviewRepositoryProvider);
   final session = ReviewSession(repository, day, await repository.answers(day));
+  final subscription = repository.watchAnswers(day).listen(session.receive);
   final sessions = ref.read(reviewSessionsProvider);
   sessions[day] = session;
   ref.onDispose(() {
-    sessions.remove(day);
+    unawaited(subscription.cancel());
+    if (identical(sessions[day], session)) sessions.remove(day);
     session.dispose();
   });
   return session;
@@ -55,6 +59,20 @@ class ReviewSession extends ChangeNotifier {
     _pending[field] = text;
     _start();
     _notify();
+  }
+
+  /// Refresh synced fields without replacing an uncommitted local edit.
+  void receive(Map<String, String> remote) {
+    if (_disposed) return;
+    var changed = false;
+    for (final field in {...values.keys, ...remote.keys}) {
+      if (_pending.containsKey(field)) continue;
+      final value = remote[field] ?? '';
+      if (values[field] == value) continue;
+      values[field] = value;
+      changed = true;
+    }
+    if (changed) _notify();
   }
 
   void _start() {

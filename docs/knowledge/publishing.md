@@ -1,5 +1,7 @@
 # Fly Knowledge publishing and safety
 
+本页保留旧 `.flykb` 资料流程作为历史能力说明；当前桌面消费界面已改为书籍阅读，不显示此处旧编辑菜单、笔记或搜索。最新 `.fly` 创作和保护规则见 [书籍说明](fly_books_v1.md)。
+
 The Knowledge Hub separates signed official articles from private notes. Articles are Markdown sources with front matter; Fly compiles them to a restricted HTML subset, adds a theme-aware shell, and keeps navigation inside Flutter. Private notes remain in the existing SQLite note tables and are never copied into a knowledge pack. The only database additions are a nullable source-article link and the local favorites table.
 
 ## Developer workflow

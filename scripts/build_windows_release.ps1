@@ -9,6 +9,11 @@ $version = $versionLine.Matches[0].Groups[1].Value
 $buildNumber = $versionLine.Matches[0].Groups[2].Value
 $fullVersion = "$version+$buildNumber"
 
+$bookDefinesPath = Join-Path $projectRoot 'license_tools\private\book_build_defines.json'
+if (-not (Test-Path -LiteralPath $bookDefinesPath)) {
+  throw 'Book reader configuration is missing. Restore the original private book_build_defines.json before building; do not rotate existing book keys.'
+}
+
 $publicKeyPath = Join-Path $projectRoot 'license_tools\public_key.txt'
 if (-not (Test-Path -LiteralPath $publicKeyPath)) { throw 'Release licensing public key is missing.' }
 $publicKey = (Get-Content -LiteralPath $publicKeyPath -Raw).Trim()
@@ -33,6 +38,8 @@ try {
     "--dart-define=FLY_APP_VERSION=$fullVersion" `
     '--dart-define=ENABLE_LOCAL_LICENSE=true' `
     "--dart-define=LOCAL_LICENSE_PUBLIC_KEY=$publicKey" `
+    '--dart-define=ENABLE_KNOWLEDGE_HUB=true' `
+    "--dart-define-from-file=$bookDefinesPath" `
     --obfuscate "--split-debug-info=$symbols"
   if ($LASTEXITCODE -ne 0) { throw 'Flutter Windows release build failed.' }
 

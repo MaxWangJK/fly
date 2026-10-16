@@ -31,16 +31,23 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+/android/build/
 /dist/
 /artifacts/
 /docs/screenshots/
 /coverage/
 /private_symbols/
 /license_tools/private/
+/android/key.properties
+*.keystore
+*.jks
+*.p12
+*.pfx
 /web/config.php
 /web/log.txt
 /web/var/
 /web/.env
+/web.zip
 
 # Symbolication related
 app.*.symbols

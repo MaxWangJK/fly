@@ -5,6 +5,8 @@ import 'fly_localizations.dart';
 /// Fixed Focus Board UI copy only. User-written goals are never translated.
 const dashboardFocusEnglish = <String, String>{
   '我的聚焦': 'My Focus',
+  '我的座右铭': 'My Motto',
+  '写下一句话，提醒自己为什么出发': 'A sentence that reminds you why you started',
   '人生主线': 'Main Mission',
   '本月重点': 'Monthly Focus',
   '本周重点': 'Weekly Focus',

@@ -12,12 +12,14 @@ class KnowledgeHtmlViewer extends StatefulWidget {
     required this.html,
     required this.onLink,
     required this.onImage,
+    this.onProgress,
     super.key,
   });
 
   final String html;
   final ValueChanged<String> onLink;
   final ValueChanged<String> onImage;
+  final ValueChanged<double>? onProgress;
 
   @override
   State<KnowledgeHtmlViewer> createState() => KnowledgeHtmlViewerState();
@@ -60,11 +62,16 @@ class KnowledgeHtmlViewerState extends State<KnowledgeHtmlViewer> {
   }
 
   void _message(dynamic raw) {
+    if (!mounted) return;
     try {
       final value = raw is String ? jsonDecode(raw) : raw;
       if (value is! Map) return;
       final target = value['target'];
       if (target is! String) return;
+      if (value['type'] == 'progress' && value['value'] is num) {
+        final progress = (value['value'] as num).toDouble();
+        if (progress.isFinite) widget.onProgress?.call(progress.clamp(0, 1));
+      }
       if (value['type'] == 'link') widget.onLink(target);
       if (value['type'] == 'image' && target.startsWith('data:image/')) {
         widget.onImage(target);

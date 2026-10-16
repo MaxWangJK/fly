@@ -30,7 +30,7 @@ Windows 官方便携 PHP 需要在 `php.ini` 启用上述扩展。本机验证�
 
 ## Ubuntu 部署
 
-完整的 Windows 打包上传、Ubuntu 24.04 安装、Apache、HTTPS、上线验证、备份及更新步骤见 [部署手册](deploy/ubuntu-24.04.md)。正式服务器只需 Apache + PHP + SQLite，不需要 Node、Composer 或数据库服务。
+完整的 Windows 打包上传、Ubuntu 24.04 安装、HTTPS、上线验证、备份及更新步骤见 [Apache 部署手册](deploy/ubuntu-24.04.md)；服务器已经运行 Nginx 时，改看 [Nginx 部署步骤](deploy/ubuntu-24.04-nginx.md)。正式服务器只需一个 Web 服务、PHP 和 SQLite，不需要 Node、Composer 或数据库服务。
 
 ## 上线前配置
 

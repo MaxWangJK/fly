@@ -9,7 +9,11 @@ import 'package:fly/core/database/app_database.dart';
 import 'package:fly/core/storage/data_root_providers.dart';
 import 'package:fly/features/tasks/presentation/task_providers.dart';
 import 'package:fly/features/notes/data/note_repository.dart';
-import 'package:fly/features/knowledge/presentation/knowledge_providers.dart';
+import 'package:fly/features/knowledge/presentation/fly_book_providers.dart';
+import 'package:fly/features/notes/presentation/notes_workspace.dart';
+import 'package:fly/l10n/fly_localizations.dart';
+import 'package:fly/shared/design_system/app_theme.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:fly/config/feature_flags.dart';
 import 'package:fly/features/files/data/managed_file_repository.dart';
 import 'package:fly/features/files/data/managed_file_storage.dart';
@@ -69,7 +73,27 @@ void main() {
         UncontrolledProviderScope(container: container, child: const FlyApp()),
       );
       await settle(tester);
-      container.read(appRouterProvider).go('/notes?id=$id');
+      if (enableKnowledgeHub) {
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp(
+              locale: const Locale('zh', 'CN'),
+              theme: FlyTheme.light(),
+              supportedLocales: FlyLocalizations.supportedLocales,
+              localizationsDelegates: const [
+                FlyLocalizationsDelegate(),
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              home: Scaffold(body: NotesWorkspace(initialNoteId: id)),
+            ),
+          ),
+        );
+      } else {
+        container.read(appRouterProvider).go('/notes?id=$id');
+      }
       await settle(tester);
       expect(find.text('另存为新笔记'), findsOneWidget);
       await tester.tap(find.text('另存为新笔记'));
@@ -234,11 +258,31 @@ void main() {
     debugPrint('V9 test: files ready');
     await tester.tap(find.byKey(const ValueKey('primary-notes')));
     if (enableKnowledgeHub) {
-      await tester.runAsync(
-        () => container.read(knowledgeCatalogProvider.future),
-      );
+      await tester.runAsync(() => container.read(flyBooksProvider.future));
       await settle(tester);
-      await tester.tap(find.byKey(const ValueKey('knowledge-sidebar-notes')));
+      expect(find.byKey(const ValueKey('book-import')), findsOneWidget);
+      expect(find.byKey(const ValueKey('new-note-title')), findsNothing);
+      // Exercise the retained notes component independently of its hidden entry.
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            locale: const Locale('zh', 'CN'),
+            theme: FlyTheme.light(),
+            supportedLocales: FlyLocalizations.supportedLocales,
+            localizationsDelegates: const [
+              FlyLocalizationsDelegate(),
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            home: const RepaintBoundary(
+              key: ValueKey('v9-capture'),
+              child: Scaffold(body: NotesWorkspace()),
+            ),
+          ),
+        ),
+      );
     }
     await settle(tester);
     await tester.enterText(
@@ -256,6 +300,17 @@ void main() {
     await capture(tester, 'notes');
     debugPrint('V9 test: note created');
     expect(tester.takeException(), isNull);
+    if (enableKnowledgeHub) {
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const RepaintBoundary(
+            key: ValueKey('v9-capture'),
+            child: FlyApp(),
+          ),
+        ),
+      );
+    }
     container.read(appRouterProvider).go('/files');
     await settle(tester);
     tester.view.physicalSize = const Size(440, 850);

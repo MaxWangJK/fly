@@ -18,3 +18,11 @@
 | 我的 | [竖屏](my-portrait.png) |
 
 系统分享目标由已安装程序提供，本组图不会展示真实通讯应用/WhatsApp联系人；二维码、相机、原生分享、通知和外部查看器仍需真机验证。
+
+## build 39 补充
+
+[桌面书架](book-shelf-desktop.png)、[窄窗口书架](book-shelf-narrow.png)、[座右铭在人生主线上方](motto-focus.png)。均为实际 Flutter 渲染、隔离数据；书籍 HTML 已另在浏览器检查，并不代表系统真机全部验收。
+
+## build 40 补充
+
+[任务清单与右下角操作（竖屏）](tasks-inline-portrait.png)、[任务清单与右下角操作（横屏）](tasks-inline-landscape.png)、[客户新增与搜索（竖屏）](customers-actions-portrait.png)。实际 Flutter 手机布局渲染，使用隔离模拟数据；新任务在当前子清单创建，搜索输入按需展开。
