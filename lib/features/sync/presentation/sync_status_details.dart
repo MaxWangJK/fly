@@ -131,9 +131,7 @@ class _SyncStatusDetailsState extends ConsumerState<SyncStatusDetails>
         Row(
           children: [
             Icon(
-              sync.connected
-                  ? Icons.cloud_done_outlined
-                  : Icons.cloud_off_outlined,
+              sync.connected ? Icons.devices_outlined : Icons.link_off_outlined,
               color: sync.connected
                   ? Colors.green.shade700
                   : Theme.of(context).colorScheme.error,

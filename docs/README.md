@@ -1,10 +1,12 @@
 # Fly Documentation
 
-跨对话完整需求、最新状态和 Mac 迁移入口：[项目交接](../FLY_PROJECT_HANDOFF.md)、[完整需求](handoff/FLY_REQUIREMENTS.md)、[来源及整理附件](handoff/SOURCES.md)。最新 Windows / Android 功能测试包见 [2.0.4 build 40](release/fly_2_0_4_build40.md)。
+跨对话需求、状态及 Mac 迁移入口：[项目交接](../FLY_PROJECT_HANDOFF.md)、[完整需求](handoff/FLY_REQUIREMENTS.md)、[来源及附件](handoff/SOURCES.md)。当前 Windows / Android 见 [2.0.6 build 42](release/fly_2_0_6_build42.md)，此前安卓改造见 [build 41](release/fly_2_0_5_build41.md)。
 
 Fly is a Windows-first, cross-platform-ready, local-first task manager.
 
 安卓备案与后续发布签名：[2026-10-16 正式签名材料](release/android_release_signing_20261016.md)、[APK / Windows 包校验及迁移台账](handoff/APK_RELEASES.md)。公开备案信息、公钥、证书和清单已纳入 Git，安装包及私钥仍另行转移。
+
+内部免安装发码工具：[2026-10-17 使用与迁移说明](licenses/portable_issuer_20261017.md)。只有机器码及天数/永久参数，工具本体拥有发码权限，仅供所有者保管。
 
 - `product/`: vision, V1 boundaries and roadmap
 - `architecture/`: technical decisions, data flow, database, state and routing

@@ -17,7 +17,7 @@ import 'package:fly/l10n/fly_localizations.dart';
 void main() {
   for (final width in [1000.0, 390.0]) {
     testWidgets(
-      'sync settings render at width $width and confirm password locally',
+      'account settings render at width $width and confirm password locally',
       (tester) async {
         tester.view.physicalSize = Size(width, 900);
         tester.view.devicePixelRatio = 1;
@@ -69,7 +69,10 @@ void main() {
                       padding: EdgeInsets.all(24),
                       child: Align(
                         alignment: Alignment.topLeft,
-                        child: SizedBox(width: 740, child: SyncSettingsPanel()),
+                        child: SizedBox(
+                          width: 740,
+                          child: SyncSettingsPanel(accountOnly: true),
+                        ),
                       ),
                     ),
                   ),
@@ -80,7 +83,7 @@ void main() {
         );
         await tester.pump();
         expect(find.text('账号'), findsOneWidget);
-        expect(find.text('云同步'), findsOneWidget);
+        expect(find.text('云同步'), findsNothing);
         expect(tester.takeException(), isNull);
         await tester.runAsync(() async {
           final image =

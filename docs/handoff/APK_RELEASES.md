@@ -1,15 +1,15 @@
 # Fly 安装包、安卓备案与迁移台账
 
-最后核对：2026-10-16；源码 `2.0.4+40`，schema 19，分支 `codex/fly-2-sync`。本次 Git 检查点保存 build 39/40 源码、正式安卓签名配置和交接资料；本页列出的二进制仍是原构建/签名日期的文件，没有因提交文档而重新编译。完整功能需求见 [FLY_REQUIREMENTS.md](FLY_REQUIREMENTS.md)，迁移步骤见 [MAC_TRANSFER.md](MAC_TRANSFER.md)。
+最后核对：2026-10-17；源码 `2.0.6+42`，schema 19，分支 `codex/fly-2-sync`。本轮安卓已重新编译并核验；Windows 和 Android 均为 build 42。本轮源码及内部发码工具属于 `24afa8d` 之后未提交工作区，迁移须完整保留。完整功能需求见 [FLY_REQUIREMENTS.md](FLY_REQUIREMENTS.md)，迁移步骤见 [MAC_TRANSFER.md](MAC_TRANSFER.md)。
 
 ## 1. 当前应使用哪一个 APK
 
 | 用途 | 文件（在工程 `dist/`） | 版本 | 文件字节数 | 证书 MD5 |
 | --- | --- | --- | --- | --- |
-| 正式签名备案核验 | `Fly-2.0.4-build40-android-release-signed-20261016.apk` | 2.0.4 / 40 | 93,958,575 | `5E96E7B982BF8DB94FEF71F148BC0859` |
-| 原功能测试 / 保留原测试签名 | `Fly-2.0.4-build40-android-test-20261014.apk` | 2.0.4 / 40 | 93,928,596 | `D0A58DFC764BF184B0E641434E8B757F` |
+| 正式签名备案核验 | `Fly-2.0.6-build42-android-release-signed-20261017.apk` | 2.0.6 / 42 | 93,813,852 | `5E96E7B982BF8DB94FEF71F148BC0859` |
+| 原功能测试 / 保留原测试签名 | `Fly-2.0.6-build42-android-test-20261017.apk` | 2.0.6 / 42 | 93,843,887 | `D0A58DFC764BF184B0E641434E8B757F` |
 
-正式包与旧测试包的程序内容一致，但证书不同，**不能直接覆盖升级**。备案使用正式包对应的下列信息。保留旧测试安装及其唯一数据；换装前先完成业务与实体文件同步、检查队列和附件实际可打开，并在应用目录之外制作可恢复的完整备份。增量备份还需 ZIP 旁的 `.fly-file-objects`。详见 [换装说明](../release/android_release_signing_20261016.md)。
+本轮两个 build 42 包的程序内容一致，但证书不同，**不能互相覆盖升级**。原 build 37～41 测试版请选择本轮测试签名包覆盖升级；已安装正式签名版则选正式包。备案使用正式包对应的下列信息。保留旧测试安装及其唯一数据；换装前先完成业务与实体文件同步、检查队列和附件实际可打开，并在应用目录之外制作可恢复的完整备份。增量备份还需 ZIP 旁的 `.fly-file-objects`。详见 [换装说明](../release/android_release_signing_20261016.md)。
 
 本包为正式签名的备案核验包。备案申请未提交、商店未上架，本地付费限制开关仍为测试配置 `ENABLE_LOCAL_LICENSE=false`；不能据此认定商业收费功能已验收。
 
@@ -19,7 +19,7 @@
 | --- | --- |
 | APP 名称 | Fly |
 | APP 包名 | `com.flyproduct.fly` |
-| versionName / versionCode | `2.0.4` / `40` |
+| versionName / versionCode | `2.0.6` / `42` |
 | 签名 MD5（证书指纹） | `5E96E7B982BF8DB94FEF71F148BC0859` |
 | 完整公钥（RSA 2048 位模数） | [复制此文件整行](apk/20261016/Fly-Android-Release-Public-Key.txt) |
 | 证书 SHA-1（安卓证书） | `9E8BC6EFA12D280843F92FD7E1DCAE22AD70008F` |
@@ -29,7 +29,7 @@
 | 系统要求 / 目标 SDK | Android 7.0+（API 24）/ API 36 |
 | CPU 架构 | arm64-v8a、armeabi-v7a、x86_64 |
 
-[可复制的全部备案字段](apk/20261016/Fly-Android-Release-Filing-Info.txt)、[DER 公有证书](apk/20261016/Fly-Android-Release-Certificate.cer)、[PEM 公有证书](apk/20261016/Fly-Android-Release-Certificate.pem)、[签名与包核验清单](apk/20261016/manifest-Fly-Android-Release-20261016.json) 已纳入 Git，可随源码到达新电脑。这里没有私钥或密码。
+[当前可复制备案字段](apk/20261017/Fly-Android-Release-Filing-Info-build42.txt)、[DER 公有证书](apk/20261016/Fly-Android-Release-Certificate.cer)、[PEM 公有证书](apk/20261016/Fly-Android-Release-Certificate.pem)、[本轮构建及包核验清单](apk/20261017/manifest-Fly-2.0.6-build42.json) 已整理到交接目录；本轮新增材料尚未提交，需随完整工作区迁移。这里没有私钥或密码。
 
 备案签名 MD5 是证书指纹，不是 APK 文件 MD5，也不是公钥 MD5；下节的 SHA-256 则用于核对安装包文件。以上安卓证书、公钥不能填写到 iOS 栏目。
 
@@ -39,10 +39,10 @@
 
 | 文件 | 字节数 | SHA-256 |
 | --- | --- | --- |
-| [正式签名 APK](../../dist/Fly-2.0.4-build40-android-release-signed-20261016.apk) | 93,958,575 | `E017CF7B5EC5414BED25D749E778369FB310214AFC2A780A33D0A1393C967F6F` |
-| [原测试 APK](../../dist/Fly-2.0.4-build40-android-test-20261014.apk) | 93,928,596 | `67160ABFD7E7AEE1791A348A780DD328467B105FC60BA470CD27DC884E308A7A` |
-| [Windows 测试安装器](../../dist/Fly-Setup-2.0.4-build40-testing.exe) | 13,371,460 | `7D0444A61FF1FA9C620CF2F9BF6F03A51EC73D235DEC6BDEC78FE34B91FF52A4` |
-| [Windows 测试便携 ZIP](../../dist/Fly-2.0.4-build40-windows-test-20261014.zip) | 15,956,951 | `9B667922DE0B5B11477E26ABAF9AB2720FD32D8A7CAA69BCAA920667A2A8D9A8` |
+| [正式签名 APK](../../dist/Fly-2.0.6-build42-android-release-signed-20261017.apk) | 93,813,852 | `8B49AEEA22AD86CC4BE05B60E6FDD4864C5367C7813361EC996015BD8461F019` |
+| [原测试 APK](../../dist/Fly-2.0.6-build42-android-test-20261017.apk) | 93,843,887 | `033DA959C3035DA23627EC47158F34CEE8F5490077E0F76CEA2ECF0E1EEB6937` |
+| [Windows 测试安装器](../../dist/Fly-Setup-2.0.6-build42-testing.exe) | 13,353,143 | `AF558D169675089E0ADF045DA639917848C4551D330B6FF831A01358E4983FD1` |
+| [Windows 测试便携 ZIP](../../dist/Fly-2.0.6-build42-windows-test-20261017.zip) | 15,932,276 | `986A47CF805E60E3B35E4A6949CD75EE90868BC86EBA43BDAB262C427F2B5F87` |
 | [外贸书籍 v1](../../dist/Fly-Foreign-Trade-Fieldbook-v1.fly) | 114,856 | `7C27E28E1E687487F8F51EC0D353CF02FDD154B87C0916976BA38ACD956A1EB1` |
 
 [原 build 40 构建清单副本](apk/20261016/manifest-Fly-2.0.4-build40.json) 保留构建时的源码基线和工作区状态，不能把其 `sourceBaseCommit` 当作本次检查点的提交号。当前 Git 提交用 `git log -1 --oneline` 查看。
@@ -61,7 +61,10 @@ Windows 可使用 `Get-FileHash -Algorithm SHA256 <文件路径>`；Mac 可使�
 
 ## 5. 验证记录与剩余验收
 
-- 2026-10-14：完整客户端 328 项通过（含临时 HTTP 双端及 20 MiB LAN 文件），最终静态检查无问题，Windows/Android 测试包构建成功。
-- 2026-10-16：正式 APK 的证书与原发布身份一致，v2/v3 签名通过，另按 API 23 范围验证 v1；最低系统仍为 API 24。16 KB 对齐、完整性、非调试属性、三种 ABI 已检查。
-- 正式 APK 的 353 个非签名 ZIP 条目与原测试 APK 内容哈希逐项一致，没有包含私钥/密码配置/书籍内部配置文件；Gradle release 签名报告与缺失配置时停止构建验证通过，最终静态检查无问题。
-- 本次整理重新核对交付文件、公开证书、附件副本和提交边界，没有重新运行整套业务回归或重新编译安装包。真实手机的权限、相机、系统分享、外部打开、断连重连及换装恢复仍需验收；没有公网部署或 Apple 构建证据。
+- 2026-10-17 build 42：完整客户端 352 项通过，最终静态分析无问题；含临时 HTTP 双端、20 MiB LAN 文件、客户文件新增实体/子目录、返回、网格、手机“我的”及复盘卡片读写/清空/同步刷新。临时服务已关闭。
+- Windows release、安装器和便携 ZIP 构建成功，原 SQLite 相对绑定、书籍配置、运行库文件及 ZIP 完整性核验通过；Windows 安装器未作发行代码签名。
+- 两份 Android APK 原签名身份、2.0.6/42、API 24/36、三种 ABI、非调试属性、16 KB 对齐和完整性通过；353 个非签名条目哈希一致，无私有配置文件或内部发码工具。
+- 横竖屏、300/360/430/844 目录宽度、手机/电脑复盘及窄屏 1.3 倍文字深色模式已自动验证和截图检查。系统权限、扫码、相机、分享、外部打开及厂商切口仍需真机确认。
+- 原 build 40/41 二进制、公开材料和签名保留；未安装/卸载用户设备，未写入真实业务数据，未提交 Git、推送、部署、备案或 Apple 构建。
+
+详细变化见 [build 42](../release/fly_2_0_6_build42.md)，证据见 [公开清单](apk/20261017/manifest-Fly-2.0.6-build42.json)。

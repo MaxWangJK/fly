@@ -240,7 +240,7 @@ void main() {
     }
     await tester.tap(find.byKey(const ValueKey('review-history-toggle')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('review-q1')), findsOneWidget);
+    expect(find.byKey(const ValueKey('review-answer-q1')), findsOneWidget);
     expect(find.text('Today fact'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
     container.dispose();

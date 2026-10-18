@@ -182,15 +182,26 @@ void main() {
         }
       }
 
+      Future<void> fileOption(String label) async {
+        await tester.tap(find.byKey(const ValueKey('file-more-menu')));
+        await settle();
+        final choice = label == '多选' || label == '完成选择'
+            ? find.widgetWithText(PopupMenuItem<String>, label)
+            : find.widgetWithText(CheckedPopupMenuItem<String>, label);
+        await tester.ensureVisible(choice);
+        await settle();
+        await tester.tap(choice);
+        await settle();
+      }
+
       Future<void> waitFileBatch() async {
         for (var i = 0; i < 80; i++) {
           await settle();
           if (tester
-                  .widget<IconButton>(
-                    find.byKey(const ValueKey('files-multi-select')),
-                  )
-                  .onPressed !=
-              null) {
+              .widget<PopupMenuButton<String>>(
+                find.byKey(const ValueKey('file-more-menu')),
+              )
+              .enabled) {
             return;
           }
         }
@@ -347,11 +358,14 @@ void main() {
         });
         container.read(appRouterProvider).go('/files');
         await settle();
-        expect(find.byKey(const ValueKey('file-view-mode')), findsOneWidget);
-        expect(find.byType(GridView), findsOneWidget);
-        expect(find.byKey(const ValueKey('file-search-input')), findsNothing);
-        await tester.tap(find.byKey(const ValueKey('file-search-button')));
+        expect(find.byKey(const ValueKey('file-more-menu')), findsOneWidget);
+        expect(find.byKey(const ValueKey('file-search-input')), findsOneWidget);
+        expect(find.byKey(const ValueKey('file-search-button')), findsNothing);
+        await tester.tap(
+          find.byKey(const ValueKey('mobile-file-folder-unfiled')),
+        );
         await settle();
+        expect(find.byType(SliverGrid), findsOneWidget);
         await tester.enterText(
           find.byKey(const ValueKey('file-search-input')),
           'report',
@@ -359,7 +373,8 @@ void main() {
         await settle();
         expect(find.text('report.pdf'), findsOneWidget);
         expect(find.text('photo.png'), findsNothing);
-        await tester.tap(find.byTooltip('关闭搜索'));
+        await tester.testTextInput.receiveAction(TextInputAction.search);
+        await tester.tap(find.byKey(const ValueKey('files-search-clear')));
         await settle();
         await tester.tap(find.byKey(const ValueKey('file-add-button')));
         await settle();
@@ -373,7 +388,7 @@ void main() {
           lessThanOrEqualTo(tester.getTopLeft(find.text('report.pdf')).dy),
         );
         await capture('gallery');
-        await tester.tap(find.byKey(const ValueKey('files-multi-select')));
+        await fileOption('多选');
         await settle();
         await tester.tap(find.byKey(const ValueKey('file-check-image')));
         await settle();
@@ -392,25 +407,24 @@ void main() {
         for (
           var i = 0;
           i < 40 &&
-              tester
-                      .widget<IconButton>(
-                        find.byKey(const ValueKey('files-multi-select')),
-                      )
-                      .onPressed ==
-                  null;
+              !tester
+                  .widget<PopupMenuButton<String>>(
+                    find.byKey(const ValueKey('file-more-menu')),
+                  )
+                  .enabled;
           i++
         ) {
           await settle();
         }
         expect(
           tester
-              .widget<IconButton>(
-                find.byKey(const ValueKey('files-multi-select')),
+              .widget<PopupMenuButton<String>>(
+                find.byKey(const ValueKey('file-more-menu')),
               )
-              .onPressed,
-          isNotNull,
+              .enabled,
+          isTrue,
         );
-        await tester.tap(find.byKey(const ValueKey('files-multi-select')));
+        await fileOption('完成选择');
         await settle();
         expect(find.byKey(const ValueKey('files-selection-bar')), findsNothing);
 
@@ -419,12 +433,7 @@ void main() {
           tester.widget<RawImage>(find.byType(RawImage).first).image,
           isNotNull,
         );
-        await tester.tap(find.byKey(const ValueKey('file-kind-order')));
-        await settle();
-        await tester.tap(
-          find.widgetWithText(CheckedPopupMenuItem<bool>, '文件在前'),
-        );
-        await settle();
+        await fileOption('文件在前');
         expect(
           tester.getTopLeft(find.text('report.pdf')).dx,
           lessThan(tester.getTopLeft(find.text('photo.png')).dx),
@@ -452,12 +461,7 @@ void main() {
           isTrue,
           reason: 'Platforms without completion callbacks retain files for the receiver',
         );
-        await tester.tap(find.byKey(const ValueKey('file-view-mode')));
-        await settle();
-        await tester.tap(
-          find.widgetWithText(CheckedPopupMenuItem<FileViewMode>, '列表'),
-        );
-        await settle();
+        await fileOption('列表');
         expect(
           tester
               .widget<FileEntryContent>(find.byType(FileEntryContent).first)
@@ -686,6 +690,10 @@ void main() {
         await capture('tasks-inline-actions');
         container.read(appRouterProvider).go('/files');
         await settle();
+        await tester.tap(
+          find.byKey(const ValueKey('mobile-file-folder-unfiled')),
+        );
+        await settle();
         expect(find.byType(GridView), findsNothing);
         expect(
           tester
@@ -697,7 +705,7 @@ void main() {
           tester.getTopLeft(find.text('report.pdf')).dy,
           lessThan(tester.getTopLeft(find.text('photo.png')).dy),
         );
-        await tester.tap(find.byKey(const ValueKey('files-multi-select')));
+        await fileOption('多选');
         await settle();
         await tester.tap(find.byKey(const ValueKey('files-select-all')));
         await settle();
@@ -733,9 +741,9 @@ void main() {
         expect(find.text('工具'), findsNothing);
         expect(find.text('资料库'), findsNothing);
         await capture('my');
-        await tester.tap(find.byKey(const ValueKey('my-account')));
-        await settle();
-        expect(find.byKey(const ValueKey('sync-email')), findsOneWidget);
+        expect(find.byKey(const ValueKey('my-account')), findsNothing);
+        expect(find.text('账户设置'), findsNothing);
+        expect(find.byKey(const ValueKey('my-settings')), findsOneWidget);
         expect(find.byKey(const ValueKey('sync-mode-cloud')), findsNothing);
         expect(tester.takeException(), isNull);
       } finally {

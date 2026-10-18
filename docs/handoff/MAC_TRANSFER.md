@@ -1,6 +1,6 @@
 # Fly 从 Windows 转移到 Mac
 
-本文件提供迁移说明，最后更新 2026-10-16。本次本地 2.0 检查点保存了 build 39 书籍、build 40 手机交互、安卓正式签名配置及交接资料；当前源码为 2.0.4+40。没有执行实际文件迁移、Mac 安装或分支切换。
+本文件提供迁移说明，最后更新 2026-10-17。最近提交保存 build 39/40、安卓正式签名配置及交接资料；当前源码为 2.0.6+42，后续安卓改造和内部发码工具仍在工作区。没有执行实际文件迁移、Mac 安装或分支切换。
 
 ## 1. Git 是否需要切换
 
@@ -19,7 +19,7 @@ git status --short
 git log -3 --oneline
 ```
 
-分支应为 `codex/fly-2-sync`。本次检查点提交后，受版本管理的工作区应无改动；以后新增的修改也要一并带走。Git 状态干净不表示忽略的密钥、安装包或实际业务数据已备份。不要用重置、restore、clean 或切 master 准备迁移。
+分支应为 `codex/fly-2-sync`。2026-10-16 的 `24afa8d` 检查点提交后工作区干净；2026-10-17 内部授权工具、安卓 build 41、本次文档与测试是后续未提交修改，需一并带走。Git 状态干净也不表示忽略的密钥、安装包或实际业务数据已备份。不要用重置、restore、clean 或切 master 准备迁移。
 
 ## 2. 哪些内容需要带走
 
@@ -34,7 +34,7 @@ git log -3 --oneline
 | 内容 | 随 Git 保存 | 迁移核对 |
 | --- | --- | --- |
 | 源码、完整需求、书籍作者源、公开 APK 备案材料 | 是 | 完整复制隐藏 `.git`，核对分支及最新提交 |
-| `dist/` 中的 build 40 安装包、便携 ZIP 和 `.fly` 书籍 | 否 | 按台账复制，重新计算 SHA-256 |
+| `dist/` 中的 Windows / Android build 42 和 `.fly` 书籍 | 否 | 按台账复制，重新计算 SHA-256 |
 | `license_tools/private/` 中的安卓、书籍及授权原密钥/配置 | 否 | 仅向可信开发机安全转移，保留原件，另作独立安全备份 |
 | 实际 FlyData 与完整备份对象目录 | 否 | 从应用确认路径，关闭写入后备份，在隔离副本验收 |
 | Windows SDK、venv、构建缓存和日志 | 否 | 不作为 Mac 工具链使用；新机重新准备依赖 |
@@ -86,7 +86,7 @@ flutter run -d macos
 
 Android 若继续在 Mac 开发，另装 Mac Android SDK/Java并更新本机生成的 `android/local.properties`；当前文件中的 `D:\ProgramData\flutter`、`D:\soft\sdk` 属于旧机路径，不应照抄。不要把本机路径写进业务记录。
 
-build 37～40 的 Android 功能测试包沿用原电脑的测试签名；2026-10-16 已单独生成同版本正式签名备案核验包，两种签名不能覆盖升级。新 Mac 自动生成的 debug keystore 通常也不同。后续正式构建复用私有目录中的原发布身份，不能用新 debug 或新 release 证书替换；不要为解决签名问题直接卸载丢失业务数据。换装步骤见 [正式签名说明](../release/android_release_signing_20261016.md)。
+build 37～42 的 Android 功能测试包沿用原电脑的测试签名；正式签名包使用另一长期身份，两种签名不能覆盖升级。新 Mac 自动生成的 debug keystore 通常也不同。旧测试用户升级请选择测试签名 build 42，并安全迁移原测试 keystore 才能继续制作兼容包。正式构建复用私有目录中的原发布身份，不能用新证书替换；不要为解决签名问题直接卸载丢失业务数据。换装步骤见 [正式签名说明](../release/android_release_signing_20261016.md)。
 
 ## 4. 本地测试服务与官网
 
@@ -125,10 +125,22 @@ FLY_SYNC_TEST_URL=http://127.0.0.1:18765/api flutter test
 
 安全带走 `license_tools/private/android/`，其中 `.p12` 为长期正式签名密钥库，`signing.properties` 含密码。不要上传公开仓库或发给客户；另存到独立安全位置。同目录初始备份已核对，但同磁盘副本不能代替异地或离线备份。Git 保存公有指纹 `android/release-certificate.sha256` 以及 [公开备案材料](apk/20261016/README.md)，这些材料不能恢复私钥。新机器缺少原签名时应找回原件，不能重建替代。
 
-最新正式签名包为 `Fly-2.0.4-build40-android-release-signed-20261016.apk`，包名 `com.flyproduct.fly`，证书 MD5 `5E96E7B982BF8DB94FEF71F148BC0859`。它仍是 2.0.4+40；原测试包保留。完整文件哈希、测试/正式区别和换装备份见 [APK 台账](APK_RELEASES.md) 与 [签名说明](../release/android_release_signing_20261016.md)。Mac 复制后可核对：
+正式签名身份建立于 build 40，已用于 build 41；包名 `com.flyproduct.fly`，证书 MD5 `5E96E7B982BF8DB94FEF71F148BC0859`。旧包和原公开材料保留。最新文件哈希、测试/正式区别和换装备份见 [APK 台账](APK_RELEASES.md) 与 [签名说明](../release/android_release_signing_20261016.md)。例如核对原 build 40 归档：
 
 ```sh
 shasum -a 256 dist/Fly-2.0.4-build40-android-release-signed-20261016.apk
 ```
 
 结果应为 `E017CF7B5EC5414BED25D749E778369FB310214AFC2A780A33D0A1393C967F6F`（忽略大小写）。安卓私钥不用于 iOS：iOS 项目 Bundle ID 为 `com.flyproduct.fly`，发布证书、公钥和签名 SHA-1 仍须在真实 Apple 开发环境取得并验收。
+
+## 安卓 build 41 补充（2026-10-17）
+
+当前源码已前进至 2.0.6+42，安卓手机文件改为文件夹首页，客户文件入口可仅在手机隐藏，同步设置只展示电脑配对。Windows / Android 当前安装包均为 build 42；迁移时按 [APK 台账](APK_RELEASES.md) 区分版本及签名，不把旧二进制当作最新源码。
+
+## 内部授权工具补充（2026-10-17）
+
+`license_tools/private/portable/Fly-License-Issuer.exe` 为约 2.5 MiB 的 Windows 免安装发码工具，只有机器码与天数/永久参数。只需单 EXE 即可在具备 .NET Framework 4.8 的 Windows 运行；Mac 不能直接运行。成品包含发码权限，安全归档给所有者，不进客户包或官网；仍需保留原 `issuer.pem` 和独立安全备份。源文件在 `license_tools/portable_issuer/`，本次尚未提交，完整迁移时不可遗漏。详见 [工具使用与校验](../licenses/portable_issuer_20261017.md)。
+
+## build 42 最新补充
+
+Windows / Android 当前均为 2.0.6+42。新增客户普通资料通过真实同步目录保存，手机隐藏入口仍不传递删除；复盘卡片与输入框切换属于显示状态，不改答案存储格式。迁移须保留本轮未提交源码、测试、公开清单及忽略的实际安装包，见 [本轮报告](../release/fly_2_0_6_build42.md)。

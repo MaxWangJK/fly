@@ -37,6 +37,9 @@ final fileFolderRepositoryProvider = Provider(
 final fileFoldersProvider = StreamProvider(
   (ref) => ref.watch(fileFolderRepositoryProvider).watch(),
 );
+final deletedFileFoldersProvider = StreamProvider(
+  (ref) => ref.watch(fileFolderRepositoryProvider).watch(deleted: true),
+);
 final libraryTagsProvider = StreamProvider(
   (ref) => ref.watch(managedFileRepositoryProvider).watchTags(),
 );

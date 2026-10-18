@@ -26,3 +26,11 @@
 ## build 40 补充
 
 [任务清单与右下角操作（竖屏）](tasks-inline-portrait.png)、[任务清单与右下角操作（横屏）](tasks-inline-landscape.png)、[客户新增与搜索（竖屏）](customers-actions-portrait.png)。实际 Flutter 手机布局渲染，使用隔离模拟数据；新任务在当前子清单创建，搜索输入按需展开。
+
+## build 41 补充（2026-10-17）
+
+[文件夹首页竖屏](files-folders-build41-portrait.png)、[文件夹首页横屏](files-folders-build41-landscape.png)、[窄屏大字清单](tasks-lists-build41-narrow.png)、[文件夹内页](files-inside-build41-portrait.png)、[扫码同步设置](sync-settings-build41-portrait.png)。使用真实 Flutter 组件及隔离数据，模拟顶部切口、横屏侧边安全区和底部手势区；窄屏为 360×780、文字缩放 1.3。目录通过真实同步记录应用后展示，不依赖内置同名占位数据。本目录共 23 张 PNG；原生切口、相机、扫码、分享和外部打开仍须 Android 真机验收。
+
+## build 42 补充（2026-10-17）
+
+[review-card-build42-phone.png](review-card-build42-phone.png)、[review-card-build42-desktop.png](review-card-build42-desktop.png)、[review-card-build42-dark-narrow.png](review-card-build42-dark-narrow.png)、[review-edit-build42-phone.png](review-edit-build42-phone.png)、[files-folders-build42-phone.png](files-folders-build42-phone.png)、[files-customer-add-build42-phone.png](files-customer-add-build42-phone.png)、[my-build42-phone.png](my-build42-phone.png)。均为隔离数据的 Flutter 渲染，目录三列、客户新增按钮和复盘卡片已检查，含窄屏 1.3 倍文字深色模式。共 30 张 PNG；不代替系统真机验收。

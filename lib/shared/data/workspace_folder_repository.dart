@@ -12,16 +12,22 @@ class WorkspaceFolder {
     required this.sortOrder,
     this.parentId,
     this.deletedAt,
+    this.createdAt,
+    this.updatedAt,
   });
   final String id, name;
   final String? parentId;
   final int sortOrder;
   final DateTime? deletedAt;
+  final DateTime? createdAt, updatedAt;
 }
 
 /// One implementation of tree invariants; files and notes remain separate tables.
 class WorkspaceFolderRepository {
   WorkspaceFolderRepository(this.db, this.kind);
+  // A normal synced folder backs additions to the virtual customer collection.
+  // Its stable identity keeps simultaneous additions on different devices together.
+  static const customerFilesRootId = 'fly-customer-files';
   final AppDatabase db;
   final WorkspaceFolderKind kind;
   String get _table =>
@@ -56,6 +62,8 @@ class WorkspaceFolderRepository {
     parentId: row.readNullable('parent_id'),
     sortOrder: row.read('sort_order'),
     deletedAt: row.readNullable<DateTime>('deleted_at'),
+    createdAt: row.readNullable<DateTime>('created_at'),
+    updatedAt: row.readNullable<DateTime>('updated_at'),
   );
   static String checkedName(String input) {
     final name = input.trim();
@@ -122,6 +130,48 @@ class WorkspaceFolderRepository {
     );
     return id;
   });
+
+  Future<String> ensureCustomerFilesRoot(String name) =>
+      db.transaction(() async {
+        if (kind != WorkspaceFolderKind.files) {
+          throw StateError('Invalid folder kind');
+        }
+        final folders = await all();
+        final existing = folders
+            .where((folder) => folder.id == customerFilesRootId)
+            .firstOrNull;
+        if (existing != null) {
+          if (existing.deletedAt != null) {
+            throw StateError('客户资料文件夹已删除，请先从最近删除中恢复');
+          }
+          return existing.id;
+        }
+        final base = checkedName(name);
+        var title = base;
+        var suffix = 2;
+        while (folders.any(
+          (folder) =>
+              folder.deletedAt == null &&
+              folder.parentId == null &&
+              folder.name.toLowerCase() == title.toLowerCase(),
+        )) {
+          title = '$base ($suffix)';
+          suffix++;
+        }
+        final now = DateTime.now();
+        await db.customInsert(
+          'INSERT INTO file_folders (id,name,sort_order,created_at,updated_at) VALUES (?,?,?,?,?)',
+          variables: [
+            Variable(customerFilesRootId),
+            Variable(title),
+            Variable(folders.length),
+            Variable(now),
+            Variable(now),
+          ],
+          updates: _reads,
+        );
+        return customerFilesRootId;
+      });
   Future<void> rename(String id, String name) => db.transaction(() async {
     final title = checkedName(name);
     final folders = await all();

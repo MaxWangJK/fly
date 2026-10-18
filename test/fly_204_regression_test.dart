@@ -88,7 +88,10 @@ void main() {
         () => repository.saveAnswer('2026-10-14', 'q1', 'Written on phone'),
       );
       await settle();
-      expect(tester.widget<TextField>(q1).controller!.text, 'Written on phone');
+      expect(find.text('Written on phone'), findsOneWidget);
+      expect(q1, findsNothing);
+      await tester.tap(find.byKey(const ValueKey('review-answer-q1')));
+      await settle();
       await tester.enterText(q1, 'Desktop revision');
       await settle();
       final selection = tester.widget<TextField>(q1).controller!.selection;
@@ -99,13 +102,8 @@ void main() {
       await settle();
       expect(tester.widget<TextField>(q1).controller!.text, 'Desktop revision');
       expect(tester.widget<TextField>(q1).controller!.selection, selection);
-      expect(
-        tester
-            .widget<TextField>(find.byKey(const ValueKey('review-q2')))
-            .controller!
-            .text,
-        'Another synced answer',
-      );
+      expect(find.text('Another synced answer'), findsOneWidget);
+      expect(find.byKey(const ValueKey('review-answer-q2')), findsOneWidget);
       await tester.runAsync(
         () => repository.saveAnswer('2026-10-14', 'q1', ''),
       );

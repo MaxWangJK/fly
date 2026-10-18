@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 
 import '../../../core/database/app_database.dart';
 import '../../../shared/search/fuzzy_match.dart';
+import '../../../shared/data/workspace_folder_repository.dart';
 
 enum FileCollection { recent, folder, customers, deleted }
 
@@ -59,8 +60,9 @@ class FileBrowserQuery {
     switch (collection) {
       case FileCollection.customers:
         where.add(
-          "a.owner_type IN ('customer','order','payment','cost') AND c.deleted_at IS NULL AND c.id IS NOT NULL",
+          "((a.owner_type IN ('customer','order','payment','cost') AND c.deleted_at IS NULL AND c.id IS NOT NULL) OR (a.owner_type='library' AND a.folder_id=?))",
         );
+        vars.add(const Variable(WorkspaceFolderRepository.customerFilesRootId));
       case FileCollection.folder:
         where.add("a.owner_type='library'");
         if (folderId == null) {

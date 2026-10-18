@@ -14,6 +14,7 @@ import '../../../shared/design_system/fly_color_scheme.dart';
 import '../../tasks/presentation/task_providers.dart';
 import '../data/daily_review_repository.dart';
 import 'review_providers.dart';
+import 'review_answer_field.dart';
 
 class DailyReviewPage extends ConsumerStatefulWidget {
   const DailyReviewPage({super.key});
@@ -649,120 +650,131 @@ class _ReviewEditorState extends ConsumerState<_ReviewEditor> {
     final summary = ref.watch(reviewSummaryProvider(widget.session.day));
     return ListenableBuilder(
       listenable: widget.session,
-      builder: (context, _) => LayoutBuilder(
-        builder: (context, viewport) => ListView(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-          children: [
-            Wrap(
-              spacing: 16,
-              runSpacing: 8,
-              children: [
-                for (final item
-                    in summary.valueOrNull?.entries ??
-                        <MapEntry<String, int>>[])
-                  Text(
-                    '${text('reviewStat_${item.key}')} ${item.value}',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                IconButton(
-                  tooltip: text('reviewRefresh'),
-                  onPressed: () =>
-                      ref.invalidate(reviewSummaryProvider(widget.session.day)),
-                  icon: const Icon(Icons.refresh, size: 18),
-                ),
-              ],
+      builder: (context, _) => ListView(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+        children: [
+          Material(
+            key: ValueKey('review-today-card-${widget.session.day}'),
+            color: context.flyColors.surface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: context.flyColors.divider),
             ),
-            if (summary.hasError) Text(text('reviewSummaryError')),
-            if (widget.session.error != null)
-              TextButton(
-                onPressed: () async {
-                  try {
-                    await widget.session.flush();
-                  } catch (_) {
-                    /* Error remains visible. */
-                  }
-                },
-                child: Text(text('reviewRetry')),
-              )
-            else
-              Text(
-                text(widget.session.saving ? 'reviewSaving' : 'reviewSaved'),
-                style: Theme.of(context).textTheme.labelSmall,
-              ),
-            const SizedBox(height: 12),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final twoColumns = constraints.maxWidth >= 700;
-                final height = ((viewport.maxHeight - 240) / 2).clamp(
-                  230.0,
-                  600.0,
-                );
-                final colors = context.flyColors;
-                const sections = [
-                  (1, [1, 2]),
-                  (2, [3, 4]),
-                  (3, [5, 6, 7]),
-                  (4, [8, 10, 11]),
-                ];
-                Widget card((int, List<int>) section) => Container(
-                  key: ValueKey('review-section-${section.$1}'),
-                  constraints: BoxConstraints(minHeight: height),
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: [
-                      colors.accent,
-                      colors.warning,
-                      colors.success,
-                      colors.textSecondary,
-                    ][section.$1 - 1].withValues(alpha: .08),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Wrap(
+                    spacing: 16,
+                    runSpacing: 8,
                     children: [
-                      Text(
-                        text('reviewSection${section.$1}'),
-                        style: Theme.of(context).textTheme.titleSmall,
+                      for (final item
+                          in summary.valueOrNull?.entries ??
+                              <MapEntry<String, int>>[])
+                        Text(
+                          '${text('reviewStat_${item.key}')} ${item.value}',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      IconButton(
+                        tooltip: text('reviewRefresh'),
+                        onPressed: () => ref.invalidate(
+                          reviewSummaryProvider(widget.session.day),
+                        ),
+                        icon: const Icon(Icons.refresh, size: 18),
                       ),
-                      for (final question in section.$2)
-                        _question(question, text),
                     ],
                   ),
-                );
-                return Column(
-                  children: [
-                    for (
-                      var index = 0;
-                      index < sections.length;
-                      index += twoColumns ? 2 : 1
+                  if (summary.hasError) Text(text('reviewSummaryError')),
+                  if (widget.session.error != null)
+                    TextButton(
+                      onPressed: () async {
+                        try {
+                          await widget.session.flush();
+                        } catch (_) {
+                          /* Error remains visible. */
+                        }
+                      },
+                      child: Text(text('reviewRetry')),
                     )
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: twoColumns
-                            ? IntrinsicHeight(
-                                child: Row(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    Expanded(child: card(sections[index])),
-                                    const SizedBox(width: 16),
-                                    Expanded(child: card(sections[index + 1])),
-                                  ],
-                                ),
-                              )
-                            : SizedBox(
-                                width: double.infinity,
-                                child: card(sections[index]),
-                              ),
+                  else
+                    Text(
+                      text(
+                        widget.session.saving ? 'reviewSaving' : 'reviewSaved',
                       ),
-                  ],
-                );
-              },
+                      style: Theme.of(context).textTheme.labelSmall,
+                    ),
+                  const SizedBox(height: 12),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final twoColumns = constraints.maxWidth >= 700;
+                      final colors = context.flyColors;
+                      const sections = [
+                        (1, [1, 2]),
+                        (2, [3, 4]),
+                        (3, [5, 6, 7]),
+                        (4, [8, 10, 11]),
+                      ];
+                      Widget card((int, List<int>) section) => Padding(
+                        key: ValueKey('review-section-${section.$1}'),
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              text('reviewSection${section.$1}'),
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(
+                                    color: colors.accent,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                            ),
+                            for (final question in section.$2)
+                              _question(question, text),
+                          ],
+                        ),
+                      );
+                      return Column(
+                        children: [
+                          for (
+                            var index = 0;
+                            index < sections.length;
+                            index += twoColumns ? 2 : 1
+                          )
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: twoColumns
+                                  ? IntrinsicHeight(
+                                      child: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.stretch,
+                                        children: [
+                                          Expanded(
+                                            child: card(sections[index]),
+                                          ),
+                                          const SizedBox(width: 16),
+                                          Expanded(
+                                            child: card(sections[index + 1]),
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                  : SizedBox(
+                                      width: double.infinity,
+                                      child: card(sections[index]),
+                                    ),
+                            ),
+                        ],
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  _question(9, text, summary: true),
+                ],
+              ),
             ),
-            const SizedBox(height: 16),
-            _question(9, text, summary: true),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -771,20 +783,14 @@ class _ReviewEditorState extends ConsumerState<_ReviewEditor> {
     int question,
     String Function(String) text, {
     bool summary = false,
-  }) => Padding(
-    padding: const EdgeInsets.only(top: 12),
-    child: TextField(
-      key: ValueKey('review-q$question'),
-      controller: controllers['q$question'],
-      minLines: summary ? 6 : 2,
-      maxLines: null,
-      maxLength: 20000,
-      decoration: InputDecoration(
-        labelText: text('reviewQ$question'),
-        counterText: '',
-        isDense: true,
-      ),
-      onChanged: (value) => widget.session.edit('q$question', value),
-    ),
+  }) => ReviewAnswerField(
+    key: ValueKey('review-answer-field-q$question'),
+    field: 'q$question',
+    label: text('reviewQ$question'),
+    controller: controllers['q$question']!,
+    summary: summary,
+    doneLabel: context.l10n.isZh ? '完成' : 'Done',
+    editLabel: context.l10n.isZh ? '编辑' : 'Edit',
+    onChanged: (value) => widget.session.edit('q$question', value),
   );
 }

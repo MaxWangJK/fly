@@ -5,11 +5,9 @@ import 'package:go_router/go_router.dart';
 import '../../shared/design_system/responsive_layout.dart';
 import '../../config/feature_flags.dart';
 import '../../features/sync/presentation/sync_controller.dart';
-import '../../features/sync/presentation/sync_settings_panel.dart';
 import '../../l10n/fly_localizations.dart';
 import '../settings/navigation_settings.dart';
 import '../settings/settings_center.dart';
-import 'mobile_details.dart';
 
 class MyPage extends ConsumerWidget {
   const MyPage({super.key});
@@ -33,27 +31,8 @@ class MyPage extends ConsumerWidget {
             title: Text(sync.auth.email ?? (zh ? '本地账户' : 'Local account')),
             subtitle: Text(
               zh
-                  ? '数据保存在此设备，可通过云端或电脑同步'
-                  : 'Saved on this device, with cloud or desktop sync',
-            ),
-          ),
-        ),
-        ListTile(
-          key: const ValueKey('my-account'),
-          leading: const Icon(Icons.manage_accounts_outlined),
-          title: Text(zh ? '账户设置' : 'Account settings'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => showWorkspaceSheet(
-            context,
-            Builder(
-              builder: (sheet) => sheetContent(
-                sheet,
-                zh ? '账户设置' : 'Account settings',
-                const SingleChildScrollView(
-                  padding: EdgeInsets.all(16),
-                  child: SyncSettingsPanel(accountOnly: true),
-                ),
-              ),
+                  ? '数据保存在此设备，可与电脑同步'
+                  : 'Saved on this device, with desktop sync',
             ),
           ),
         ),

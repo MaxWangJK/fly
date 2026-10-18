@@ -38,6 +38,7 @@ import '../../../shared/design_system/responsive_layout.dart';
 import '../../../shared/design_system/mobile_workspace_actions.dart';
 import '../../../app/shell/mobile_details.dart';
 import 'image_file_viewer.dart';
+import 'mobile_file_browser.dart';
 
 class FilesWorkspace extends ConsumerStatefulWidget {
   const FilesWorkspace({this.initialFileId, super.key});
@@ -56,6 +57,7 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
   bool _viewInitialized = false;
   bool imagesFirst = true;
   bool _preferencesLoaded = false, _selecting = false, _batchBusy = false;
+  bool _mobileHome = true, _showCustomerFolder = true;
   int _batchDone = 0, _batchTotal = 0;
   final _selectedFiles = <String>{};
   late FileBrowserPreferencesStore _preferences;
@@ -99,7 +101,10 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
       await attempt(takePhoto);
     }
     if (action == 'folder') {
-      await createFolder(folderId);
+      await createFolder(
+        folderId,
+        customerCollection: collection == FileCollection.customers,
+      );
     }
     if (action == 'import') {
       await attempt(() async {
@@ -113,7 +118,10 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
     super.didChangeDependencies();
     if (!_viewInitialized) {
       _viewInitialized = true;
-      if (isPhoneLayout(context)) viewMode = FileViewMode.small;
+      if (isPhoneLayout(context)) {
+        viewMode = FileViewMode.small;
+        if (locateId == null) collection = FileCollection.folder;
+      }
       _preferences = FileBrowserPreferencesStore(
         ref.read(databaseProvider),
         phone: isPhoneLayout(context),
@@ -143,14 +151,18 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
       if (!mounted) return;
       viewMode = FileViewMode.values.firstWhere((v) => v.name == saved.view);
       sort = saved.sort;
-      if (locateId == null) {
+      final phone = isPhoneLayout(context);
+      if (locateId == null && !phone) {
         collection = saved.collection;
         folderId = saved.folderId;
       }
       imagesFirst = saved.imagesFirst;
       includeChildren = saved.includeChildren;
-      tags.addAll(saved.fileTags);
-      customerTags.addAll(saved.customerTags);
+      _showCustomerFolder = saved.showCustomerFolder;
+      if (!phone) {
+        tags.addAll(saved.fileTags);
+        customerTags.addAll(saved.customerTags);
+      }
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -176,6 +188,7 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
       includeChildren: includeChildren,
       fileTags: {...tags},
       customerTags: {...customerTags},
+      showCustomerFolder: _showCustomerFolder,
     );
     unawaited(attempt(() => _preferences.save(value)));
   }
@@ -446,6 +459,7 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
   void initState() {
     super.initState();
     locateId = widget.initialFileId;
+    _mobileHome = locateId == null;
     selectedId = locateId;
   }
 
@@ -455,6 +469,11 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
   }
 
   void select(FileCollection value, [String? folder]) {
+    if (isPhoneLayout(context)) {
+      _mobileHome = false;
+      search = '';
+      FocusManager.instance.primaryFocus?.unfocus();
+    }
     locateId = null;
     collection = value;
     folderId = folder;
@@ -485,16 +504,19 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
   Future<void> importPicked(List<XFile> files) =>
       importPaths(files.map((f) => f.path).toList(), pickedFiles: files);
 
+  Future<String> _customerFilesDestination() => ref
+      .read(fileFolderRepositoryProvider)
+      .ensureCustomerFilesRoot(context.l10n.t('filesCustomers'));
+
   Future<void> importPaths(
     List<String> paths, {
     List<XFile>? pickedFiles,
   }) async {
-    if (importing ||
-        collection == FileCollection.deleted ||
-        collection == FileCollection.customers) {
+    if (paths.isEmpty || importing || collection == FileCollection.deleted) {
       return;
     }
-    final destination = collection == FileCollection.folder ? folderId : null;
+    final customerCollection = collection == FileCollection.customers;
+    final currentFolder = collection == FileCollection.folder ? folderId : null;
     final storage = ref.read(managedFileStorageProvider);
     final repo = ref.read(managedFileRepositoryProvider);
     cancellation = ImportCancellation();
@@ -503,6 +525,11 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
       progress = 0;
     });
     try {
+      final destination = customerCollection
+          ? await _customerFilesDestination()
+          : currentFolder;
+      cancellation!.check();
+      if (!mounted) throw ImportCancelled();
       for (final (index, path) in paths.indexed) {
         ImportedFile? copied;
         bool committed = false;
@@ -568,16 +595,22 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
     }
   }
 
-  Future<void> createFolder(String? parent) async {
+  Future<void> createFolder(
+    String? parent, {
+    bool customerCollection = false,
+  }) async {
     final name = await workspaceNameDialog(
       context,
       title: context.l10n.t('filesNewFolder'),
     );
-    if (name != null) {
+    if (name != null && mounted) {
       await attempt(() async {
+        final destination = customerCollection
+            ? await _customerFilesDestination()
+            : parent;
         final id = await ref
             .read(fileFolderRepositoryProvider)
-            .create(name, parentId: parent);
+            .create(name, parentId: destination);
         if (mounted) select(FileCollection.folder, id);
       });
     }
@@ -609,7 +642,13 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
             SnackBar(content: Text(context.l10n.t('filesCacheWarning'))),
           );
         }
-        if (mounted) select(FileCollection.recent);
+        if (mounted) {
+          if (isPhoneLayout(context)) {
+            _phoneHome();
+          } else {
+            select(FileCollection.recent);
+          }
+        }
       });
     }
   }
@@ -941,19 +980,22 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
       }
     }
     final folders = ref.watch(fileFoldersProvider);
+    final phone = isPhoneLayout(context);
+    final homeSearch = phone && _mobileHome && search.trim().isNotEmpty;
     rows ??= FileBrowserQuery(ref.read(databaseProvider)).watch(
-      collection: collection,
+      collection: homeSearch ? FileCollection.recent : collection,
       folderId: folderId,
-      descendants: includeChildren,
+      descendants: phone ? search.trim().isNotEmpty : includeChildren,
       search: search,
-      fileTags: locateId == null ? tags : const {},
+      fileTags: !phone && locateId == null ? tags : const {},
       sort: sort,
-      crmVisible: crm,
+      crmVisible: crm && (!phone || _showCustomerFolder),
       fileId: locateId,
-      customerTags: collection == FileCollection.customers
+      customerTags: !phone && collection == FileCollection.customers
           ? customerTags
           : const {},
     );
+    if (phone) return _phoneBrowser(folders, crm);
     final tree = Material(
       color: context.flyColors.secondarySidebar,
       child: ListTileTheme(
@@ -1380,6 +1422,437 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
     );
   }
 
+  String _phoneText(String zh, String en) => context.l10n.isZh ? zh : en;
+
+  void _phoneHome() {
+    select(FileCollection.folder);
+    setState(() => _mobileHome = true);
+  }
+
+  void _phoneBack(List<WorkspaceFolder> folders) {
+    final current = folders.where((f) => f.id == folderId).firstOrNull;
+    if (collection == FileCollection.folder &&
+        (current?.parentId == WorkspaceFolderRepository.customerFilesRootId ||
+            folderId == WorkspaceFolderRepository.customerFilesRootId)) {
+      select(FileCollection.customers);
+    } else if (collection == FileCollection.folder &&
+        current?.parentId != null) {
+      select(FileCollection.folder, current!.parentId);
+    } else {
+      _phoneHome();
+    }
+  }
+
+  void _customerFolderVisibility(bool visible) {
+    setState(() => _showCustomerFolder = visible);
+    _savePreferences();
+    if (!visible && collection == FileCollection.customers) _phoneHome();
+    reload();
+  }
+
+  Future<void> _phoneFolderMenu(WorkspaceFolder folder) async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (sheet) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(title: Text(folder.name)),
+          ListTile(
+            leading: const Icon(Icons.drive_file_rename_outline),
+            title: Text(context.l10n.t('rename')),
+            onTap: () => Navigator.pop(sheet, 'rename'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.delete_outline),
+            title: Text(context.l10n.t('delete')),
+            subtitle: Text(
+              _phoneText(
+                '文件夹删除会同步到已连接设备',
+                'Folder deletion syncs to connected devices',
+              ),
+            ),
+            onTap: () => Navigator.pop(sheet, 'delete'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    if (action == 'delete') await folderDelete(folder);
+    if (!mounted) return;
+    if (action == 'rename') {
+      final name = await workspaceNameDialog(
+        context,
+        title: context.l10n.t('rename'),
+        initial: folder.name,
+      );
+      if (name != null) {
+        await attempt(
+          () => ref.read(fileFolderRepositoryProvider).rename(folder.id, name),
+        );
+      }
+    }
+  }
+
+  Future<void> _hideCustomerFolderMenu() async {
+    final hide = await showModalBottomSheet<bool>(
+      context: context,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (sheet) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            key: const ValueKey('mobile-hide-customer-folder'),
+            leading: const Icon(Icons.hide_source),
+            title: Text(_phoneText('移除客户文件入口', 'Hide customer files')),
+            subtitle: Text(
+              _phoneText(
+                '仅在本机隐藏，不删除文件，不影响电脑',
+                'Hide on this device only. Files and desktop stay unchanged.',
+              ),
+            ),
+            onTap: () => Navigator.pop(sheet, true),
+          ),
+        ],
+      ),
+    );
+    if (mounted && hide == true) _customerFolderVisibility(false);
+  }
+
+  Widget _phoneMoreMenu(bool crm) => PopupMenuButton<String>(
+    key: const ValueKey('file-more-menu'),
+    tooltip: _phoneText('更多选项', 'More options'),
+    enabled: !_batchBusy,
+    icon: const Icon(Icons.more_horiz),
+    onSelected: (action) {
+      if (action.startsWith('view:')) {
+        setState(
+          () => viewMode = FileViewMode.values.byName(action.substring(5)),
+        );
+      } else if (action.startsWith('sort:')) {
+        sort = FileSort.values.byName(action.substring(5));
+        reload();
+      } else if (action == 'images' || action == 'files') {
+        setState(() => imagesFirst = action == 'images');
+      } else if (action == 'select') {
+        setState(() {
+          _selecting = !_selecting;
+          _selectedFiles.clear();
+        });
+      } else if (action == 'deleted') {
+        select(FileCollection.deleted);
+      } else if (action == 'customers') {
+        _customerFolderVisibility(!_showCustomerFolder);
+      }
+      _savePreferences();
+    },
+    itemBuilder: (_) => [
+      for (final mode in [FileViewMode.small, FileViewMode.list])
+        CheckedPopupMenuItem(
+          value: 'view:${mode.name}',
+          checked: viewMode == mode,
+          child: Text(
+            mode == FileViewMode.small
+                ? _phoneText('相册', 'Gallery')
+                : context.l10n.t('fileView_list'),
+          ),
+        ),
+      const PopupMenuDivider(),
+      for (final option in FileSort.values)
+        CheckedPopupMenuItem(
+          value: 'sort:${option.name}',
+          checked: sort == option,
+          child: Text(
+            context.l10n.t(switch (option) {
+              FileSort.modified => 'fileModified',
+              FileSort.created => 'filesCreated',
+              FileSort.name => 'filesName',
+              FileSort.type => 'filesType',
+              FileSort.size => 'filesSize',
+            }),
+          ),
+        ),
+      const PopupMenuDivider(),
+      for (final first in [true, false])
+        CheckedPopupMenuItem(
+          value: first ? 'images' : 'files',
+          checked: imagesFirst == first,
+          child: Text(
+            first
+                ? _phoneText('图片在前', 'Images first')
+                : _phoneText('文件在前', 'Files first'),
+          ),
+        ),
+      const PopupMenuDivider(),
+      PopupMenuItem(
+        value: 'select',
+        enabled: !_mobileHome || search.trim().isNotEmpty,
+        child: Text(
+          _selecting
+              ? _phoneText('完成选择', 'Done selecting')
+              : _phoneText('多选', 'Select files'),
+        ),
+      ),
+      PopupMenuItem(
+        value: 'deleted',
+        child: Text(context.l10n.t('noteDeleted')),
+      ),
+      if (crm)
+        CheckedPopupMenuItem(
+          value: 'customers',
+          checked: _showCustomerFolder,
+          child: Text(_phoneText('显示客户文件', 'Show customer files')),
+        ),
+    ],
+  );
+
+  List<MobileFileFolder> _phoneFolders(
+    List<WorkspaceFolder> folders,
+    List<FileBrowserEntry> entries,
+    bool crm,
+  ) {
+    final term = search.trim();
+    final ids = folders.map((f) => f.id).toSet();
+    final children = folders.where((f) {
+      if (f.id == WorkspaceFolderRepository.customerFilesRootId) return false;
+      if (_mobileHome) {
+        return term.isEmpty
+            ? f.parentId == null || !ids.contains(f.parentId)
+            : FuzzyMatch.matches(term, [f.name]);
+      }
+      if (collection == FileCollection.customers) {
+        return f.parentId == WorkspaceFolderRepository.customerFilesRootId &&
+            (term.isEmpty || FuzzyMatch.matches(term, [f.name]));
+      }
+      return collection == FileCollection.folder &&
+          folderId != null &&
+          f.parentId == folderId &&
+          (term.isEmpty || FuzzyMatch.matches(term, [f.name]));
+    }).toList();
+    children.sort(
+      (a, b) => switch (sort) {
+        FileSort.modified =>
+          (b.updatedAt?.millisecondsSinceEpoch ?? b.sortOrder).compareTo(
+            a.updatedAt?.millisecondsSinceEpoch ?? a.sortOrder,
+          ),
+        FileSort.created =>
+          (b.createdAt?.millisecondsSinceEpoch ?? b.sortOrder).compareTo(
+            a.createdAt?.millisecondsSinceEpoch ?? a.sortOrder,
+          ),
+        _ => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+      },
+    );
+    final customerTitle = context.l10n.t('filesCustomers');
+    return [
+      if (_mobileHome &&
+          crm &&
+          _showCustomerFolder &&
+          (term.isEmpty || FuzzyMatch.matches(term, [customerTitle])))
+        MobileFileFolder(
+          id: 'customers',
+          name: customerTitle,
+          icon: Icons.folder_shared_rounded,
+          onOpen: () => select(FileCollection.customers),
+          onLongPress: () => unawaited(_hideCustomerFolderMenu()),
+        ),
+      for (final folder in children)
+        MobileFileFolder(
+          id: folder.id,
+          name: folder.name,
+          onOpen: () => select(FileCollection.folder, folder.id),
+          onLongPress: () => unawaited(_phoneFolderMenu(folder)),
+        ),
+      if (_mobileHome && term.isEmpty && entries.isNotEmpty)
+        MobileFileFolder(
+          id: 'unfiled',
+          name: _phoneText('未分类文件', 'Unfiled files'),
+          subtitle: _phoneText(
+            '${entries.length} 个项目',
+            '${entries.length} items',
+          ),
+          onOpen: () => select(FileCollection.folder),
+          onLongPress: () => select(FileCollection.folder),
+        ),
+    ];
+  }
+
+  Widget _phoneBrowser(AsyncValue<List<WorkspaceFolder>> folders, bool crm) {
+    final all = folders.valueOrNull ?? <WorkspaceFolder>[];
+    final deletedFolders = collection == FileCollection.deleted
+        ? ref.watch(deletedFileFoldersProvider).valueOrNull ??
+              <WorkspaceFolder>[]
+        : <WorkspaceFolder>[];
+    final title = _mobileHome
+        ? null
+        : switch (collection) {
+            FileCollection.customers => context.l10n.t('filesCustomers'),
+            FileCollection.deleted => context.l10n.t('noteDeleted'),
+            FileCollection.recent => context.l10n.t('noteRecent'),
+            FileCollection.folder =>
+              all.where((f) => f.id == folderId).firstOrNull?.name ??
+                  _phoneText('未分类文件', 'Unfiled files'),
+          };
+    return PopScope(
+      canPop: _mobileHome,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _phoneBack(all);
+      },
+      child: MobileWorkspaceActions(
+        actionId: 'file',
+        query: search,
+        searchHint: context.l10n.t('filesSearch'),
+        showSearchButton: false,
+        onSearchChanged: (_) {},
+        onAdd:
+            !_selecting &&
+                !importing &&
+                !_batchBusy &&
+                (collection == FileCollection.folder ||
+                    collection == FileCollection.customers ||
+                    collection == FileCollection.recent)
+            ? _addOnPhone
+            : null,
+        addLabel: _phoneText('添加文件', 'Add files'),
+        child: Material(
+          color: context.flyColors.surface,
+          child: Column(
+            children: [
+              MobileFilesHeader(
+                query: search,
+                title: title,
+                searchHint: _phoneText('搜索文件和文件夹', 'Search files and folders'),
+                onBack: () => _phoneBack(all),
+                menu: _phoneMoreMenu(crm),
+                onSearch: (value) {
+                  search = value;
+                  _selectedFiles.clear();
+                  reload();
+                },
+              ),
+              if (importing)
+                Row(
+                  children: [
+                    Expanded(child: LinearProgressIndicator(value: progress)),
+                    TextButton(
+                      onPressed: () => cancellation?.cancel(),
+                      child: Text(context.l10n.t('filesCancelImport')),
+                    ),
+                  ],
+                ),
+              Expanded(
+                child: folders.when(
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (error, _) =>
+                      Center(child: Text(context.flyError(error))),
+                  data: (items) => StreamBuilder<List<FileBrowserEntry>>(
+                    stream: rows,
+                    builder: (context, snapshot) {
+                      if (snapshot.hasError) {
+                        return Center(
+                          child: TextButton(
+                            onPressed: reload,
+                            child: Text(context.l10n.t('filesLoadError')),
+                          ),
+                        );
+                      }
+                      if (!snapshot.hasData) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      final entries = snapshot.data!;
+                      final directories = _phoneFolders(items, entries, crm);
+                      final visible = _mobileHome && search.trim().isEmpty
+                          ? <FileBrowserEntry>[]
+                          : entries;
+                      return fileResults(
+                        visible,
+                        precedingSlivers: [
+                          if (deletedFolders.isNotEmpty)
+                            SliverList.builder(
+                              itemCount: deletedFolders.length,
+                              itemBuilder: (_, index) {
+                                final folder = deletedFolders[index];
+                                return ListTile(
+                                  key: ValueKey(
+                                    'mobile-restore-folder-${folder.id}',
+                                  ),
+                                  leading: const Icon(Icons.folder_outlined),
+                                  title: Text(folder.name),
+                                  trailing: IconButton(
+                                    tooltip: context.l10n.t('restore'),
+                                    icon: const Icon(Icons.restore),
+                                    onPressed: () => attempt(
+                                      () => ref
+                                          .read(fileFolderRepositoryProvider)
+                                          .restore(folder.id),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          if (directories.isNotEmpty)
+                            MobileFileFoldersSliver(
+                              folders: directories,
+                              list: viewMode == FileViewMode.list,
+                            ),
+                          if (directories.isEmpty &&
+                              visible.isEmpty &&
+                              deletedFolders.isEmpty)
+                            SliverFillRemaining(
+                              hasScrollBody: false,
+                              child: Center(
+                                child: Text(context.l10n.t('filesEmpty')),
+                              ),
+                            ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _phoneListing(List<FileBrowserEntry> entries, List<Widget> folders) =>
+      CustomScrollView(
+        key: const ValueKey('mobile-files-content'),
+        slivers: [
+          ...folders,
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 112),
+            sliver: viewMode == FileViewMode.list
+                ? SliverList.builder(
+                    itemCount: entries.length,
+                    itemBuilder: (_, i) => Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: tile(entries[i]),
+                    ),
+                  )
+                : SliverLayoutBuilder(
+                    builder: (context, constraints) => SliverGrid.builder(
+                      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                        maxCrossAxisExtent: 150,
+                        mainAxisExtent:
+                            118 +
+                            MediaQuery.textScalerOf(context).scale(26) -
+                            26,
+                        crossAxisSpacing: 8,
+                        mainAxisSpacing: 8,
+                      ),
+                      itemCount: entries.length,
+                      itemBuilder: (_, i) => tile(entries[i]),
+                    ),
+                  ),
+          ),
+        ],
+      );
+
   List<Widget> _breadcrumbs(List<WorkspaceFolder> folders) {
     final path = <WorkspaceFolder>[];
     final seen = <String>{};
@@ -1399,7 +1872,10 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
     ];
   }
 
-  Widget fileResults(List<FileBrowserEntry> entries) {
+  Widget fileResults(
+    List<FileBrowserEntry> entries, {
+    List<Widget> precedingSlivers = const [],
+  }) {
     if (isPhoneLayout(context)) {
       entries = [
         ...entries.where(
@@ -1410,7 +1886,9 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
         ),
       ];
     }
-    final listing = viewMode != FileViewMode.list
+    final listing = isPhoneLayout(context)
+        ? _phoneListing(entries, precedingSlivers)
+        : viewMode != FileViewMode.list
         ? GridView.builder(
             padding: EdgeInsets.fromLTRB(
               12,

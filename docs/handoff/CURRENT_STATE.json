@@ -1,12 +1,12 @@
 {
-  "capturedAtUtc": "2026-10-16T13:57:59.406670+00:00",
+  "capturedAtUtc": "2026-10-17T06:10:57.301866+00:00",
   "documentationOnly": false,
   "branch": "codex/fly-2-sync",
-  "releaseCommitSource": "This local 2.0 checkpoint includes builds 39/40, formal Android signing configuration and handoff; resolve exact commit with git log -1",
+  "releaseCommitSource": "24afa8d56c6ca4326909af5dcabfe5caf67bea63: later builds 41/42 and internal issuer remain uncommitted",
   "developmentBaseCommit": "6b59521571e522474f9f6d7303d5fe6d3df60e27",
   "master": "94efdc2d9ac34feb2f3d1b635302278b4671a414",
   "gitDirectoryIsLocalFolder": true,
-  "appVersion": "2.0.4+40",
+  "appVersion": "2.0.6+42",
   "databaseSchemaVersion": 19,
   "originalSdk": {
     "frameworkVersion": "3.47.7",
@@ -23,49 +23,48 @@
     "flutterVersion": "3.47.7"
   },
   "buildStatus": "verified",
-  "releaseReport": "../release/fly_2_0_4_build40.md",
-  "currentFeaturesIncludeUncommittedFiles": false,
-  "latestPublishedTestBundle": "2.0.4+40 Windows / Android (2026-10-14)",
-  "verifiedClientTests": 328,
-  "clientTestsEvidence": "2026-10-14: 328 passed with ephemeral HTTP backend; not rerun for 2026-10-16 signing/docs checkpoint",
+  "releaseReport": "../release/fly_2_0_6_build42.md",
+  "currentFeaturesIncludeUncommittedFiles": true,
+  "latestPublishedTestBundle": "Local Windows / Android 2.0.6+42 (2026-10-17)",
+  "verifiedClientTests": 352,
+  "clientTestsEvidence": "2026-10-17 full run: 352 passed with ephemeral HTTP backend, LAN files and build 42 regressions",
   "verifiedServerTests": 18,
   "websiteCoreAndHttpTests": "passed",
   "analyze": "No issues found",
   "appleBuildAndDeviceAcceptance": "not performed",
-  "latestSourceNotRepackaged": true,
+  "latestSourceNotRepackaged": false,
   "noDeploymentPerformed": true,
   "remotePushPerformed": false,
-  "historicalUserMessagesArchived": 134,
+  "historicalUserMessagesArchived": 137,
   "textAttachmentsCopied": 19,
   "inlinePromptCopies": 2,
   "historicalTextNormalization": "Brand-neutral portable copies; SHA-256 entries refer to current bytes, with original digest retained separately.",
   "brandNeutralDocumentsAndWebsite": true,
-  "screenshotsCopied": 18,
+  "screenshotsCopied": 30,
   "developmentSkillsCopied": 4,
   "workingTreeStatusSource": "git status --short",
   "localReleaseCommitCompleted": true,
-  "expectedWorkingTreeAfterReleaseCommit": "clean tracked source; private identities, generated files and release binaries remain ignored",
+  "expectedWorkingTreeAfterReleaseCommit": "Keep uncommitted builds 41/42 and issuer work alongside original 24afa8d commit",
   "artifacts": [
     {
-      "name": "Fly-2.0.4-build40-android-release-signed-20261016.apk",
-      "bytes": 93958575,
-      "sha256": "E017CF7B5EC5414BED25D749E778369FB310214AFC2A780A33D0A1393C967F6F",
-      "kind": "formal Android signing / filing verification APK"
+      "name": "Fly-2.0.6-build42-android-release-signed-20261017.apk",
+      "bytes": 93813852,
+      "sha256": "8B49AEEA22AD86CC4BE05B60E6FDD4864C5367C7813361EC996015BD8461F019"
     },
     {
-      "name": "Fly-Setup-2.0.4-build40-testing.exe",
-      "bytes": 13371460,
-      "sha256": "7D0444A61FF1FA9C620CF2F9BF6F03A51EC73D235DEC6BDEC78FE34B91FF52A4"
+      "name": "Fly-2.0.6-build42-android-test-20261017.apk",
+      "bytes": 93843887,
+      "sha256": "033DA959C3035DA23627EC47158F34CEE8F5490077E0F76CEA2ECF0E1EEB6937"
     },
     {
-      "name": "Fly-2.0.4-build40-windows-test-20261014.zip",
-      "bytes": 15956951,
-      "sha256": "9B667922DE0B5B11477E26ABAF9AB2720FD32D8A7CAA69BCAA920667A2A8D9A8"
+      "name": "Fly-Setup-2.0.6-build42-testing.exe",
+      "bytes": 13353143,
+      "sha256": "AF558D169675089E0ADF045DA639917848C4551D330B6FF831A01358E4983FD1"
     },
     {
-      "name": "Fly-2.0.4-build40-android-test-20261014.apk",
-      "bytes": 93928596,
-      "sha256": "67160ABFD7E7AEE1791A348A780DD328467B105FC60BA470CD27DC884E308A7A"
+      "name": "Fly-2.0.6-build42-windows-test-20261017.zip",
+      "bytes": 15932276,
+      "sha256": "986A47CF805E60E3B35E4A6949CD75EE90868BC86EBA43BDAB262C427F2B5F87"
     },
     {
       "name": "Fly-Foreign-Trade-Fieldbook-v1.fly",
@@ -75,19 +74,23 @@
   ],
   "android": {
     "minSdk": 24,
-    "versionCode": 40,
+    "versionCode": 42,
     "abis": [
       "arm64-v8a",
       "armeabi-v7a",
       "x86_64"
     ],
     "signatureMatchesBuild37": true,
-    "signing": "historical build 40 testing APK uses debug key; preferred formal signing identity is recorded separately in formalAndroidSigning",
+    "signing": "formal release build uses pinned original release identity; separate testing copy uses original debug key",
     "signatureMatchesBuild38": true,
     "signatureMatchesBuild39": true,
     "packageName": "com.flyproduct.fly",
     "targetSdk": 36,
-    "signatureMatchFieldsApplyTo": "historical build 40 testing APK only, not the new formal signing APK"
+    "signatureMatchFieldsApplyTo": "build 42 testing APK only; formal signing identity is separate and unchanged",
+    "signatureMatchesBuild40": true,
+    "debuggable": false,
+    "aligned16KB": true,
+    "signatureMatchesBuild41": true
   },
   "buildFlags": {
     "ENABLE_LOCAL_LICENSE": false,
@@ -99,12 +102,12 @@
   "bookChapters": 16,
   "bookReaderDesktopOnly": true,
   "bookReadingStateCloudSync": false,
-  "additionalCurrentUserRequests": 7,
+  "additionalCurrentUserRequests": 10,
   "formalAndroidSigning": {
     "date": "2026-10-16",
-    "appVersion": "2.0.4+40",
-    "apk": "Fly-2.0.4-build40-android-release-signed-20261016.apk",
-    "apkSHA256": "E017CF7B5EC5414BED25D749E778369FB310214AFC2A780A33D0A1393C967F6F",
+    "appVersion": "2.0.6+42",
+    "apk": "Fly-2.0.6-build42-android-release-signed-20261017.apk",
+    "apkSHA256": "8B49AEEA22AD86CC4BE05B60E6FDD4864C5367C7813361EC996015BD8461F019",
     "certificateMD5": "5E96E7B982BF8DB94FEF71F148BC0859",
     "certificateSHA1": "9E8BC6EFA12D280843F92FD7E1DCAE22AD70008F",
     "certificateSHA256": "5240E834C4F5800EC22E9B882526A9CCBFE3366E334857CAE0154A0B66079EB2",
@@ -112,18 +115,20 @@
     "missingReleaseKeyStopsBuild": true,
     "privateKeyLocalBackupVerified": true,
     "compatibleWithOldDebugSignature": false,
-    "businessCodeChanged": false,
+    "businessCodeChanged": true,
     "filingApplicationSubmitted": false,
     "privateIdentityDirectory": "license_tools/private/android",
     "report": "../release/android_release_signing_20261016.md",
-    "publicMetadataPath": "apk/20261016/",
+    "publicMetadataPath": "apk/20261017/",
     "privateKeyIndependentOfflineBackupVerified": false,
-    "privateKeyLocalBackupScope": "same-disk initial backup only; owner must retain independent secure backup"
+    "privateKeyLocalBackupScope": "same-disk initial backup only; owner must retain independent secure backup",
+    "identityEstablishedDate": "2026-10-16",
+    "latestArtifactDate": "2026-10-17"
   },
-  "clientTestsLastRunDate": "2026-10-14",
-  "analyzeLastRunDate": "2026-10-16",
-  "latestPreferredAndroidPackage": "Fly-2.0.4-build40-android-release-signed-20261016.apk",
-  "publicApkMetadataPath": "apk/20261016/",
+  "clientTestsLastRunDate": "2026-10-17",
+  "analyzeLastRunDate": "2026-10-17",
+  "latestPreferredAndroidPackage": "Fly-2.0.6-build42-android-release-signed-20261017.apk",
+  "publicApkMetadataPath": "apk/20261017/",
   "releaseArtifactFilesTracked": false,
   "privateSigningFilesTracked": false,
   "handoffPackageLedger": "APK_RELEASES.md",
@@ -133,5 +138,107 @@
     "filingPublicKeyAndSHA1Available": false,
     "appleBuildAndDeviceAcceptance": "not performed"
   },
-  "latestSourceNotRepackagedExplanation": "Functional payload matches tested build 40; later Gradle/signing configuration and documentation are not a new Flutter compilation. Formal APK re-signing verified separately."
+  "latestSourceNotRepackagedExplanation": "Windows and Android freshly rebuilt as 2.0.6+42; Apple not built",
+  "localReleaseCommitHash": "24afa8d56c6ca4326909af5dcabfe5caf67bea63",
+  "workingTreeStatusAtCapture": "uncommitted builds 41/42, internal issuer, tests and handoff documents",
+  "portableInternalIssuer": {
+    "version": "1.0.0",
+    "date": "2026-10-17",
+    "file": "license_tools/private/portable/Fly-License-Issuer.exe",
+    "bytes": 2595840,
+    "sha256": "0E8344A676B64687EA9C67BD7CCB9A3E2DF6EDE9ECC834138072995A9F56035E",
+    "source": "license_tools/portable_issuer",
+    "sourceCommitted": false,
+    "target": "Windows 10/11 with .NET Framework 4.8",
+    "singleExe": true,
+    "requiresInstaller": false,
+    "requiresPythonOnTarget": false,
+    "containsOriginalSigningAuthority": true,
+    "customerDistributionAllowed": false,
+    "originalIssuerRegenerated": false,
+    "originalPublicKeyMatched": true,
+    "licenseVersion": 1,
+    "limitedDays": [
+      1,
+      36500
+    ],
+    "permanentExpiry": "9999-12-31T23:59:59Z",
+    "coreAndNativeUiAssertions": 27,
+    "realFlyVerifierCompatibilityTests": 11,
+    "isolatedSingleExeLaunchPassed": true,
+    "analyze": "No issues found",
+    "fullClientSuiteRerun": true,
+    "realDeviceActivationPerformed": false,
+    "existingBuild40LicenseGateEnabled": false,
+    "report": "../licenses/portable_issuer_20261017.md",
+    "fullClientSuiteRerunDate": "2026-10-17",
+    "androidBuild41LicenseGateEnabled": false
+  },
+  "latestAndroidTestingUpgradePackage": "Fly-2.0.6-build42-android-test-20261017.apk",
+  "temporaryBackendStopped": true,
+  "latestWindowsPackageVersion": "2.0.6+42",
+  "windowsRebuiltThisTurn": true,
+  "mobileUiLatestVerification": {
+    "date": "2026-10-17",
+    "portrait": "390x844 top48 bottom24",
+    "landscape": "844x390 left44 bottom18",
+    "narrow": "360x780 top60 bottom24 textScale1.3",
+    "widgetLayoutsPassed": true,
+    "androidPhysicalDeviceAcceptance": false,
+    "customerFilesAddAndBackPassed": true,
+    "folderGridWidths": [
+      300,
+      360,
+      430,
+      844
+    ],
+    "reviewCardWidths": [
+      390,
+      1100,
+      360
+    ],
+    "reviewTextScaleTest": 1.3,
+    "reviewDarkModePassed": true,
+    "myAccountSettingsRemoved": true
+  },
+  "exposedSyncMode": "LAN desktop-phone pairing",
+  "cloudSyncUiHidden": true,
+  "hiddenCustomerFolderPreferenceLocalOnly": true,
+  "historicalAndroidArtifacts": [
+    {
+      "name": "Fly-2.0.4-build40-android-release-signed-20261016.apk",
+      "bytes": 93958575,
+      "sha256": "E017CF7B5EC5414BED25D749E778369FB310214AFC2A780A33D0A1393C967F6F",
+      "kind": "formal Android signing / filing verification APK"
+    },
+    {
+      "name": "Fly-2.0.4-build40-android-test-20261014.apk",
+      "bytes": 93928596,
+      "sha256": "67160ABFD7E7AEE1791A348A780DD328467B105FC60BA470CD27DC884E308A7A"
+    },
+    {
+      "name": "Fly-2.0.5-build41-android-release-signed-20261017.apk",
+      "bytes": 93830480,
+      "sha256": "5750484E5AB99F97D0A3EF47F9BF6747F51A550AFD0BCA916B1A3215D7B91C7A",
+      "kind": "formal release signing"
+    },
+    {
+      "name": "Fly-2.0.5-build41-android-test-20261017.apk",
+      "bytes": 93860271,
+      "sha256": "E5CA4004AFA21DAE3F1CBDC0C0919D66FFD969FC6EE71F9D7EFFBA5B6A6F9464",
+      "kind": "original testing signing; upgrades testing builds 37-40"
+    }
+  ],
+  "historicalWindowsArtifacts": [
+    {
+      "name": "Fly-Setup-2.0.4-build40-testing.exe",
+      "bytes": 13371460,
+      "sha256": "7D0444A61FF1FA9C620CF2F9BF6F03A51EC73D235DEC6BDEC78FE34B91FF52A4"
+    },
+    {
+      "name": "Fly-2.0.4-build40-windows-test-20261014.zip",
+      "bytes": 15956951,
+      "sha256": "9B667922DE0B5B11477E26ABAF9AB2720FD32D8A7CAA69BCAA920667A2A8D9A8"
+    }
+  ]
 }

@@ -146,9 +146,8 @@ void main() {
           ),
         );
         await settle();
-        expect(find.byKey(const ValueKey('sync-mode-cloud')), findsOneWidget);
-        await tester.tap(find.byKey(const ValueKey('sync-mode-lan')));
-        await settle();
+        expect(find.byKey(const ValueKey('sync-mode-cloud')), findsNothing);
+        expect(find.byKey(const ValueKey('sync-mode-lan')), findsNothing);
         expect(find.byKey(const ValueKey('scan-desktop-qr')), findsOneWidget);
         await capture('sync');
         expect(tester.takeException(), isNull);

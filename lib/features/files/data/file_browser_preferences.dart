@@ -16,12 +16,14 @@ class FileBrowserPreferences {
     this.includeChildren = false,
     this.fileTags = const {},
     this.customerTags = const {},
+    this.showCustomerFolder = true,
   });
   final String view;
   final FileSort sort;
   final FileCollection collection;
   final String? folderId;
   final bool imagesFirst, includeChildren;
+  final bool showCustomerFolder;
   final Set<String> fileTags, customerTags;
   Map<String, Object?> toJson() => {
     'view': view,
@@ -32,6 +34,7 @@ class FileBrowserPreferences {
     'includeChildren': includeChildren,
     'fileTags': fileTags.toList(),
     'customerTags': customerTags.toList(),
+    'showCustomerFolder': showCustomerFolder,
   };
 }
 
@@ -103,6 +106,7 @@ class FileBrowserPreferencesStore {
       includeChildren: data['includeChildren'] == true,
       fileTags: tags('fileTags', own),
       customerTags: tags('customerTags', crm),
+      showCustomerFolder: data['showCustomerFolder'] != false,
     );
   }
 

@@ -626,7 +626,7 @@ class _TaskRows extends ConsumerWidget {
             ..sort(compareTaskCreatedNewestFirst);
       return ListView(
         controller: scrollController,
-        padding: EdgeInsets.only(bottom: isPhoneLayout(context) ? 144 : 0),
+        padding: EdgeInsets.only(bottom: isPhoneLayout(context) ? 184 : 0),
         children: [
           if (!isPhoneLayout(context))
             ListTile(
@@ -682,7 +682,7 @@ class _TaskRows extends ConsumerWidget {
 
     final list = ListView.builder(
       controller: scrollController,
-      padding: EdgeInsets.only(bottom: isPhoneLayout(context) ? 144 : 0),
+      padding: EdgeInsets.only(bottom: isPhoneLayout(context) ? 184 : 0),
       itemCount: tasks.length,
       itemBuilder: (context, index) => row(index),
     );

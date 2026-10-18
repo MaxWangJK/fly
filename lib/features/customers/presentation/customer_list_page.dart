@@ -651,7 +651,7 @@ class _CustomerListPageState extends ConsumerState<CustomerListPage> {
                           onCreate: _addOnPhone,
                         )
                       : ListView.builder(
-                          padding: const EdgeInsets.only(bottom: 144),
+                          padding: const EdgeInsets.only(bottom: 184),
                           itemCount: items.length,
                           itemBuilder: (_, i) {
                             final customer = items[i];

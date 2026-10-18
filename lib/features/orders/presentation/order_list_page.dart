@@ -284,7 +284,7 @@ class _OrderListPageState extends ConsumerState<OrderListPage> {
                       ? const _EmptyOrders()
                       : ListView.separated(
                           padding: EdgeInsets.only(
-                            bottom: isPhoneLayout(context) ? 144 : 16,
+                            bottom: isPhoneLayout(context) ? 184 : 16,
                           ),
                           itemCount: items.length,
                           separatorBuilder: (_, _) => const SizedBox(height: 5),

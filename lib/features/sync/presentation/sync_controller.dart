@@ -45,7 +45,7 @@ class SyncController extends ChangeNotifier {
   bool ready = false, busy = false, cloudEnabled = false;
   bool get cloudFiles => SyncServerConfig.allowsCloudFiles(server, auth.email);
   bool get lanFiles => true;
-  SyncConnectionMode connectionMode = SyncConnectionMode.cloud;
+  SyncConnectionMode connectionMode = SyncConnectionMode.lan;
   bool get isMobile =>
       defaultTargetPlatform == TargetPlatform.android ||
       defaultTargetPlatform == TargetPlatform.iOS;
@@ -87,21 +87,12 @@ class SyncController extends ChangeNotifier {
       }
       counts = await outbox.initialCounts();
       ready = true;
-      final savedConnection = await outbox.state('syncConnectionMode');
-      final savedCloud = await outbox.state('cloudEnabled') == 'true';
       final savedHost = await outbox.state('lanHostEnabled') == 'true';
-      connectionMode =
-          savedConnection == 'lan' ||
-              (savedConnection == null &&
-                  !savedCloud &&
-                  (savedHost || lanToken != null))
-          ? SyncConnectionMode.lan
-          : SyncConnectionMode.cloud;
-      if (connectionMode == SyncConnectionMode.cloud &&
-          savedCloud &&
-          auth.userId != null) {
-        await _enableCloud();
-      }
+      // The product now exposes desktop pairing only. Keep saved cloud identity
+      // and workspace contexts intact, but do not reconnect a hidden mode.
+      connectionMode = SyncConnectionMode.lan;
+      await outbox.saveState('syncConnectionMode', 'lan');
+      await outbox.saveState('cloudEnabled', 'false');
       if (connectionMode == SyncConnectionMode.lan) {
         if (savedHost && !isMobile) await _startHost();
         if (!host.running &&
@@ -460,7 +451,7 @@ class SyncController extends ChangeNotifier {
       await _enableCloud();
       await outbox.saveState('cloudEnabled', 'true');
     } else if (!automatic) {
-      throw StateError('请在“我的 → 同步设置”登录云端或扫描电脑二维码');
+      throw StateError('请在同步设置扫描电脑二维码，或在电脑开启同步服务');
     }
   });
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../config/feature_flags.dart';
 import '../features/sync/presentation/sync_runtime.dart';
@@ -311,10 +312,25 @@ class FlyApp extends ConsumerWidget {
         final content = enableLocalLicense
             ? LocalLicenseGate(child: child ?? const SizedBox.shrink())
             : child ?? const SizedBox.shrink();
-        return SyncRuntime(
-          child: startupBackupFailed
-              ? _StartupBackupWarning(child: content)
-              : content,
+        final dark = Theme.of(context).brightness == Brightness.dark;
+        return AnnotatedRegion<SystemUiOverlayStyle>(
+          value: SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            systemNavigationBarColor: Colors.transparent,
+            systemNavigationBarDividerColor: Colors.transparent,
+            systemStatusBarContrastEnforced: false,
+            systemNavigationBarContrastEnforced: false,
+            statusBarIconBrightness: dark ? Brightness.light : Brightness.dark,
+            statusBarBrightness: dark ? Brightness.dark : Brightness.light,
+            systemNavigationBarIconBrightness: dark
+                ? Brightness.light
+                : Brightness.dark,
+          ),
+          child: SyncRuntime(
+            child: startupBackupFailed
+                ? _StartupBackupWarning(child: content)
+                : content,
+          ),
         );
       },
     );

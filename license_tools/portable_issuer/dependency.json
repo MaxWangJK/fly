@@ -1,0 +1,9 @@
+{
+  "package": "BouncyCastle.Cryptography",
+  "version": "2.7.0",
+  "url": "https://api.nuget.org/v3-flatcontainer/bouncycastle.cryptography/2.7.0/bouncycastle.cryptography.2.7.0.nupkg",
+  "sha512base64": "Lys+dJthpD8quONaAkRV9ke8DgET0CwBW91NeJjMVHZGvRRNO8DkdReYFfCBOCcvMpzJeC3DuLrpRuntYnq9Iw==",
+  "assembly": "lib/net461/BouncyCastle.Cryptography.dll",
+  "source": "https://github.com/bcgit/bc-csharp/tree/release-2.7.0",
+  "license": "https://www.bouncycastle.org/licence.html"
+}

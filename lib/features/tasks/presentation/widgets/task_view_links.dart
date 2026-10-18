@@ -95,7 +95,8 @@ class _InlineListFilters extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final path = GoRouterState.of(context).uri.path;
-    final lists = (ref.watch(taskListsProvider).valueOrNull ?? <FlyTaskList>[])
+    final listState = ref.watch(taskListsProvider);
+    final lists = (listState.valueOrNull ?? <FlyTaskList>[])
         .where((list) => list.id != 'inbox')
         .toList();
     final ordered = <FlyTaskList>[];
@@ -119,23 +120,35 @@ class _InlineListFilters extends ConsumerWidget {
       visit(list);
     }
     final zh = context.l10n.isZh;
-    return SingleChildScrollView(
+    return ConstrainedBox(
       key: const ValueKey('mobile-inline-list-filters'),
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          for (final item in [
-            (zh ? '全部任务' : 'All tasks', '/tasks/all', 'all'),
-            (context.l10n.t('inbox'), '/tasks/inbox', 'inbox'),
-            for (final list in ordered)
-              (list.name, '/tasks/list/${list.id}', list.id),
-            (context.l10n.t('next7'), '/tasks/next7days', 'next7days'),
-            (context.l10n.t('completed'), '/tasks/completed', 'completed'),
-            (context.l10n.t('trash'), '/tasks/trash', 'trash'),
-          ])
-            Padding(
-              padding: const EdgeInsets.only(right: 6),
-              child: Tooltip(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.orientationOf(context) == Orientation.landscape
+            ? 92
+            : 160,
+      ),
+      child: SingleChildScrollView(
+        child: Wrap(
+          spacing: 6,
+          runSpacing: 4,
+          children: [
+            if (listState.isLoading) const LinearProgressIndicator(),
+            if (listState.hasError)
+              TextButton.icon(
+                onPressed: () => ref.invalidate(taskListsProvider),
+                icon: const Icon(Icons.refresh),
+                label: Text(zh ? '清单加载失败，重试' : 'Reload lists'),
+              ),
+            for (final item in [
+              (zh ? '全部任务' : 'All tasks', '/tasks/all', 'all'),
+              (context.l10n.t('inbox'), '/tasks/inbox', 'inbox'),
+              for (final list in ordered)
+                (list.name, '/tasks/list/${list.id}', list.id),
+              (context.l10n.t('next7'), '/tasks/next7days', 'next7days'),
+              (context.l10n.t('completed'), '/tasks/completed', 'completed'),
+              (context.l10n.t('trash'), '/tasks/trash', 'trash'),
+            ])
+              Tooltip(
                 message: taskListPath(lists, item.$3).join(' / '),
                 child: ChoiceChip(
                   key: ValueKey('mobile-list-${item.$3}'),
@@ -144,20 +157,20 @@ class _InlineListFilters extends ConsumerWidget {
                   onSelected: (_) => context.go(item.$2),
                 ),
               ),
+            IconButton(
+              tooltip: zh ? '管理清单' : 'Manage lists',
+              onPressed: () => showModalBottomSheet<void>(
+                context: context,
+                useRootNavigator: true,
+                isScrollControlled: true,
+                useSafeArea: true,
+                showDragHandle: true,
+                builder: (_) => const _ListPicker(),
+              ),
+              icon: const Icon(Icons.account_tree_outlined),
             ),
-          IconButton(
-            tooltip: zh ? '管理清单' : 'Manage lists',
-            onPressed: () => showModalBottomSheet<void>(
-              context: context,
-              useRootNavigator: true,
-              isScrollControlled: true,
-              useSafeArea: true,
-              showDragHandle: true,
-              builder: (_) => const _ListPicker(),
-            ),
-            icon: const Icon(Icons.account_tree_outlined),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -251,7 +251,7 @@ class _WorkspaceNameDialogState extends State<_WorkspaceNameDialog> {
         onPressed: () => Navigator.pop(context),
         child: Text(context.l10n.t('cancel')),
       ),
-      FilledButton(onPressed: submit, child: Text(context.l10n.t('save'))),
+      FilledButton(onPressed: submit, child: Text(context.l10n.t('confirm'))),
     ],
   );
 }

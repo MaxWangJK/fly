@@ -1,6 +1,6 @@
 # Fly
 
-2.0 接续开发或转移到新电脑，请先阅读 [项目交接入口](FLY_PROJECT_HANDOFF.md) 和 [完整需求](docs/handoff/FLY_REQUIREMENTS.md)。当前源码 2.0.4+40 在独立 2.0 分支修复复盘同步展示，统一手机新增、搜索和清单入口，包含此前座右铭与书籍阅读，已纳入本次本地检查点；[本次发布记录](docs/release/fly_2_0_4_build40.md)、[书籍与导入说明](docs/knowledge/fly_books_v1.md)、[APK 备案及迁移台账](docs/handoff/APK_RELEASES.md)。下面保留原 1.0 开发/发布说明。
+2.0 接续开发或迁移，请先读 [项目交接入口](FLY_PROJECT_HANDOFF.md) 和 [完整需求](docs/handoff/FLY_REQUIREMENTS.md)。当前源码 2.0.6+42：客户文件可新增文件和子目录、目录网格自适应、手机移除账户设置、复盘填写后收起为卡片，保留此前安卓全屏和电脑扫码功能。本轮改动尚在 `codex/fly-2-sync` 工作区；Windows / Android 当前包均为 build 42。[本轮记录](docs/release/fly_2_0_6_build42.md)、[APK 台账](docs/handoff/APK_RELEASES.md)。下面保留原 1.0 说明。
 
 Fly 是面向外贸个人工作的 Windows x64、本地优先桌面工作区，基于 Flutter、Riverpod、Drift 和 SQLite。当前 1.0 范围涵盖 Dashboard、客户、订单、任务、日历、四象限、今日复盘、文件、笔记、3D 装柜、全局搜索和备份。完整边界见 [产品范围](docs/product/v1_scope.md)，发布状态见 [1.0 发布计划](docs/release/fly_1_0_release_plan.md)。
 

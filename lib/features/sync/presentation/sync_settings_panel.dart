@@ -139,42 +139,11 @@ class _SyncSettingsPanelState extends ConsumerState<SyncSettingsPanel> {
       children: [
         Text(
           tr(
-            '数据先保存本机，联网后自动同步。选择一种连接方式。',
-            'Data is saved locally and syncs when connected. Choose a connection mode.',
+            '两端连接同一网络，在电脑开启同步服务后，用手机扫码连接。',
+            'Connect both devices to the same network, enable desktop sync, then scan the QR code on your phone.',
           ),
         ),
         const SizedBox(height: 12),
-        for (final mode in SyncConnectionMode.values)
-          Card(
-            child: ListTile(
-              key: ValueKey('sync-mode-${mode.name}'),
-              leading: Icon(
-                mode == SyncConnectionMode.cloud
-                    ? Icons.cloud_outlined
-                    : Icons.devices_outlined,
-              ),
-              title: Text(
-                mode == SyncConnectionMode.cloud
-                    ? tr('云同步', 'Cloud sync')
-                    : tr('电脑与手机同步', 'Desktop and phone'),
-              ),
-              subtitle: Text(
-                mode == SyncConnectionMode.cloud
-                    ? tr('使用官方平台或自建服务器', 'Official platform or your own server')
-                    : tr(
-                        '同一网络，扫码连接，自动同步文件',
-                        'Same network, scan to connect, files sync automatically',
-                      ),
-              ),
-              trailing: Icon(
-                c.connectionMode == mode
-                    ? Icons.radio_button_checked
-                    : Icons.radio_button_off,
-              ),
-              selected: c.connectionMode == mode,
-              onTap: c.busy ? null : () => c.selectConnectionMode(mode),
-            ),
-          ),
         if (c.busy) const LinearProgressIndicator(),
         if (c.error != null)
           Padding(
@@ -184,10 +153,7 @@ class _SyncSettingsPanelState extends ConsumerState<SyncSettingsPanel> {
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           ),
-        if (c.connectionMode == SyncConnectionMode.cloud)
-          ...cloud(c)
-        else
-          ...lan(c),
+        ...lan(c),
         if (engine != null) ...[
           heading('同步状态', 'Sync status'),
           Text(engine.status),
@@ -216,23 +182,6 @@ class _SyncSettingsPanelState extends ConsumerState<SyncSettingsPanel> {
           tilePadding: EdgeInsets.zero,
           title: Text(tr('设备', 'Devices')),
           children: [
-            for (final d in c.devices)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text('${d['deviceName']}'),
-                subtitle: Text(
-                  '${d['platform']} · ${d['revoked'] == true ? tr('已撤销', 'Revoked') : tr('受信任', 'Trusted')}',
-                ),
-                trailing: TextButton(
-                  onPressed:
-                      c.busy ||
-                          d['revoked'] == true ||
-                          d['id'] == c.auth.deviceId
-                      ? null
-                      : () => c.revokeDevice(d['id'] as String),
-                  child: Text(tr('撤销', 'Revoke')),
-                ),
-              ),
             for (final d in c.trustedDevices)
               ListTile(
                 contentPadding: EdgeInsets.zero,
@@ -450,7 +399,7 @@ class _SyncSettingsPanelState extends ConsumerState<SyncSettingsPanel> {
   ];
 
   List<Widget> lan(SyncController c) => [
-    heading('电脑与手机同步', 'Desktop and phone'),
+    heading('设备连接', 'Device connection'),
     Text(
       tr(
         '两端连接同一网络，双向同步数据和实体文件，无需云端账号。',

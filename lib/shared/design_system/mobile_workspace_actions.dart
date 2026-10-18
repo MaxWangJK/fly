@@ -10,6 +10,7 @@ class MobileWorkspaceActions extends StatefulWidget {
     required this.actionId,
     this.onAdd,
     this.addLabel,
+    this.showSearchButton = true,
     super.key,
   });
 
@@ -18,6 +19,7 @@ class MobileWorkspaceActions extends StatefulWidget {
   final ValueChanged<String> onSearchChanged;
   final VoidCallback? onAdd;
   final String? addLabel;
+  final bool showSearchButton;
 
   @override
   State<MobileWorkspaceActions> createState() => _MobileWorkspaceActionsState();
@@ -83,21 +85,25 @@ class _MobileWorkspaceActionsState extends State<MobileWorkspaceActions> {
             if (MediaQuery.viewInsetsOf(context).bottom == 0)
               Positioned(
                 right: 16,
-                bottom: 16,
+                bottom:
+                    MediaQuery.orientationOf(context) == Orientation.portrait
+                    ? 36
+                    : 16,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    FloatingActionButton.small(
-                      key: ValueKey('${widget.actionId}-search-button'),
-                      heroTag: '${widget.actionId}-search',
-                      tooltip: widget.searchHint,
-                      elevation: 0,
-                      shape: const CircleBorder(),
-                      onPressed: openSearch,
-                      child: const Icon(Icons.search),
-                    ),
+                    if (widget.showSearchButton)
+                      FloatingActionButton(
+                        key: ValueKey('${widget.actionId}-search-button'),
+                        heroTag: '${widget.actionId}-search',
+                        tooltip: widget.searchHint,
+                        elevation: 0,
+                        shape: const CircleBorder(),
+                        onPressed: openSearch,
+                        child: const Icon(Icons.search),
+                      ),
                     if (widget.onAdd != null) ...[
-                      const SizedBox(height: 12),
+                      if (widget.showSearchButton) const SizedBox(height: 12),
                       FloatingActionButton(
                         key: ValueKey('${widget.actionId}-add-button'),
                         heroTag: '${widget.actionId}-add',
