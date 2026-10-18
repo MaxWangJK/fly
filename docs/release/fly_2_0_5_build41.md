@@ -29,3 +29,7 @@
 4. 检查文件夹新增、返回、搜索、相册/列表切换、批量分享/删除、最近删除恢复、真实相机与系统打开。
 
 Android 全屏实现遵循 [Flutter SystemUiMode](https://api.flutter.dev/flutter/services/SystemChrome/setEnabledSystemUIMode.html) 与 [Android 切口支持](https://developer.android.com/develop/ui/views/layout/display-cutout?hl=en)。背景绘制与交互安全区分别处理，不能以桌面模拟渲染替代所有厂商真机验收。
+
+## 2026-10-18 Git 归档补充
+
+上文的工作区/未提交描述保留构建时事实；相关功能已保存于 `311c7b3`。本次未重新构建或重跑完整业务回归，版本、签名及安装包哈希不变。参见 [提交检查点](git_checkpoint_20261018.md)。

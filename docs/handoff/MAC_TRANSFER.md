@@ -1,6 +1,6 @@
 # Fly 从 Windows 转移到 Mac
 
-本文件提供迁移说明，最后更新 2026-10-17。最近提交保存 build 39/40、安卓正式签名配置及交接资料；当前源码为 2.0.6+42，后续安卓改造和内部发码工具仍在工作区。没有执行实际文件迁移、Mac 安装或分支切换。
+本文件提供迁移说明，最后更新 2026-10-18。最近提交保存 build 39/40、安卓正式签名配置及交接资料；当前源码为 2.0.6+42，安卓改造与内部发码工具已保存于功能检查点 `311c7b3`。没有执行实际文件迁移、Mac 安装或分支切换。
 
 ## 1. Git 是否需要切换
 
@@ -19,7 +19,7 @@ git status --short
 git log -3 --oneline
 ```
 
-分支应为 `codex/fly-2-sync`。2026-10-16 的 `24afa8d` 检查点提交后工作区干净；2026-10-17 内部授权工具、安卓 build 41、本次文档与测试是后续未提交修改，需一并带走。Git 状态干净也不表示忽略的密钥、安装包或实际业务数据已备份。不要用重置、restore、clean 或切 master 准备迁移。
+分支应为 `codex/fly-2-sync`。2026-10-18 的 `311c7b3` 已保存内部授权工具源码、build 41/42、本次测试与公开资料；最新文档提交以 HEAD 核对。以后新增的未提交修改仍需一并带走。Git 状态干净也不表示忽略的密钥、安装包或实际业务数据已备份。不要用重置、restore、clean 或切 master 准备迁移。
 
 ## 2. 哪些内容需要带走
 
@@ -139,8 +139,8 @@ shasum -a 256 dist/Fly-2.0.4-build40-android-release-signed-20261016.apk
 
 ## 内部授权工具补充（2026-10-17）
 
-`license_tools/private/portable/Fly-License-Issuer.exe` 为约 2.5 MiB 的 Windows 免安装发码工具，只有机器码与天数/永久参数。只需单 EXE 即可在具备 .NET Framework 4.8 的 Windows 运行；Mac 不能直接运行。成品包含发码权限，安全归档给所有者，不进客户包或官网；仍需保留原 `issuer.pem` 和独立安全备份。源文件在 `license_tools/portable_issuer/`，本次尚未提交，完整迁移时不可遗漏。详见 [工具使用与校验](../licenses/portable_issuer_20261017.md)。
+`license_tools/private/portable/Fly-License-Issuer.exe` 为约 2.5 MiB 的 Windows 免安装发码工具，只有机器码与天数/永久参数。只需单 EXE 即可在具备 .NET Framework 4.8 的 Windows 运行；Mac 不能直接运行。成品包含发码权限，安全归档给所有者，不进客户包或官网；仍需保留原 `issuer.pem` 和独立安全备份。源文件在 `license_tools/portable_issuer/`，已保存于 `311c7b3`；成品及私有签发身份仍单独安全迁移。详见 [工具使用与校验](../licenses/portable_issuer_20261017.md)。
 
 ## build 42 最新补充
 
-Windows / Android 当前均为 2.0.6+42。新增客户普通资料通过真实同步目录保存，手机隐藏入口仍不传递删除；复盘卡片与输入框切换属于显示状态，不改答案存储格式。迁移须保留本轮未提交源码、测试、公开清单及忽略的实际安装包，见 [本轮报告](../release/fly_2_0_6_build42.md)。
+Windows / Android 当前均为 2.0.6+42。新增客户普通资料通过真实同步目录保存，手机隐藏入口仍不传递删除；复盘卡片与输入框切换属于显示状态，不改答案存储格式。迁移须保留当前 Git 历史、以后新增工作区修改，以及忽略的实际安装包，见 [本轮报告](../release/fly_2_0_6_build42.md)。

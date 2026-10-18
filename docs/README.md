@@ -16,3 +16,5 @@ Fly is a Windows-first, cross-platform-ready, local-first task manager.
 Runtime behavior is documented from Fly source and tests. Research documents contain knowledge only and are not runtime dependencies.
 
 书籍与座右铭： [2.0.3 build 39](knowledge/fly_books_v1.md)，作者源位于 [book_sources](../book_sources/foreign_trade/README.md)。
+
+2026-10-18：[Git 检查点与迁移边界](release/git_checkpoint_20261018.md)、[外贸工作流、市场参照及后续建议](product/fly_next_steps_20261018.md)。建议尚未转为确认的开发排期。

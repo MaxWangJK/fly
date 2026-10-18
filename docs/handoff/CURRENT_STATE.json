@@ -1,8 +1,8 @@
 {
-  "capturedAtUtc": "2026-10-17T06:10:57.301866+00:00",
+  "capturedAtUtc": "2026-10-18T01:37:10.389043+00:00",
   "documentationOnly": false,
   "branch": "codex/fly-2-sync",
-  "releaseCommitSource": "24afa8d56c6ca4326909af5dcabfe5caf67bea63: later builds 41/42 and internal issuer remain uncommitted",
+  "releaseCommitSource": "311c7b3799d4d3a8fc3a0dcef867781f275a135b: committed functional source; latest documentation checkpoint resolves via HEAD",
   "developmentBaseCommit": "6b59521571e522474f9f6d7303d5fe6d3df60e27",
   "master": "94efdc2d9ac34feb2f3d1b635302278b4671a414",
   "gitDirectoryIsLocalFolder": true,
@@ -24,7 +24,7 @@
   },
   "buildStatus": "verified",
   "releaseReport": "../release/fly_2_0_6_build42.md",
-  "currentFeaturesIncludeUncommittedFiles": true,
+  "currentFeaturesIncludeUncommittedFiles": false,
   "latestPublishedTestBundle": "Local Windows / Android 2.0.6+42 (2026-10-17)",
   "verifiedClientTests": 352,
   "clientTestsEvidence": "2026-10-17 full run: 352 passed with ephemeral HTTP backend, LAN files and build 42 regressions",
@@ -35,7 +35,7 @@
   "latestSourceNotRepackaged": false,
   "noDeploymentPerformed": true,
   "remotePushPerformed": false,
-  "historicalUserMessagesArchived": 137,
+  "historicalUserMessagesArchived": 138,
   "textAttachmentsCopied": 19,
   "inlinePromptCopies": 2,
   "historicalTextNormalization": "Brand-neutral portable copies; SHA-256 entries refer to current bytes, with original digest retained separately.",
@@ -44,7 +44,7 @@
   "developmentSkillsCopied": 4,
   "workingTreeStatusSource": "git status --short",
   "localReleaseCommitCompleted": true,
-  "expectedWorkingTreeAfterReleaseCommit": "Keep uncommitted builds 41/42 and issuer work alongside original 24afa8d commit",
+  "expectedWorkingTreeAfterReleaseCommit": "clean after 2026-10-18 documentation commit; confirm with git status --short",
   "artifacts": [
     {
       "name": "Fly-2.0.6-build42-android-release-signed-20261017.apk",
@@ -102,7 +102,7 @@
   "bookChapters": 16,
   "bookReaderDesktopOnly": true,
   "bookReadingStateCloudSync": false,
-  "additionalCurrentUserRequests": 10,
+  "additionalCurrentUserRequests": 11,
   "formalAndroidSigning": {
     "date": "2026-10-16",
     "appVersion": "2.0.6+42",
@@ -139,8 +139,8 @@
     "appleBuildAndDeviceAcceptance": "not performed"
   },
   "latestSourceNotRepackagedExplanation": "Windows and Android freshly rebuilt as 2.0.6+42; Apple not built",
-  "localReleaseCommitHash": "24afa8d56c6ca4326909af5dcabfe5caf67bea63",
-  "workingTreeStatusAtCapture": "uncommitted builds 41/42, internal issuer, tests and handoff documents",
+  "localReleaseCommitHash": "311c7b3799d4d3a8fc3a0dcef867781f275a135b",
+  "workingTreeStatusAtCapture": "functional checkpoint committed; documentation checkpoint prepared and verified for commit",
   "portableInternalIssuer": {
     "version": "1.0.0",
     "date": "2026-10-17",
@@ -148,7 +148,7 @@
     "bytes": 2595840,
     "sha256": "0E8344A676B64687EA9C67BD7CCB9A3E2DF6EDE9ECC834138072995A9F56035E",
     "source": "license_tools/portable_issuer",
-    "sourceCommitted": false,
+    "sourceCommitted": true,
     "target": "Windows 10/11 with .NET Framework 4.8",
     "singleExe": true,
     "requiresInstaller": false,
@@ -172,7 +172,8 @@
     "existingBuild40LicenseGateEnabled": false,
     "report": "../licenses/portable_issuer_20261017.md",
     "fullClientSuiteRerunDate": "2026-10-17",
-    "androidBuild41LicenseGateEnabled": false
+    "androidBuild41LicenseGateEnabled": false,
+    "sourceCommit": "311c7b3799d4d3a8fc3a0dcef867781f275a135b"
   },
   "latestAndroidTestingUpgradePackage": "Fly-2.0.6-build42-android-test-20261017.apk",
   "temporaryBackendStopped": true,
@@ -240,5 +241,13 @@
       "bytes": 15956951,
       "sha256": "9B667922DE0B5B11477E26ABAF9AB2720FD32D8A7CAA69BCAA920667A2A8D9A8"
     }
-  ]
+  ],
+  "functionalCheckpointCommitHash": "311c7b3799d4d3a8fc3a0dcef867781f275a135b",
+  "documentationCheckpointRef": "HEAD",
+  "handoffLastVerifiedDate": "2026-10-18",
+  "fullClientSuiteRerunForDocumentation": false,
+  "buildManifestsDescribeBuildTimeWorkingTree": true,
+  "nextStepsDocument": "../product/fly_next_steps_20261018.md",
+  "nextStepsAreApprovedRequirements": false,
+  "gitCheckpointReport": "../release/git_checkpoint_20261018.md"
 }

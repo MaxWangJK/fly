@@ -1,6 +1,6 @@
 # Fly 安装包、安卓备案与迁移台账
 
-最后核对：2026-10-17；源码 `2.0.6+42`，schema 19，分支 `codex/fly-2-sync`。本轮安卓已重新编译并核验；Windows 和 Android 均为 build 42。本轮源码及内部发码工具属于 `24afa8d` 之后未提交工作区，迁移须完整保留。完整功能需求见 [FLY_REQUIREMENTS.md](FLY_REQUIREMENTS.md)，迁移步骤见 [MAC_TRANSFER.md](MAC_TRANSFER.md)。
+最后核对：2026-10-18；源码 `2.0.6+42`，schema 19，分支 `codex/fly-2-sync`。本轮安卓已重新编译并核验；Windows 和 Android 均为 build 42。本轮源码及内部发码工具已保存于功能检查点 `311c7b3`；原构建日期和哈希保持不变。完整功能需求见 [FLY_REQUIREMENTS.md](FLY_REQUIREMENTS.md)，迁移步骤见 [MAC_TRANSFER.md](MAC_TRANSFER.md)。
 
 ## 1. 当前应使用哪一个 APK
 
@@ -29,7 +29,7 @@
 | 系统要求 / 目标 SDK | Android 7.0+（API 24）/ API 36 |
 | CPU 架构 | arm64-v8a、armeabi-v7a、x86_64 |
 
-[当前可复制备案字段](apk/20261017/Fly-Android-Release-Filing-Info-build42.txt)、[DER 公有证书](apk/20261016/Fly-Android-Release-Certificate.cer)、[PEM 公有证书](apk/20261016/Fly-Android-Release-Certificate.pem)、[本轮构建及包核验清单](apk/20261017/manifest-Fly-2.0.6-build42.json) 已整理到交接目录；本轮新增材料尚未提交，需随完整工作区迁移。这里没有私钥或密码。
+[当前可复制备案字段](apk/20261017/Fly-Android-Release-Filing-Info-build42.txt)、[DER 公有证书](apk/20261016/Fly-Android-Release-Certificate.cer)、[PEM 公有证书](apk/20261016/Fly-Android-Release-Certificate.pem)、[本轮构建及包核验清单](apk/20261017/manifest-Fly-2.0.6-build42.json) 已整理到交接目录；公开材料已随功能检查点保存，安装包本体仍需另行复制。这里没有私钥或密码。
 
 备案签名 MD5 是证书指纹，不是 APK 文件 MD5，也不是公钥 MD5；下节的 SHA-256 则用于核对安装包文件。以上安卓证书、公钥不能填写到 iOS 栏目。
 
@@ -68,3 +68,5 @@ Windows 可使用 `Get-FileHash -Algorithm SHA256 <文件路径>`；Mac 可使�
 - 原 build 40/41 二进制、公开材料和签名保留；未安装/卸载用户设备，未写入真实业务数据，未提交 Git、推送、部署、备案或 Apple 构建。
 
 详细变化见 [build 42](../release/fly_2_0_6_build42.md)，证据见 [公开清单](apk/20261017/manifest-Fly-2.0.6-build42.json)。
+
+2026-10-18 续补：上述“未提交 Git”是构建当日状态。现已保存于 `311c7b3`，仅重新核对归档，没有重建包或更换签名；见 [提交记录](../release/git_checkpoint_20261018.md)。

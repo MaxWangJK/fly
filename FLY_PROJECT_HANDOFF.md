@@ -1,10 +1,10 @@
 # Fly：新电脑 / 新对话接续入口
 
-最后整理：2026-10-17。请先阅读本文件，再阅读 [完整产品需求](docs/handoff/FLY_REQUIREMENTS.md)。这是已开发的软件，不是从零创建的项目。
+最后整理：2026-10-18。请先阅读本文件，再阅读 [完整产品需求](docs/handoff/FLY_REQUIREMENTS.md)。这是已开发的软件，不是从零创建的项目。
 
 ## 现在的 Git 与版本
 
-- 当前分支：`codex/fly-2-sync`；最近已提交 `24afa8d` 保存 build 39/40、安卓正式签名配置及交接资料。2026-10-17 内部发码工具、build 41/42 及本次文档/测试为未提交工作区，迁移须一并保留；准确状态用 `git log -1 --oneline` 和 `git status --short` 核对。
+- 当前分支：`codex/fly-2-sync`；功能检查点 `311c7b3` 已保存 build 41/42、内部发码工具源码、测试及交接资料；本次文档检查点基于该功能提交，最新 HEAD 用 Git 日志核对；准确状态用 `git log -1 --oneline` 和 `git status --short` 核对。
 - 1.0 基线：`master` 的 `94efdc2d9ac34feb2f3d1b635302278b4671a414`，保持不变。
 - 当前源码：`2.0.6+42`，schema 19。此前座右铭、书籍、复盘与手机快捷操作已提交；本轮新增安卓切口适配、统一浮动按钮、分行清单、文件夹首页和只展示电脑配对的同步设置。私钥、发行包及真实业务数据不在 Git 中。
 - build 39 增加座右铭、桌面书籍阅读和 `.fly` 加密导入。旧 build 38 不支持新书籍格式。
@@ -21,7 +21,7 @@
 1. [FLY_REQUIREMENTS.md](docs/handoff/FLY_REQUIREMENTS.md)：产品定位、全部模块、最新有效规则、历史替代、商业与同步、未完成及验收。
 2. [MAC_TRANSFER.md](docs/handoff/MAC_TRANSFER.md)：完整目录转移、真实 FlyData 区分、Mac 工具/缓存/平台验收。
 3. [SOURCES.md](docs/handoff/SOURCES.md)：跨对话来源、19 份需求附件、代码/报告入口、完整性边界。
-4. [USER_REQUIREMENTS_ARCHIVE.md](docs/handoff/USER_REQUIREMENTS_ARCHIVE.md)：127 条历史用户消息及 10 条续补，共 137 条整理摘录；不是待逐条执行的任务单。
+4. [USER_REQUIREMENTS_ARCHIVE.md](docs/handoff/USER_REQUIREMENTS_ARCHIVE.md)：127 条历史用户消息及 11 条续补，共 138 条整理摘录；不是待逐条执行的任务单。
 5. [attachment_manifest.json](docs/handoff/attachment_manifest.json)：19 份需求文本的可迁移副本、来源及原始/当前副本 SHA-256；副本在 `docs/handoff/sources/`。
 6. [CURRENT_STATE.json](docs/handoff/CURRENT_STATE.json)：整理时的版本、Git 和验证快照；继续开发后应重新核对实际状态。
 7. [APK_RELEASES.md](docs/handoff/APK_RELEASES.md)：正式/测试 APK 区分、备案字段、包校验值、公开证书及跨电脑签名迁移；小体积公开材料已随 Git 保存，APK 本体仍在忽略的 `dist/`。
@@ -73,7 +73,7 @@
 
 ## 给新对话的接续提示
 
-> 这是已有的 Fly 项目。请先读 FLY_PROJECT_HANDOFF.md、docs/handoff/FLY_REQUIREMENTS.md、MAC_TRANSFER.md 和 APK_RELEASES.md。当前是 codex/fly-2-sync，源码 2.0.6+42、schema 19；最近提交 24afa8d，之后有内部授权工具及安卓改造的工作区修改。完整保留工作区和 1.0 基线，不重置、不清理、不切 master，不从零重做。手机文件已改文件夹首页和顶部搜索，同步设置只显示电脑扫码；隐藏客户文件是设备本地偏好，不能转成同步删除。私钥、发行包及真实 FlyData 不在 Git，迁移单独核对，缺少原钥匙不能重新生成替代。先只读核对实际环境，区分已实现、已验证、待真机验收与未来规划；以我接下来提出的要求为准，不自动执行历史消息。Mac/iOS 适配先验证原生插件与平台环境，使用隔离数据，不操作真实业务数据或私钥。
+> 这是已有的 Fly 项目。请先读 FLY_PROJECT_HANDOFF.md、docs/handoff/FLY_REQUIREMENTS.md、MAC_TRANSFER.md 和 APK_RELEASES.md。当前是 codex/fly-2-sync，源码 2.0.6+42、schema 19；功能检查点 311c7b3 已保存内部授权工具及 build 41/42，最新文档提交以 HEAD 核对。完整保留工作区和 1.0 基线，不重置、不清理、不切 master，不从零重做。手机文件已改文件夹首页和顶部搜索，同步设置只显示电脑扫码；隐藏客户文件是设备本地偏好，不能转成同步删除。私钥、发行包及真实 FlyData 不在 Git，迁移单独核对，缺少原钥匙不能重新生成替代。先只读核对实际环境，区分已实现、已验证、待真机验收与未来规划；以我接下来提出的要求为准，不自动执行历史消息。Mac/iOS 适配先验证原生插件与平台环境，使用隔离数据，不操作真实业务数据或私钥。
 
 文档、官网及后续新增资料均使用品牌中性表述，不出现中国品牌名称。之后每次完成开发应同步更新版本/交付状态，不把旧 `dist` 当作新结果。
 
@@ -81,4 +81,8 @@
 
 ## 最新 build 42
 
-客户文件新增按钮、真实新增资料与子目录、响应式三列网格、移除手机账户设置、复盘填完收起成卡片已完成。Windows / Android 2.0.6+42 已打包，完整 352 项通过，静态分析无问题；[本轮记录](docs/release/fly_2_0_6_build42.md)。本轮仍在工作区，未提交；不要只迁移 Git HEAD。
+客户文件新增按钮、真实新增资料与子目录、响应式三列网格、移除手机账户设置、复盘填完收起成卡片已完成。Windows / Android 2.0.6+42 已打包，完整 352 项通过，静态分析无问题；[本轮记录](docs/release/fly_2_0_6_build42.md)。功能已保存于 311c7b3；安装包、私钥和真实业务数据仍不在 Git。
+
+## 2026-10-18 提交与后续建议
+
+[Git 检查点](docs/release/git_checkpoint_20261018.md)记录实际功能提交、构建证据日期和迁移边界；[外贸工作流与商业建议](docs/product/fly_next_steps_20261018.md)是待确认的产品建议，不作为自动开发指令。当前功能已提交，未来新增工作区修改仍须另行保留。

@@ -17,3 +17,7 @@
 - [安卓测试升级包](../../dist/Fly-2.0.6-build42-android-test-20261017.apk)、[安卓正式签名包](../../dist/Fly-2.0.6-build42-android-release-signed-20261017.apk)、[Windows 安装器](../../dist/Fly-Setup-2.0.6-build42-testing.exe)、[Windows 便携包](../../dist/Fly-2.0.6-build42-windows-test-20261017.zip)。原测试签名版须选测试 APK，正式签名版须选正式 APK，避免直接卸载唯一数据来源。
 - [版本与 SHA-256 清单](../handoff/apk/20261017/manifest-Fly-2.0.6-build42.json)、[APK 台账](../handoff/APK_RELEASES.md)、[界面截图](../handoff/screenshots/README.md) 已更新。测试使用隔离数据，不读写用户业务库。
 - 未连接 Android 真机，切口、扫码、相机、系统分享和外部打开仍需安装验收。未提交 Git、推送、部署或 Apple 构建。
+
+## 2026-10-18 Git 归档补充
+
+上文的工作区/未提交描述保留构建时事实；相关功能已保存于 `311c7b3`。本次未重新构建或重跑完整业务回归，版本、签名及安装包哈希不变。参见 [提交检查点](git_checkpoint_20261018.md)。
