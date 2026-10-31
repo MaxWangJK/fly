@@ -28,15 +28,57 @@ class PreparedFileShare {
 }
 
 class FileBatchResult {
-  const FileBatchResult(this.completed, this.errors);
+  const FileBatchResult(
+    this.completed,
+    this.errors, {
+    this.unchanged = const {},
+  });
   final Set<String> completed;
   final Map<String, String> errors;
+  final Set<String> unchanged;
 }
 
 class FileBatchActions {
   FileBatchActions(this.db, this.storage);
   final AppDatabase db;
   final ManagedFileStorage storage;
+
+  Future<FileBatchResult> move(
+    Set<String> ids,
+    String? folderId, {
+    void Function(int, int)? progress,
+  }) async {
+    if (ids.isEmpty) throw StateError('请先选择文件');
+    final selected = ids.toList(growable: false);
+    final repository = ManagedFileRepository(db);
+    // Reject an unavailable destination before changing any selected file.
+    await repository.validateMoveDestination(folderId);
+    final completed = <String>{}, unchanged = <String>{};
+    final errors = <String, String>{};
+    for (var index = 0; index < selected.length; index++) {
+      final id = selected[index];
+      try {
+        final changed = await db.transaction(() async {
+          await repository.validateMoveDestination(folderId);
+          final file = await repository.find(id);
+          if (file != null &&
+              file.deletedAt == null &&
+              file.ownerType == 'library' &&
+              file.folderId == folderId) {
+            return false;
+          }
+          await repository.move(id, folderId);
+          return true;
+        });
+        (changed ? completed : unchanged).add(id);
+      } catch (error) {
+        errors[id] = error is StateError ? error.message : '$error';
+      }
+      progress?.call(index + 1, selected.length);
+    }
+    return FileBatchResult(completed, errors, unchanged: unchanged);
+  }
+
   Future<PreparedFileShare> prepareShare(
     Set<String> ids, {
     void Function(int, int)? progress,

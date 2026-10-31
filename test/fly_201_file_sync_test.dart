@@ -9,6 +9,7 @@ import 'package:fly/core/database/app_database.dart';
 import 'package:fly/features/customers/data/drift_customer_repository.dart';
 import 'package:fly/features/customers/domain/customer.dart';
 import 'package:fly/features/files/data/managed_file_repository.dart';
+import 'package:fly/features/files/data/file_batch_actions.dart';
 import 'package:fly/features/files/data/managed_file_storage.dart';
 import 'package:fly/features/files/data/permanent_file_deletion.dart';
 import 'package:fly/features/sync/data/cloud_sync_transport.dart';
@@ -17,6 +18,7 @@ import 'package:fly/features/sync/services/file_sync_service.dart';
 import 'package:fly/features/sync/services/file_transfer_inventory.dart';
 import 'package:fly/features/sync/services/lan_host_service.dart';
 import 'package:fly/features/sync/services/sync_engine.dart';
+import 'package:fly/shared/data/workspace_folder_repository.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -150,6 +152,37 @@ void main() {
         ).readAsString(),
         'Desktop synthetic quote',
       );
+      final folders = WorkspaceFolderRepository(a, WorkspaceFolderKind.files);
+      final productFolder = await folders.create('Products');
+      final photoFolder = await folders.create(
+        'Photos',
+        parentId: productFolder,
+      );
+      await ManagedFileRepository(a).move(importedA.id, photoFolder);
+      await sync(ea);
+      await sync(eb);
+      final moved = (await ManagedFileRepository(b).find(importedA.id))!;
+      expect(moved.folderId, photoFolder);
+      expect(moved.relativePath, copied.relativePath);
+      expect(moved.sha256, copied.sha256);
+      expect(
+        (await WorkspaceFolderRepository(
+          b,
+          WorkspaceFolderKind.files,
+        ).all()).where((folder) => folder.id == photoFolder).single.parentId,
+        productFolder,
+      );
+      await ManagedFileRepository(b).move(importedA.id, null);
+      await sync(eb);
+      await sync(ea);
+      final returned = (await ManagedFileRepository(a).find(importedA.id))!;
+      expect(returned.folderId, isNull);
+      expect(
+        await File(
+          ManagedFileStorage(rootA.path).absolute(returned.relativePath),
+        ).readAsString(),
+        'Desktop synthetic quote',
+      );
       final cameraBytes = Uint8List(20 * 1024 * 1024);
       for (var i = 0; i < cameraBytes.length; i += 4096) {
         cameraBytes[i] = i ~/ 4096 % 251;
@@ -187,6 +220,38 @@ void main() {
         expect(inventory.uploads, 0);
         expect(inventory.downloads, 0);
       }
+      final movedIds = {importedA.id, importedB.id};
+      final batch = await FileBatchActions(
+        a,
+        ManagedFileStorage(rootA.path),
+      ).move(movedIds, photoFolder);
+      expect(batch.completed, movedIds);
+      expect(batch.errors, isEmpty);
+      await sync(ea);
+      await sync(eb);
+      for (final id in movedIds) {
+        expect(
+          (await ManagedFileRepository(b).find(id))!.folderId,
+          photoFolder,
+        );
+      }
+      final batchBack = await FileBatchActions(
+        b,
+        ManagedFileStorage(rootB.path),
+      ).move(movedIds, null);
+      expect(batchBack.completed, movedIds);
+      expect(batchBack.errors, isEmpty);
+      await sync(eb);
+      await sync(ea);
+      for (final id in movedIds) {
+        expect((await ManagedFileRepository(a).find(id))!.folderId, isNull);
+      }
+      expect(
+        await File(
+          ManagedFileStorage(rootB.path).absolute(importedB.relativePath),
+        ).readAsBytes(),
+        cameraBytes,
+      );
       await ManagedFileRepository(b).remove(importedB.id);
       await sync(eb);
       await sync(ea);

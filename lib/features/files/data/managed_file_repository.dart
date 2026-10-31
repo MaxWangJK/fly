@@ -32,6 +32,8 @@ class ManagedFileRepository {
   Future<AttachmentRecord?> find(String id) => (db.select(
     db.attachments,
   )..where((r) => r.id.equals(id))).getSingleOrNull();
+  Future<void> validateMoveDestination(String? folderId) => _folder(folderId);
+
   Future<String?> commit(
     ImportedFile file, {
     String? folderId,

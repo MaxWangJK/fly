@@ -19,6 +19,7 @@ import 'order_providers.dart';
 import '../../../app/shell/mobile_details.dart';
 import '../../../shared/design_system/responsive_layout.dart';
 import '../../../shared/design_system/mobile_workspace_actions.dart';
+import '../../../shared/design_system/workspace_list_columns.dart';
 
 class OrderListPage extends ConsumerStatefulWidget {
   const OrderListPage({required this.projection, this.tagId, super.key});
@@ -269,6 +270,22 @@ class _OrderListPageState extends ConsumerState<OrderListPage> {
                 ),
               const SizedBox(height: FlySpacing.xs),
               const SizedBox(height: FlySpacing.xs),
+              if (!useCompactLayout(context))
+                WorkspaceListHeader(
+                  key: const ValueKey('order-list-columns'),
+                  child: WorkspaceListColumns(
+                    leadingWidth: widget.projection == OrderProjection.deleted
+                        ? 40
+                        : 0,
+                    primary: Text(context.crmCopy('订单号')),
+                    secondary: Text(context.crmCopy('客户名称')),
+                    status: Text(context.crmCopy('订单状态')),
+                    date: Text(
+                      context.crmCopy('订单日期'),
+                      textAlign: TextAlign.right,
+                    ),
+                  ),
+                ),
               Expanded(
                 child: orders.when(
                   loading: () =>
@@ -299,12 +316,36 @@ class _OrderListPageState extends ConsumerState<OrderListPage> {
                                   .firstOrNull;
                               return ListTile(
                                 key: ValueKey('phone-order-${order.id}'),
-                                title: Text(order.orderNumber),
-                                subtitle: Text(
-                                  [
-                                    customer?.name,
-                                    status?.name,
-                                  ].nonNulls.join(' · '),
+                                title: WorkspaceListField(
+                                  label: context.crmCopy('订单号'),
+                                  value: order.orderNumber,
+                                ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    WorkspaceListField(
+                                      label: context.crmCopy('客户名称'),
+                                      value:
+                                          customer?.name ??
+                                          context.crmCopy('未关联客户'),
+                                    ),
+                                    Wrap(
+                                      spacing: 12,
+                                      runSpacing: 2,
+                                      children: [
+                                        WorkspaceListField(
+                                          label: context.crmCopy('订单状态'),
+                                          value: status?.name ?? '—',
+                                        ),
+                                        WorkspaceListField(
+                                          label: context.crmCopy('订单日期'),
+                                          value: _shortDate(
+                                            order.orderDate ?? order.createdAt,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ),
                                 trailing:
                                     widget.projection == OrderProjection.deleted
@@ -463,105 +504,89 @@ class _OrderRow extends StatelessWidget {
         borderRadius: BorderRadius.circular(FlyRadius.md),
         child: SizedBox(
           height: 54,
-          child: Row(
-            children: [
-              AnimatedContainer(
-                duration: FlyMotion.fast,
-                width: 2,
-                height: selected ? 32 : 0,
-                decoration: BoxDecoration(
-                  color: selected ? FlyColors.accent : Colors.transparent,
-                  borderRadius: BorderRadius.circular(2),
-                ),
+          child: WorkspaceListColumns(
+            key: ValueKey('order-list-row-${order.id}'),
+            leadingWidth: deletedView ? 40 : 0,
+            marker: AnimatedContainer(
+              duration: FlyMotion.fast,
+              width: 2,
+              height: selected ? 32 : 0,
+              decoration: BoxDecoration(
+                color: selected ? FlyColors.accent : Colors.transparent,
+                borderRadius: BorderRadius.circular(2),
               ),
-              const SizedBox(width: 6),
-              if (deletedView)
-                IconButton(
-                  tooltip: context.crmCopy('恢复订单'),
-                  onPressed: onRestore,
-                  icon: const Icon(Icons.restore, size: 18),
-                ),
-              Expanded(
-                flex: 4,
-                child: Text(
-                  order.orderNumber,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              Expanded(
-                flex: 3,
-                child: Text(
-                  customer?.name ?? context.crmCopy('未关联客户'),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ),
-              Expanded(
-                flex: 3,
-                child: status == null
-                    ? Text('—')
-                    : Align(
-                        alignment: Alignment.centerLeft,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Color(status!.colorValue)
-                                .withValues(alpha: .13),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            status!.name,
-                            style: const TextStyle(fontSize: 11),
-                          ),
-                        ),
+            ),
+            leading: deletedView
+                ? IconButton(
+                    tooltip: context.crmCopy('恢复订单'),
+                    onPressed: onRestore,
+                    icon: const Icon(Icons.restore, size: 18),
+                  )
+                : null,
+            primary: Text(
+              order.orderNumber,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+            ),
+            secondary: Text(
+              customer?.name ?? context.crmCopy('未关联客户'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            status: status == null
+                ? Text('—')
+                : Align(
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
                       ),
-              ),
-              const SizedBox(width: 5),
-              SizedBox(
-                width: 88,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      _shortDate(order.orderDate ?? order.createdAt),
-                      textAlign: TextAlign.right,
-                      style: Theme.of(context).textTheme.labelSmall,
+                      decoration: BoxDecoration(
+                        color: Color(status!.colorValue).withValues(alpha: .13),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        status!.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 11),
+                      ),
                     ),
-                    if (order.importance || order.urgency) ...[
-                      const SizedBox(height: 3),
-                      Wrap(
-                        key: ValueKey('order-flags-${order.id}'),
-                        spacing: 3,
-                        alignment: WrapAlignment.end,
-                        children: [
-                          if (order.urgency)
-                            _OrderFlagBadge(
-                              label: context.crmCopy('紧急'),
-                              color: FlyColors.warning,
-                            ),
-                          if (!order.urgency && order.importance)
-                            _OrderFlagBadge(
-                              label: context.crmCopy('重要'),
-                              color: FlyColors.danger,
-                            ),
-                        ],
-                      ),
-                    ],
-                  ],
+                  ),
+            date: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  _shortDate(order.orderDate ?? order.createdAt),
+                  textAlign: TextAlign.right,
+                  style: Theme.of(context).textTheme.labelSmall,
                 ),
-              ),
-              const SizedBox(width: 8),
-            ],
+                if (order.importance || order.urgency) ...[
+                  const SizedBox(height: 3),
+                  Wrap(
+                    key: ValueKey('order-flags-${order.id}'),
+                    spacing: 3,
+                    alignment: WrapAlignment.end,
+                    children: [
+                      if (order.urgency)
+                        _OrderFlagBadge(
+                          label: context.crmCopy('紧急'),
+                          color: FlyColors.warning,
+                        ),
+                      if (!order.urgency && order.importance)
+                        _OrderFlagBadge(
+                          label: context.crmCopy('重要'),
+                          color: FlyColors.danger,
+                        ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
       ),

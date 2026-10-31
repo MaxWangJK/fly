@@ -39,6 +39,7 @@ import '../../../shared/design_system/mobile_workspace_actions.dart';
 import '../../../app/shell/mobile_details.dart';
 import 'image_file_viewer.dart';
 import 'mobile_file_browser.dart';
+import 'file_move_dialog.dart';
 
 class FilesWorkspace extends ConsumerStatefulWidget {
   const FilesWorkspace({this.initialFileId, super.key});
@@ -199,6 +200,19 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
         : _selectedFiles.add(id);
   });
 
+  void _setSelecting(bool selecting, {String? initialFileId}) {
+    if (_batchBusy) return;
+    // A previous operation's result must not cover the selection actions.
+    if (selecting) ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    setState(() {
+      _selecting = selecting;
+      _selectedFiles.clear();
+      if (selecting && initialFileId != null) {
+        _selectedFiles.add(initialFileId);
+      }
+    });
+  }
+
   FileBatchActions get _batchActions => FileBatchActions(
     ref.read(databaseProvider),
     ref.read(managedFileStorageProvider),
@@ -248,6 +262,104 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
         if (mounted) setState(() => _batchBusy = false);
       }
     }
+  }
+
+  Future<void> _moveFiles(List<FileBrowserEntry> files) async {
+    if (_batchBusy || files.isEmpty) return;
+    final movable = files.where((f) => f.file.ownerType == 'library').toList();
+    if (movable.isEmpty) return;
+    final protected = files.length - movable.length;
+    final target = await showFileMoveDialog(
+      context,
+      fileName: context.l10n.filesMoveSelection(files.length),
+      currentFolderId: null,
+      currentFolderIds: movable.map((f) => f.file.folderId).toSet(),
+      hint: protected == 0
+          ? null
+          : context.l10n.filesMoveProtectedCount(protected),
+    );
+    if (target == null || !mounted || _batchBusy) return;
+    setState(() {
+      _batchBusy = true;
+      _batchDone = 0;
+      _batchTotal = files.length;
+    });
+    try {
+      final result = await _batchActions.move(
+        files.map((f) => f.file.id).toSet(),
+        target.isEmpty ? null : target,
+        progress: _batchProgress,
+      );
+      if (!mounted) return;
+      setState(() {
+        _selectedFiles.removeAll({...result.completed, ...result.unchanged});
+        if (_selectedFiles.isEmpty) _selecting = false;
+        if (result.completed.contains(cutId)) cutId = null;
+        if (result.completed.contains(selectedId)) selectedId = null;
+      });
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 5),
+          content: Text(
+            context.l10n.filesMoveResult(
+              result.completed.length,
+              result.unchanged.length,
+              result.errors.length,
+            ),
+          ),
+          action: result.errors.isEmpty
+              ? null
+              : SnackBarAction(
+                  label: context.l10n.t('filesMoveDetails'),
+                  onPressed: () =>
+                      unawaited(_showMoveErrors(files, result.errors)),
+                ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _batchBusy = false);
+    }
+  }
+
+  Future<void> _showMoveErrors(
+    List<FileBrowserEntry> files,
+    Map<String, String> errors,
+  ) async {
+    if (!mounted) return;
+    final names = {for (final file in files) file.file.id: file.name};
+    await showDialog<void>(
+      context: context,
+      builder: (dialog) => AlertDialog(
+        title: Text(context.l10n.t('filesMoveFailures')),
+        content: SizedBox(
+          width: 440,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(context).height * .5,
+            ),
+            child: ListView(
+              shrinkWrap: true,
+              children: [
+                for (final error in errors.entries)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(names[error.key] ?? error.key),
+                    subtitle: Text(context.flyError(error.value)),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialog),
+            child: Text(context.l10n.t('filesClose')),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _deleteFiles(List<FileBrowserEntry> files) async {
@@ -771,6 +883,8 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
                           : [
                               ("info", "详情"),
                               ("rename", "重命名"),
+                              if (f.ownerType == 'library')
+                                ('move', context.l10n.t('filesMove')),
                               ("share", "分享"),
                               ("select", "选择"),
                               ("delete", "删除"),
@@ -816,6 +930,11 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
                   value: 'rename',
                   child: Text(context.l10n.t('rename')),
                 ),
+                if (f.ownerType == 'library')
+                  PopupMenuItem(
+                    value: 'move',
+                    child: Text(context.l10n.t('filesMove')),
+                  ),
                 PopupMenuItem(
                   value: 'tags',
                   child: Text(context.l10n.t('fileOwnTags')),
@@ -861,10 +980,7 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
         case 'share':
           await _shareFiles({f.id});
         case 'select':
-          setState(() {
-            _selecting = true;
-            _selectedFiles.add(f.id);
-          });
+          _setSelecting(true, initialFileId: f.id);
         case 'purge':
           final confirmed = await showDialog<bool>(
             context: context,
@@ -899,6 +1015,22 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
           await PlatformFileTransfer().copy(path);
         case 'cut':
           setState(() => cutId = f.id);
+        case 'move':
+          final target = await showFileMoveDialog(
+            context,
+            fileName: entry.name,
+            currentFolderId: f.folderId,
+          );
+          if (target == null || !mounted) return;
+          await repo.move(f.id, target.isEmpty ? null : target);
+          if (!mounted) return;
+          setState(() {
+            if (cutId == f.id) cutId = null;
+            if (selectedId == f.id) selectedId = null;
+          });
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(context.l10n.t('filesMoved'))));
         case 'rename':
           final name = await workspaceNameDialog(
             context,
@@ -1104,10 +1236,7 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
                     tooltip: _selecting ? '退出多选' : '多选',
                     onPressed: _batchBusy
                         ? null
-                        : () => setState(() {
-                            _selecting = !_selecting;
-                            _selectedFiles.clear();
-                          }),
+                        : () => _setSelecting(!_selecting),
                     icon: Icon(_selecting ? Icons.close : Icons.checklist),
                   ),
                   if (isPhoneLayout(context))
@@ -1537,10 +1666,7 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
       } else if (action == 'images' || action == 'files') {
         setState(() => imagesFirst = action == 'images');
       } else if (action == 'select') {
-        setState(() {
-          _selecting = !_selecting;
-          _selectedFiles.clear();
-        });
+        _setSelecting(!_selecting);
       } else if (action == 'deleted') {
         select(FileCollection.deleted);
       } else if (action == 'customers') {
@@ -1977,6 +2103,31 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
                       selected.length == entries.length ? '取消全选' : '全选',
                     ),
                   ),
+                  if (collection != FileCollection.deleted)
+                    Tooltip(
+                      message:
+                          selected.isNotEmpty &&
+                              selected.every(
+                                (f) => f.file.ownerType != 'library',
+                              )
+                          ? context.l10n.t('filesMoveProtected')
+                          : context.l10n.t('filesBatchMove'),
+                      child: TextButton.icon(
+                        key: const ValueKey('files-batch-move'),
+                        onPressed:
+                            _batchBusy ||
+                                !selected.any(
+                                  (f) => f.file.ownerType == 'library',
+                                )
+                            ? null
+                            : () => attempt(() => _moveFiles(selected)),
+                        icon: const Icon(
+                          Icons.drive_file_move_outlined,
+                          size: 18,
+                        ),
+                        label: Text(context.l10n.t('filesBatchMove')),
+                      ),
+                    ),
                   if (collection != FileCollection.deleted)
                     TextButton.icon(
                       key: const ValueKey('files-batch-share'),

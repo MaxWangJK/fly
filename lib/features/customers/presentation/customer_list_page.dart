@@ -26,6 +26,7 @@ import 'customer_providers.dart';
 import '../../../app/shell/mobile_details.dart';
 import '../../../shared/design_system/responsive_layout.dart';
 import '../../../shared/design_system/mobile_workspace_actions.dart';
+import '../../../shared/design_system/workspace_list_columns.dart';
 
 class CustomerListPage extends ConsumerStatefulWidget {
   const CustomerListPage({
@@ -449,6 +450,28 @@ class _CustomerListPageState extends ConsumerState<CustomerListPage> {
                         ),
                 ),
               const SizedBox(height: FlySpacing.xs),
+              WorkspaceListHeader(
+                key: const ValueKey('customer-list-columns'),
+                child: WorkspaceListColumns(
+                  leadingWidth: 40,
+                  dateWidth: context.l10n.isZh ? 64 : 88,
+                  trailingWidth: 72,
+                  primary: Text(context.crmCopy('客户名称')),
+                  secondary: Text(context.crmCopy('国家')),
+                  status: Text(context.crmCopy('客户状态')),
+                  date: Text(
+                    context.crmCopy('最近跟进'),
+                    textAlign: TextAlign.right,
+                  ),
+                  trailing: Tooltip(
+                    message: context.crmCopy('下一步 / 优先级'),
+                    child: Text(
+                      context.crmCopy('优先级'),
+                      textAlign: TextAlign.right,
+                    ),
+                  ),
+                ),
+              ),
               Expanded(
                 child: customers.when(
                   loading: () =>
@@ -655,6 +678,11 @@ class _CustomerListPageState extends ConsumerState<CustomerListPage> {
                           itemCount: items.length,
                           itemBuilder: (_, i) {
                             final customer = items[i];
+                            final status = ref
+                                .watch(customerStatusesProvider)
+                                .valueOrNull
+                                ?.where((s) => s.id == customer.statusId)
+                                .firstOrNull;
                             return ListTile(
                               key: ValueKey('phone-customer-${customer.id}'),
                               contentPadding: const EdgeInsets.symmetric(
@@ -663,19 +691,52 @@ class _CustomerListPageState extends ConsumerState<CustomerListPage> {
                               leading: const CircleAvatar(
                                 child: Icon(Icons.person_outline),
                               ),
-                              title: Text(
-                                customer.name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                              title: WorkspaceListField(
+                                label: context.crmCopy('客户名称'),
+                                value: customer.name,
                               ),
-                              subtitle: Text(
-                                [
-                                  customer.companyName,
-                                  customer.phone,
-                                  customer.email,
-                                ].where((v) => v.trim().isNotEmpty).join(' · '),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Wrap(
+                                    spacing: 12,
+                                    runSpacing: 2,
+                                    children: [
+                                      WorkspaceListField(
+                                        label: context.crmCopy('国家'),
+                                        value: customer.country,
+                                      ),
+                                      WorkspaceListField(
+                                        label: context.crmCopy('客户状态'),
+                                        value: status?.name ?? '—',
+                                      ),
+                                      WorkspaceListField(
+                                        label: context.crmCopy('最近跟进'),
+                                        value:
+                                            RelativeDateFormatter.lastFollowUp(
+                                              customer.lastFollowUpAt,
+                                              isZh: zh,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                  if ([
+                                    customer.companyName,
+                                    customer.phone,
+                                    customer.email,
+                                  ].any((v) => v.trim().isNotEmpty))
+                                    Text(
+                                      [
+                                            customer.companyName,
+                                            customer.phone,
+                                            customer.email,
+                                          ]
+                                          .where((v) => v.trim().isNotEmpty)
+                                          .join(' · '),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                ],
                               ),
                               trailing:
                                   widget.projection ==
@@ -725,6 +786,7 @@ class _TagFilters extends StatelessWidget {
         final painter = TextPainter(
           text: TextSpan(text: label, style: const TextStyle(fontSize: 12)),
           textDirection: TextDirection.ltr,
+          textScaler: MediaQuery.textScalerOf(context),
         )..layout();
         // Keep a small measurement reserve for the platform font metrics.
         // The visible pills use 16 px horizontal padding; the extra reserve
@@ -811,7 +873,13 @@ class _TagFilters extends StatelessWidget {
       }
       return SizedBox(
         key: const ValueKey('customer-tag-filter-two-lines'),
-        height: rows.length == 1 ? 27 : 59,
+        height:
+            rows.length *
+                (MediaQuery.textScalerOf(context).scale(12) * 1.5 + 9).clamp(
+                  27,
+                  double.infinity,
+                ) +
+            (rows.length - 1) * 5,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -997,143 +1065,133 @@ class _CustomerRow extends StatelessWidget {
         borderRadius: BorderRadius.circular(FlyRadius.md),
         child: SizedBox(
           height: 56,
-          child: Row(
-            children: [
-              AnimatedContainer(
-                duration: FlyMotion.fast,
-                width: 2,
-                height: selected ? 30 : 0,
-                decoration: BoxDecoration(
-                  color: selected ? FlyColors.accent : Colors.transparent,
-                  borderRadius: BorderRadius.circular(2),
-                ),
+          child: WorkspaceListColumns(
+            key: ValueKey('customer-list-row-${customer.id}'),
+            leadingWidth: 40,
+            dateWidth: context.l10n.isZh ? 64 : 88,
+            trailingWidth: 72,
+            marker: AnimatedContainer(
+              duration: FlyMotion.fast,
+              width: 2,
+              height: selected ? 30 : 0,
+              decoration: BoxDecoration(
+                color: selected ? FlyColors.accent : Colors.transparent,
+                borderRadius: BorderRadius.circular(2),
               ),
-              const SizedBox(width: 4),
-              if (deletedView)
-                IconButton(
-                  tooltip: context.crmCopy('恢复客户'),
-                  onPressed: onRestore,
-                  icon: const Icon(Icons.restore, size: 19),
-                )
-              else
-                Checkbox(
-                  value: followed,
-                  onChanged: (_) => onComplete(),
-                  visualDensity: VisualDensity.compact,
-                ),
-              Expanded(
-                flex: 4,
-                child: Text(
-                  customer.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: followed
-                        ? Theme.of(context).colorScheme.onSurfaceVariant
-                        : null,
+            ),
+            leading: deletedView
+                ? IconButton(
+                    tooltip: context.crmCopy('恢复客户'),
+                    onPressed: onRestore,
+                    icon: const Icon(Icons.restore, size: 19),
+                  )
+                : Checkbox(
+                    value: followed,
+                    onChanged: (_) => onComplete(),
+                    visualDensity: VisualDensity.compact,
                   ),
-                ),
+            primary: Text(
+              customer.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: followed
+                    ? Theme.of(context).colorScheme.onSurfaceVariant
+                    : null,
               ),
-              Expanded(
-                flex: 3,
-                child: Text(
-                  customer.country.isEmpty ? '—' : customer.country,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ),
-              Expanded(
-                flex: 3,
-                child: status == null
-                    ? Text('—')
-                    : Align(
-                        alignment: Alignment.centerLeft,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Color(status!.colorValue)
-                                .withValues(alpha: .13),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            status!.name,
-                            style: const TextStyle(fontSize: 11),
-                          ),
-                        ),
-                      ),
-              ),
-              SizedBox(
-                width: 54,
-                child: Text(
-                  RelativeDateFormatter.lastFollowUp(
-                    customer.lastFollowUpAt,
-                    isZh: context.l10n.isZh,
-                  ),
-                  textAlign: TextAlign.right,
-                  style: Theme.of(context).textTheme.labelSmall,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  if (customer.nextActionType != null)
-                    Container(
-                      key: ValueKey('customer-next-action-${customer.id}'),
+            ),
+            secondary: Text(
+              customer.country.isEmpty ? '—' : customer.country,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            status: status == null
+                ? Text('—')
+                : Align(
+                    alignment: Alignment.centerLeft,
+                    child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 6,
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: _nextActionColor(customer.nextActionType!)
-                            .withValues(alpha: .12),
-                        borderRadius: BorderRadius.circular(99),
+                        color: Color(status!.colorValue).withValues(alpha: .13),
+                        borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        customer.nextActionType!.label,
-                        style: TextStyle(
-                          fontSize: 10.5,
-                          color: _nextActionColor(customer.nextActionType!),
-                        ),
+                        status!.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 11),
                       ),
                     ),
-                  if (customer.nextActionType != null)
-                    const SizedBox(height: 3),
+                  ),
+            date: Text(
+              RelativeDateFormatter.lastFollowUp(
+                customer.lastFollowUpAt,
+                isZh: context.l10n.isZh,
+              ),
+              textAlign: TextAlign.right,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelSmall,
+            ),
+            trailing: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (customer.nextActionType != null)
                   Container(
-                    key: ValueKey('customer-priority-${customer.id}'),
+                    key: ValueKey('customer-next-action-${customer.id}'),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 6,
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: priorityColor.withValues(alpha: .10),
+                      color: _nextActionColor(customer.nextActionType!)
+                          .withValues(alpha: .12),
                       borderRadius: BorderRadius.circular(99),
                     ),
                     child: Text(
-                      switch (customer.priority) {
-                        PriorityLevel.high => context.crmCopy('高'),
-                        PriorityLevel.medium => context.crmCopy('中'),
-                        PriorityLevel.low => context.crmCopy('一般'),
-                      },
+                      customer.nextActionType!.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 10.5,
-                        height: 1.1,
-                        color: priorityColor,
-                        fontWeight: FontWeight.w600,
+                        color: _nextActionColor(customer.nextActionType!),
                       ),
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(width: 8),
-            ],
+                if (customer.nextActionType != null) const SizedBox(height: 3),
+                Container(
+                  key: ValueKey('customer-priority-${customer.id}'),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: priorityColor.withValues(alpha: .10),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                  child: Text(
+                    switch (customer.priority) {
+                      PriorityLevel.high => context.crmCopy('高'),
+                      PriorityLevel.medium => context.crmCopy('中'),
+                      PriorityLevel.low => context.crmCopy('一般'),
+                    },
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      height: 1.1,
+                      color: priorityColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

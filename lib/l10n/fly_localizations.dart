@@ -86,6 +86,18 @@ class FlyLocalizations {
     'filesCopyPath': '复制文件路径',
     'filesCopy': '复制文件（可粘贴到资源管理器）',
     'filesCut': '剪切（在 Fly 文件夹粘贴）',
+    'filesMove': '移动',
+    'filesMoveTitle': '移动到',
+    'filesMoveHere': '移动到此处',
+    'filesMoveUp': '上一级文件夹',
+    'filesMoveNoFolders': '此处没有子文件夹，可移动到当前目录',
+    'filesMoveUnavailable': '文件夹已不可用，请重新选择',
+    'filesMoveRetry': '重试',
+    'filesMoved': '文件已移动',
+    'filesBatchMove': '移动',
+    'filesMoveProtected': '关联附件保留在所属客户、订单或笔记中',
+    'filesMoveFailures': '未能移动的文件',
+    'filesMoveDetails': '详情',
     'filesViewCustomer': '查看客户',
     'filesWorkspace': '文件',
     'filesCustomers': '客户文件',
@@ -471,6 +483,19 @@ class FlyLocalizations {
     'filesCopyPath': 'Copy file path',
     'filesCopy': 'Copy file (paste into Explorer)',
     'filesCut': 'Cut (paste into a Fly folder)',
+    'filesMove': 'Move',
+    'filesMoveTitle': 'Move to',
+    'filesMoveHere': 'Move here',
+    'filesMoveUp': 'Parent folder',
+    'filesMoveNoFolders': 'No subfolders. You can move to this location.',
+    'filesMoveUnavailable': 'Folder unavailable. Choose another location.',
+    'filesMoveRetry': 'Retry',
+    'filesMoved': 'File moved',
+    'filesBatchMove': 'Move',
+    'filesMoveProtected':
+        'Linked attachments stay with their customer, order or note.',
+    'filesMoveFailures': 'Files that could not be moved',
+    'filesMoveDetails': 'Details',
     'filesViewCustomer': 'View customer',
     'filesWorkspace': 'Files',
     'filesCustomers': 'Customer files',
@@ -785,6 +810,14 @@ class FlyLocalizations {
   };
 
   String t(String key) => (isZh ? _zh : _en)[key] ?? key;
+  String filesMoveSelection(int count) =>
+      isZh ? '已选 $count 个文件' : '$count files selected';
+  String filesMoveProtectedCount(int count) => isZh
+      ? '其中 $count 个关联附件将保留在所属记录'
+      : '$count linked attachments will stay with their records.';
+  String filesMoveResult(int moved, int unchanged, int failed) => isZh
+      ? '已移动 $moved 项${unchanged > 0 ? '，$unchanged 项已在目标目录' : ''}${failed > 0 ? '，$failed 项未移动' : ''}'
+      : 'Moved $moved${unchanged > 0 ? ', $unchanged already here' : ''}${failed > 0 ? ', $failed not moved' : ''}';
   String openCount(int count) => isZh ? '$count 项待完成' : '$count open';
   String taskCount(int count) => isZh ? '$count 项任务' : '$count tasks';
   String moreTasks(int count) => isZh ? '还有 $count 项' : '+$count more';
