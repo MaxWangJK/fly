@@ -18,3 +18,7 @@ Runtime behavior is documented from Fly source and tests. Research documents con
 书籍与座右铭： [2.0.3 build 39](knowledge/fly_books_v1.md)，作者源位于 [book_sources](../book_sources/foreign_trade/README.md)。
 
 2026-10-18：[Git 检查点与迁移边界](release/git_checkpoint_20261018.md)、[外贸工作流、市场参照及后续建议](product/fly_next_steps_20261018.md)。建议尚未转为确认的开发排期。
+
+2026-10-18 文件移动：[手机与电脑单文件/批量移动说明](release/file_move_20261018.md)，源码已实现，现有 build 42 安装包尚未更新。
+
+2026-10-31：[客户和订单字段标题](release/crm_list_columns_20261031.md)、[GitHub 上传记录](release/github_upload_20261031.md)。

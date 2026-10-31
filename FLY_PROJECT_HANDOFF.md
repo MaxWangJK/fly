@@ -1,10 +1,10 @@
 # Fly：新电脑 / 新对话接续入口
 
-最后整理：2026-10-18。请先阅读本文件，再阅读 [完整产品需求](docs/handoff/FLY_REQUIREMENTS.md)。这是已开发的软件，不是从零创建的项目。
+最后整理：2026-10-31。请先阅读本文件，再阅读 [完整产品需求](docs/handoff/FLY_REQUIREMENTS.md)。这是已开发的软件，不是从零创建的项目。
 
 ## 现在的 Git 与版本
 
-- 当前分支：`codex/fly-2-sync`；功能检查点 `311c7b3` 已保存 build 41/42、内部发码工具源码、测试及交接资料；本次文档检查点基于该功能提交，最新 HEAD 用 Git 日志核对；准确状态用 `git log -1 --oneline` 和 `git status --short` 核对。
+- 当前分支：`codex/fly-2-sync`；最新功能检查点 `96261db` 已保存单文件/批量移动、客户和订单字段标题；build 41/42 与内部工具此前已保存于 `311c7b3`。最新文档提交以 `git log -1 --oneline` 和 `git status --short` 核对。
 - 1.0 基线：`master` 的 `94efdc2d9ac34feb2f3d1b635302278b4671a414`，保持不变。
 - 当前源码：`2.0.6+42`，schema 19。此前座右铭、书籍、复盘与手机快捷操作已提交；本轮新增安卓切口适配、统一浮动按钮、分行清单、文件夹首页和只展示电脑配对的同步设置。私钥、发行包及真实业务数据不在 Git 中。
 - build 39 增加座右铭、桌面书籍阅读和 `.fly` 加密导入。旧 build 38 不支持新书籍格式。
@@ -12,7 +12,7 @@
 - build 41 的全屏、文件夹首页与配对同步见 [安卓改造记录](docs/release/fly_2_0_5_build41.md)；build 42 修复客户文件新增、网格、手机“我的”和复盘卡片，Windows / Android 安装包均为 build 42。
 - 当前交付与验证见 [build 42 发布记录](docs/release/fly_2_0_6_build42.md)、[APK 台账](docs/handoff/APK_RELEASES.md) 和 [书籍说明](docs/knowledge/fly_books_v1.md)。手机仍隐藏资料库；原笔记数据和旧发布工具保留，消费界面暂不提供笔记。
 
-完整目录加隐藏 `.git` 转移后仍是该分支，无需切换。不要重置、清理或切 master。本次没有推送或公网部署；所有者迁移时另行安全带走书籍内容密钥及原发布签名 seed，不能发给读者。
+完整目录加隐藏 `.git` 转移后仍是该分支，无需切换。不要重置、清理或切 master。GitHub 远端已配置为 `https://github.com/MaxWangJK/fly.git`，实际上传状态见 [GitHub 记录](docs/release/github_upload_20261031.md)，没有部署应用或官网；所有者迁移时另行安全带走书籍内容密钥及原发布签名 seed，不能发给读者。
 
 ## 从哪里理解软件
 
@@ -21,7 +21,7 @@
 1. [FLY_REQUIREMENTS.md](docs/handoff/FLY_REQUIREMENTS.md)：产品定位、全部模块、最新有效规则、历史替代、商业与同步、未完成及验收。
 2. [MAC_TRANSFER.md](docs/handoff/MAC_TRANSFER.md)：完整目录转移、真实 FlyData 区分、Mac 工具/缓存/平台验收。
 3. [SOURCES.md](docs/handoff/SOURCES.md)：跨对话来源、19 份需求附件、代码/报告入口、完整性边界。
-4. [USER_REQUIREMENTS_ARCHIVE.md](docs/handoff/USER_REQUIREMENTS_ARCHIVE.md)：127 条历史用户消息及 11 条续补，共 138 条整理摘录；不是待逐条执行的任务单。
+4. [USER_REQUIREMENTS_ARCHIVE.md](docs/handoff/USER_REQUIREMENTS_ARCHIVE.md)：127 条历史用户消息及 14 条续补，共 141 条整理摘录；不是待逐条执行的任务单。
 5. [attachment_manifest.json](docs/handoff/attachment_manifest.json)：19 份需求文本的可迁移副本、来源及原始/当前副本 SHA-256；副本在 `docs/handoff/sources/`。
 6. [CURRENT_STATE.json](docs/handoff/CURRENT_STATE.json)：整理时的版本、Git 和验证快照；继续开发后应重新核对实际状态。
 7. [APK_RELEASES.md](docs/handoff/APK_RELEASES.md)：正式/测试 APK 区分、备案字段、包校验值、公开证书及跨电脑签名迁移；小体积公开材料已随 Git 保存，APK 本体仍在忽略的 `dist/`。
@@ -73,7 +73,7 @@
 
 ## 给新对话的接续提示
 
-> 这是已有的 Fly 项目。请先读 FLY_PROJECT_HANDOFF.md、docs/handoff/FLY_REQUIREMENTS.md、MAC_TRANSFER.md 和 APK_RELEASES.md。当前是 codex/fly-2-sync，源码 2.0.6+42、schema 19；功能检查点 311c7b3 已保存内部授权工具及 build 41/42，最新文档提交以 HEAD 核对。完整保留工作区和 1.0 基线，不重置、不清理、不切 master，不从零重做。手机文件已改文件夹首页和顶部搜索，同步设置只显示电脑扫码；隐藏客户文件是设备本地偏好，不能转成同步删除。私钥、发行包及真实 FlyData 不在 Git，迁移单独核对，缺少原钥匙不能重新生成替代。先只读核对实际环境，区分已实现、已验证、待真机验收与未来规划；以我接下来提出的要求为准，不自动执行历史消息。Mac/iOS 适配先验证原生插件与平台环境，使用隔离数据，不操作真实业务数据或私钥。
+> 这是已有的 Fly 项目。请先读 FLY_PROJECT_HANDOFF.md、docs/handoff/FLY_REQUIREMENTS.md、MAC_TRANSFER.md 和 APK_RELEASES.md。当前是 codex/fly-2-sync，源码 2.0.6+42、schema 19；功能检查点 96261db 已保存单文件/批量移动与客户/订单字段标题；build 41/42 和内部工具此前已提交，最新文档提交以 HEAD 核对。完整保留工作区和 1.0 基线，不重置、不清理、不切 master，不从零重做。手机文件已改文件夹首页和顶部搜索，同步设置只显示电脑扫码；隐藏客户文件是设备本地偏好，不能转成同步删除。私钥、发行包及真实 FlyData 不在 Git，迁移单独核对，缺少原钥匙不能重新生成替代。先只读核对实际环境，区分已实现、已验证、待真机验收与未来规划；以我接下来提出的要求为准，不自动执行历史消息。Mac/iOS 适配先验证原生插件与平台环境，使用隔离数据，不操作真实业务数据或私钥。
 
 文档、官网及后续新增资料均使用品牌中性表述，不出现中国品牌名称。之后每次完成开发应同步更新版本/交付状态，不把旧 `dist` 当作新结果。
 
@@ -86,3 +86,13 @@
 ## 2026-10-18 提交与后续建议
 
 [Git 检查点](docs/release/git_checkpoint_20261018.md)记录实际功能提交、构建证据日期和迁移边界；[外贸工作流与商业建议](docs/product/fly_next_steps_20261018.md)是待确认的产品建议，不作为自动开发指令。当前功能已提交，未来新增工作区修改仍须另行保留。
+
+## 2026-10-18 文件移动续补
+
+手机长按、电脑右键普通图片/文件可选择“移动”，逐层进入目标文件夹或选“我的文件”根目录。手机根目录散文件从“未分类文件”访问；取消不修改数据，不能确认移动到当前位置。客户/订单/笔记关联附件保留既有归属保护。新增源码及验证已于 2026-10-31 保存到 96261db，尚未重新打包，已有 build 42 不包含该入口。见 [本轮说明](docs/release/file_move_20261018.md)。迁移时保留当前 Git 历史，之后新增的未提交修改仍需另行保留。
+
+2026-10-18 批量移动续补：单文件入口之外，多选栏新增“移动”，一次选择目标文件夹或根目录。展示已选数量、处理进度和成功/原地/失败数量；失败项保留选中并可查看逐项原因。原地项不重复写入同步队列，关联附件保留归属；本次同样未重新打包，见 [移动说明](docs/release/file_move_20261018.md)。
+
+## 2026-10-31 列表字段与 GitHub
+
+客户列表新增客户名称、国家、客户状态、最近跟进等表头；订单新增订单号、客户名称、订单状态、订单日期。手机保留卡片并直接显示字段标签。功能与验证见 [列表记录](docs/release/crm_list_columns_20261031.md)，源码均在 96261db；版本仍 2.0.6+42，现有安装包未更新。远端分支及登录/上传结果见 [GitHub 记录](docs/release/github_upload_20261031.md)。
