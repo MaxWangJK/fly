@@ -1,5 +1,5 @@
 {
-  "capturedAtUtc": "2026-10-31T09:11:54.106186+00:00",
+  "capturedAtUtc": "2026-10-31T09:15:52.829369+00:00",
   "documentationOnly": false,
   "branch": "codex/fly-2-sync",
   "releaseCommitSource": "96261dbb90a9725bfab91058a1c2fe50ea5862ef: current functional source committed; build 42 packages retain their original build-time metadata",
@@ -34,7 +34,7 @@
   "appleBuildAndDeviceAcceptance": "not performed",
   "latestSourceNotRepackaged": true,
   "noDeploymentPerformed": true,
-  "remotePushPerformed": false,
+  "remotePushPerformed": true,
   "historicalUserMessagesArchived": 141,
   "textAttachmentsCopied": 19,
   "inlinePromptCopies": 2,
@@ -140,7 +140,7 @@
   },
   "latestSourceNotRepackagedExplanation": "source commit 96261db includes single/batch file moves and CRM list field labels; Windows/Android packages remain original build 42",
   "localReleaseCommitHash": "311c7b3799d4d3a8fc3a0dcef867781f275a135b",
-  "workingTreeStatusAtCapture": "functional source committed; updated migration documents prepared for documentation commit",
+  "workingTreeStatusAtCapture": "source and migration checkpoint committed and pushed; closing upload verification record prepared for commit",
   "portableInternalIssuer": {
     "version": "1.0.0",
     "date": "2026-10-17",
@@ -269,5 +269,12 @@
   "githubRepositoryVisibility": "public",
   "githubRemoteName": "origin",
   "githubUploadReport": "../release/github_upload_20261031.md",
-  "githubUploadStatus": "Git Credential Manager authorization and authenticated dry-run succeeded; final push pending"
+  "githubUploadStatus": "verified: first atomic push succeeded; main is default, main and codex/fly-2-sync include source 96261db; master baseline unchanged; closing documentation follows on both 2.0 branches",
+  "githubInitialVerifiedCommitHash": "01ba6369cc4a9b4660d9a4d6eacba1e2fc78636f",
+  "githubVerifiedSourceCommitHash": "96261dbb90a9725bfab91058a1c2fe50ea5862ef",
+  "githubDefaultBranch": "main",
+  "githubVerificationDate": "2026-10-31",
+  "githubDevelopmentBranch": "codex/fly-2-sync",
+  "githubMasterBaseline": "94efdc2d9ac34feb2f3d1b635302278b4671a414",
+  "githubLatestDocumentationRef": "main / codex/fly-2-sync HEAD; verify git ls-remote"
 }

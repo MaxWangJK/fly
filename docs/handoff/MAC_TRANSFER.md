@@ -144,3 +144,13 @@ shasum -a 256 dist/Fly-2.0.4-build40-android-release-signed-20261016.apk
 ## build 42 最新补充
 
 Windows / Android 当前均为 2.0.6+42。新增客户普通资料通过真实同步目录保存，手机隐藏入口仍不传递删除；复盘卡片与输入框切换属于显示状态，不改答案存储格式。迁移须保留当前 Git 历史、以后新增工作区修改，以及忽略的实际安装包，见 [本轮报告](../release/fly_2_0_6_build42.md)。
+
+## 2026-10-31 GitHub 已上传
+
+已验证仓库默认 `main` 与 `codex/fly-2-sync` 均包含源码 96261db，固定 1.0 的 `master` 不变。本地仍跟踪 2.0 分支。新电脑若从 GitHub 获取开发工程，可用：
+
+```sh
+git clone --branch codex/fly-2-sync https://github.com/MaxWangJK/fly.git
+```
+
+GitHub 的源码归档 ZIP 不含 `.git` 历史，完整 clone 与直接复制原目录的适用方式不同。原私钥、真实业务数据和安装包继续按本文单独迁移，不因远端上传成功而自动包含。
