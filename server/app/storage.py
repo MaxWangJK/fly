@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Protocol
 import re
+import shutil
 
 
 class BlobStorage(Protocol):
@@ -28,3 +29,13 @@ class LocalDiskBlobStorage:
 
     def partial(self, user_id, session_id):
         return self._path(user_id, session_id + '.part')
+
+    def delete_user(self, user_id):
+        if not re.fullmatch(r'[a-f0-9-]{36}', user_id):
+            raise ValueError('Invalid storage identity')
+        target = self.root / user_id
+        # Never follow a replaced directory or delete outside the account scope.
+        if target.is_symlink() or target.resolve() != target:
+            raise ValueError('Invalid storage path')
+        if target.exists():
+            shutil.rmtree(target)

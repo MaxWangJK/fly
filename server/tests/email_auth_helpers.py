@@ -7,11 +7,15 @@ class RecordingMailer:
     def __init__(self):
         self.messages = []
         self.fail = False
+        self.notices = []
 
-    def send_code(self, recipient, code):
+    def send_code(self, recipient, code, purpose='register'):
         if self.fail:
             raise RuntimeError('isolated SMTP failure')
         self.messages.append((recipient, code))
+
+    def send_password_changed(self, recipient):
+        self.notices.append(recipient)
 
 
 def challenge(client, email='max@example.com', purpose='register', headers=None):

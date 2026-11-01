@@ -270,22 +270,22 @@ class _OrderListPageState extends ConsumerState<OrderListPage> {
                 ),
               const SizedBox(height: FlySpacing.xs),
               const SizedBox(height: FlySpacing.xs),
-              if (!useCompactLayout(context))
-                WorkspaceListHeader(
-                  key: const ValueKey('order-list-columns'),
-                  child: WorkspaceListColumns(
-                    leadingWidth: widget.projection == OrderProjection.deleted
-                        ? 40
-                        : 0,
-                    primary: Text(context.crmCopy('订单号')),
-                    secondary: Text(context.crmCopy('客户名称')),
-                    status: Text(context.crmCopy('订单状态')),
-                    date: Text(
-                      context.crmCopy('订单日期'),
-                      textAlign: TextAlign.right,
-                    ),
+              WorkspaceListHeader(
+                key: const ValueKey('order-list-columns'),
+                child: WorkspaceListColumns(
+                  dateWidth: useCompactLayout(context) ? 64 : 88,
+                  leadingWidth: widget.projection == OrderProjection.deleted
+                      ? 40
+                      : 0,
+                  primary: Text(context.crmCopy('订单号')),
+                  secondary: Text(context.crmCopy('客户名称')),
+                  status: Text(context.crmCopy('订单状态')),
+                  date: Text(
+                    context.crmCopy('订单日期'),
+                    textAlign: TextAlign.right,
                   ),
                 ),
+              ),
               Expanded(
                 child: orders.when(
                   loading: () =>
@@ -314,50 +314,54 @@ class _OrderListPageState extends ConsumerState<OrderListPage> {
                               final status = statuses
                                   .where((s) => s.id == order.statusId)
                                   .firstOrNull;
-                              return ListTile(
+                              return InkWell(
                                 key: ValueKey('phone-order-${order.id}'),
-                                title: WorkspaceListField(
-                                  label: context.crmCopy('订单号'),
-                                  value: order.orderNumber,
-                                ),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    WorkspaceListField(
-                                      label: context.crmCopy('客户名称'),
-                                      value:
-                                          customer?.name ??
-                                          context.crmCopy('未关联客户'),
-                                    ),
-                                    Wrap(
-                                      spacing: 12,
-                                      runSpacing: 2,
-                                      children: [
-                                        WorkspaceListField(
-                                          label: context.crmCopy('订单状态'),
-                                          value: status?.name ?? '—',
-                                        ),
-                                        WorkspaceListField(
-                                          label: context.crmCopy('订单日期'),
-                                          value: _shortDate(
-                                            order.orderDate ?? order.createdAt,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                                trailing:
-                                    widget.projection == OrderProjection.deleted
-                                    ? IconButton(
-                                        icon: const Icon(Icons.restore),
-                                        onPressed: () => ref
-                                            .read(orderRepositoryProvider)
-                                            .restoreOrder(order.id),
-                                      )
-                                    : const Icon(Icons.chevron_right),
                                 onTap: () =>
                                     showOrderDetailSheet(context, order.id),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
+                                  child: WorkspaceListColumns(
+                                    dateWidth: 64,
+                                    leadingWidth:
+                                        widget.projection ==
+                                            OrderProjection.deleted
+                                        ? 40
+                                        : 0,
+                                    leading:
+                                        widget.projection ==
+                                            OrderProjection.deleted
+                                        ? IconButton(
+                                            icon: const Icon(Icons.restore),
+                                            onPressed: () => ref
+                                                .read(orderRepositoryProvider)
+                                                .restoreOrder(order.id),
+                                          )
+                                        : null,
+                                    primary: Text(
+                                      order.orderNumber,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    secondary: Text(
+                                      customer?.name ?? '—',
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    status: Text(
+                                      context.crmCopy(status?.name ?? '—'),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    date: Text(
+                                      _shortDate(
+                                        order.orderDate ?? order.createdAt,
+                                      ),
+                                      textAlign: TextAlign.right,
+                                    ),
+                                  ),
+                                ),
                               );
                             }
                             return _OrderRow(

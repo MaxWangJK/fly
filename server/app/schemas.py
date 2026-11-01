@@ -31,7 +31,7 @@ class DeviceEnrollmentInput(DeviceInput):
 
 class CaptchaInput(StrictModel):
     email: EmailStr
-    purpose: Literal['register', 'bind'] = 'register'
+    purpose: Literal['register', 'bind', 'reset', 'delete'] = 'register'
 
     @field_validator('email', mode='before')
     @classmethod
@@ -63,6 +63,26 @@ class RegisterCredentials(Credentials):
 
 class RefreshInput(StrictModel):
     refresh_token: str = Field(alias='refreshToken', min_length=32, max_length=200)
+
+
+class ResetPasswordInput(CaptchaInput):
+    purpose: Literal['reset'] = 'reset'
+    password: str = Field(min_length=10, max_length=128)
+    confirm_password: str = Field(alias='confirmPassword', min_length=10, max_length=128)
+    verification_ticket: str = Field(alias='verificationTicket', min_length=32, max_length=100)
+
+    @model_validator(mode='after')
+    def same_password(self):
+        if self.password != self.confirm_password:
+            raise ValueError('Passwords do not match')
+        return self
+
+
+class DeleteAccountInput(CaptchaInput):
+    purpose: Literal['delete'] = 'delete'
+    password: str = Field(min_length=10, max_length=1024)
+    verification_ticket: str = Field(alias='verificationTicket', min_length=32, max_length=100)
+    confirmation: Literal['DELETE']
 
 
 class Mutation(StrictModel):

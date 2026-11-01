@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 
 import 'tables.dart';
 import '../../features/sync/data/sync_schema.dart';
+import '../../features/customers/domain/customer_lifecycle.dart';
 
 part 'app_database.g.dart';
 
@@ -734,17 +735,9 @@ class AppDatabase extends _$AppDatabase {
       );
     }
 
-    const statuses = [
-      ('customer-new', '新客户', 0xFF6B7A90),
-      ('customer-inquiry', '询盘客户', 0xFF5E7BB8),
-      ('customer-developing', '开发中', 0xFF4D6BD8),
-      ('customer-followup', '待跟进', 0xFFC6903E),
-      ('customer-quoted', '报价客户', 0xFF9A72B5),
-      ('customer-sample', '样品客户', 0xFF3A86D8),
-      ('customer-intent', '意向客户', 0xFF5F8D78),
-      ('customer-won', '成交客户', 0xFF3D8A69),
-      ('customer-repeat', '复购客户', 0xFF397A61),
-    ];
+    final statuses = CustomerLifecycle.stages
+        .map((s) => (s.$1, s.$2, s.$4))
+        .toList();
     for (var index = 0; index < statuses.length; index++) {
       final value = statuses[index];
       await into(customerStatuses).insert(
@@ -769,6 +762,8 @@ class AppDatabase extends _$AppDatabase {
       ('source-referral', 'Referral'),
       ('source-whatsapp', 'WhatsApp'),
       ('source-linkedin', 'LinkedIn'),
+      ('source-wechat', 'WeChat'),
+      ('source-customs', 'Customs data'),
       ('source-existing', 'Existing Customer'),
       ('source-other', 'Other'),
     ];

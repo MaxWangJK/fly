@@ -41,7 +41,7 @@ Windows 官方便携 PHP 需要在 `php.ini` 启用上述扩展。本机验证�
 5. 完成桌面版模块授权校验，确认基础版无法使用高级版模块；确定升级、换机、退款和售后规则。
 6. 配置 `FLY_PRICE_BASIC_CENTS`、`FLY_PRICE_PRO_CENTS`，明确币种并完成测试环境与真实小额交易验收。当前 `paymentReady()` 固定返回 false；完成适配器与回归测试后才可以设计开启销售的流程。
 
-`FLY_DOWNLOAD_FILE` 可配置为服务器上的正式安装包绝对路径；未配置时 `/download` 返回 404。只有验收通过的安装包才应开放下载。
+Windows 10、Android、macOS 安装包的放置位置、固定文件名和上传命令见 [安装包上传说明](deploy/downloads.md)。官网提供独立的 `/download` 卡片页面，并按文件是否存在自动开放对应下载按钮。
 
 ## 验证范围
 

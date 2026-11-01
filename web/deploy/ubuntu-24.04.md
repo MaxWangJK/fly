@@ -230,7 +230,7 @@ curl -s -o /dev/null -w '%{http_code}\n' -X POST https://fly.example.com/api/che
 4. 将与客户端验签公钥匹配的 Ed25519 签发私钥放在 `/etc/fly/issuer.pem`，不放入网站或公开目录。限制文件访问权限并另做安全备份。
 5. 验收登录、真实付款、设备授权、三设备上限、换机和退款流程，再实现并开启销售状态。当前预览版本不满足正式销售条件。
 
-开放下载时，将已验收的安装包放在网站目录之外，例如 `/srv/fly-download/Fly-Setup.exe`，确保 `www-data` 可读，再配置 `SetEnv FLY_DOWNLOAD_FILE /srv/fly-download/Fly-Setup.exe`。未配置时 `/download` 返回 404。
+开放 Windows 10、Android、macOS 下载时，按 [安装包上传说明](downloads.md)把已验收的安装包放入 `/var/www/fly/public/downloads/`；文件就绪后对应按钮自动开放。
 
 ## 9. 备份、更新和故障检查
 

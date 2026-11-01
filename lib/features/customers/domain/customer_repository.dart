@@ -32,7 +32,13 @@ abstract interface class CustomerRepository {
     String customerId,
   );
 
-  Future<Customer> createCustomer({required String name, String? categoryId});
+  Future<Customer> createCustomer({
+    required String name,
+    String? categoryId,
+    String country = '',
+    String? statusId,
+    String source = '',
+  });
   Future<void> setCustomerSourceText(String customerId, String source);
   Future<void> saveCustomer(Customer customer);
   Future<void> softDeleteCustomer(String customerId);

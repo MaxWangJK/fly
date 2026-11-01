@@ -1,6 +1,8 @@
 # Ubuntu 部署：保留 PHP 官网，增加 Fly 云同步
 
-2026-11-01，源码 2.0.7+43，后台迁移 `0003`。由所有者自行部署；开发电脑没有操作真实服务器。本指南按你提供的 Nginx、PHP 路径及现有证书编写，适用于已有官网的 Ubuntu 主机。
+**最新选择：**服务器无法下载 Docker 时，直接使用 [PostgreSQL + Python 简化部署](ubuntu-native.md)。安装、开机自启和 Nginx 接入均已提供，业务接口和数据库模型相同。本文下面保留容器方式；原生部署不需要执行这些 Docker 命令。
+
+2026-11-01，已交付 build43 后台迁移为 `0003`；最新账号生命周期源码升级到 `0004`，尚未重新打包。由所有者自行部署；开发电脑没有操作真实服务器。本指南按你提供的 Nginx、PHP 路径及现有证书编写，适用于已有官网的 Ubuntu 主机。
 
 ## 1. 部署后的地址
 
@@ -95,9 +97,9 @@ curl --fail http://127.0.0.1:18766/api/health
 
 初始化工具生成不回显的随机数据库密码与 JWT 密钥，数据库连接密码自动匹配，`.env` 以所有者读写权限创建；若文件已存在，拒绝覆盖。`.env` 中固定项目名 `fly-sync`，避免换路径就误建另一套卷。已有同步部署应继续使用**原 `.env`、项目名、卷和密钥**，不要套用新项目名或重跑初始化替换旧身份。
 
-关键值应为：`ALLOW_PASSWORD_AUTH=true`、`CLOUD_FILE_TRANSFER_ENABLED=false`、`APP_ENV=production`，允许主机为 `world-workshop.cn,localhost,127.0.0.1`。Compose 再次固定开启邮箱、关闭云文件内容。启动先执行 Alembic 增量升级；`0003` 新增邮箱验证和限流，不删除旧用户/业务记录。
+关键值应为：`ALLOW_PASSWORD_AUTH=true`、`CLOUD_FILE_TRANSFER_ENABLED=false`、`APP_ENV=production`，允许主机为 `world-workshop.cn,localhost,127.0.0.1`。Compose 再次固定开启邮箱、关闭云文件内容。启动先执行 Alembic 增量升级；`0003` 新增邮箱验证和限流，最新源码 `0004` 新增注销清理任务表，不删除旧用户/业务记录。部署找回/注销功能必须上传包含 `0004_account_lifecycle.py` 的新源码并重建镜像；旧 build43 后台压缩包不含这些功能。
 
-`alembic current` 应包含 `0003`；健康响应形状如下，时间会不同：
+最新源码的 `alembic current` 应包含 `0004`（旧 build43 包为 `0003`）；健康响应形状如下，时间会不同：
 
 ```json
 {
@@ -108,7 +110,9 @@ curl --fail http://127.0.0.1:18766/api/health
     "automaticMerge": true,
     "deviceEnrollment": true,
     "fileContents": false,
-    "emailRegistration": true
+    "emailRegistration": true,
+    "passwordReset": true,
+    "deleteAccount": true
   }
 }
 ```

@@ -158,13 +158,13 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('primary-settings')));
       await settle(tester);
-      for (var i = 0; i < 8; i++) {
+      for (var i = 0; i < 9; i++) {
         await tester.tap(find.byKey(ValueKey('settings-category-$i')));
         await settle(tester);
         expect(find.byKey(ValueKey('settings-content-$i')), findsOneWidget);
         expect(tester.takeException(), isNull);
       }
-      await tester.tap(find.byKey(const ValueKey('settings-category-2')));
+      await tester.tap(find.byKey(const ValueKey('settings-category-3')));
       await settle(tester);
       await shot('settings_navigation');
       await tester.tap(find.byKey(const ValueKey('dashboard-visible')));
@@ -209,9 +209,9 @@ void main() {
       );
       await tester.tap(find.byKey(const ValueKey('settings-back')));
       await settle(tester);
-      await tester.tap(find.byKey(const ValueKey('settings-category-1')));
+      await tester.tap(find.byKey(const ValueKey('settings-category-2')));
       await settle(tester);
-      expect(find.byKey(const ValueKey('settings-content-1')), findsOneWidget);
+      expect(find.byKey(const ValueKey('settings-content-2')), findsOneWidget);
       expect(tester.takeException(), isNull);
       await shot('settings_narrow');
       await tester.tap(find.byTooltip('关闭设置'));

@@ -36,8 +36,14 @@ void main() {
       final sources = await customers.watchSources().first;
 
       expect(categories.map((value) => value.name), ['A级', 'B级', 'C级', 'D级']);
-      expect(statuses.length, 9);
-      expect(sources.length, 10);
+      expect(statuses.map((value) => value.name), [
+        '新客户',
+        '开发中',
+        '意向客户',
+        '成交客户',
+        '复购客户',
+      ]);
+      expect(sources.length, 12);
       expect(
         (await taskRepository.watchTask(task.id).first)?.title,
         'Existing task',

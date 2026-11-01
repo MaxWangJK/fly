@@ -111,14 +111,16 @@ class AuthService {
         404 =>
           '服务器尚未启用邮箱注册 / Email registration is not enabled on this server.',
         400
-            when error.message.contains(
+            when (error.reason ?? '').contains(
               'Graphical verification is incorrect',
             ) =>
           '图形验证码错误 / Incorrect graphical code.',
-        400 when error.message.contains('graphical verification') =>
+        400 when (error.reason ?? '').contains('graphical verification') =>
           '请刷新图形验证码 / Refresh the graphical verification.',
-        400 when error.message.contains('email code') =>
+        400 when (error.reason ?? '').contains('email code') =>
           '邮箱验证码错误、已使用或已过期 / Email code is incorrect, used or expired.',
+        400 when (error.reason ?? '').contains('password is incorrect') =>
+          '当前密码错误 / Incorrect current password.',
         400 =>
           '邮箱验证已过期，请重新验证 / Email verification expired. Please verify again.',
         401 => '登录已过期，请重新连接 / Session expired. Please reconnect.',
@@ -134,11 +136,12 @@ class AuthService {
   Future<EmailCaptcha> registrationCaptcha(
     String email, {
     bool bind = false,
+    String? purpose,
   }) async {
     final data = await _verificationRequest('/auth/registration/captcha', {
       'email': email.trim().toLowerCase(),
-      'purpose': bind ? 'bind' : 'register',
-    }, authorized: bind);
+      'purpose': purpose ?? (bind ? 'bind' : 'register'),
+    }, authorized: bind || purpose == 'delete');
     final encoded = data['imageBase64'] as String;
     if (encoded.length > 200000) {
       throw const FormatException('Invalid verification image');
@@ -160,6 +163,58 @@ class AuthService {
       'code': code.trim(),
     });
     return data['verificationTicket'] as String;
+  }
+
+  Future<void> resetPassword({
+    required String email,
+    required String password,
+    required String confirm,
+    required String verificationTicket,
+  }) async {
+    if (password != confirm ||
+        password.runes.length < 10 ||
+        password.runes.length > 128) {
+      throw const EmailAuthException(
+        '请检查密码长度及两次输入是否一致 / Check password length and confirmation.',
+      );
+    }
+    await _verificationRequest('/auth/password/reset', {
+      'email': email.trim().toLowerCase(),
+      'password': password,
+      'confirmPassword': confirm,
+      'verificationTicket': verificationTicket,
+    });
+    if (this.email == email.trim().toLowerCase()) await clearLocalSession();
+  }
+
+  Future<bool> deleteAccount({
+    required String password,
+    required String verificationTicket,
+  }) async {
+    if (userId == null || !emailVerified) {
+      throw const EmailAuthException(
+        '请先登录已验证的邮箱账号 / Sign in with a verified email first.',
+      );
+    }
+    final result = await _verificationRequest('/account/delete', {
+      'email': email,
+      'password': password,
+      'verificationTicket': verificationTicket,
+      'confirmation': 'DELETE',
+    }, authorized: true);
+    await clearLocalSession();
+    return result['fileCleanupPending'] == true;
+  }
+
+  Future<void> clearLocalSession() async {
+    // A refresh started before deletion must not restore the removed session.
+    try {
+      await _refreshing;
+    } catch (_) {
+      // The server has already revoked this session.
+    }
+    session = null;
+    await storage.delete(key: storageKey);
   }
 
   Future<void> _acceptSession(
@@ -274,6 +329,12 @@ class AuthService {
           body: {'refreshToken': refresh},
         ),
       );
+    } on SyncHttpException catch (error) {
+      if (error.status == 401) {
+        session = null;
+        await storage.delete(key: storageKey);
+      }
+      rethrow;
     } finally {
       transport.close();
     }
@@ -289,8 +350,7 @@ class AuthService {
       await transport.request('POST', '/auth/logout');
     } finally {
       transport.close();
-      await storage.delete(key: storageKey);
-      session = null;
+      await clearLocalSession();
     }
   }
 }

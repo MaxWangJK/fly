@@ -63,7 +63,7 @@ WebSocket 是应用打开时的长连接，不是系统通知栏推送。提醒�
 | 方法与路径（相对基础地址） | 用途 | 认证 |
 | --- | --- | --- |
 | `GET /health` | 健康和功能能力 | 无 |
-| `POST /auth/registration/captcha` | 邮箱、用途换图形验证码 | 注册无；绑定需会话 |
+| `POST /auth/registration/captcha` | 邮箱、用途换图形验证码 | register/reset 无；bind/delete 需会话 |
 | `POST /auth/registration/send-code` | 校验图形码后发送六位邮箱码 | 挑战 ID 与图形码 |
 | `POST /auth/registration/verify-code` | 六位码换一次性注册证明 | 挑战 ID 与邮箱码 |
 | `POST /auth/register` | 注册并签发设备会话 | 一次性证明与确认密码 |
@@ -71,6 +71,8 @@ WebSocket 是应用打开时的长连接，不是系统通知栏推送。提醒�
 | `POST /auth/link-email` | 临时空间绑定已验证邮箱 | 设备会话及绑定证明 |
 | `POST /auth/refresh` | 轮换刷新会话 | 刷新令牌 |
 | `POST /auth/logout` | 撤销当前设备 | Bearer |
+| `POST /auth/password/reset` | 邮箱验证后设置并确认新密码，撤销所有旧会话 | reset 专用一次性证明 |
+| `POST /account/delete` | 注销云账号及其同步数据，保留本机数据 | Bearer、delete 专用证明、当前密码、DELETE 确认 |
 | `GET /account/me`、`GET /devices` | 账号信息、设备列表 | Bearer |
 | `POST /devices/{deviceId}/revoke` | 撤销本账号设备 | Bearer |
 | `POST /sync/push` | 提交持久队列变更，按变更 ID 幂等 | Bearer |

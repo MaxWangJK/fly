@@ -288,6 +288,22 @@ void main() {
           find.byKey(const ValueKey('customer-quick-add-input')),
           'Phone created customer',
         );
+        await tester.enterText(
+          find.byKey(const ValueKey('customer-create-country')),
+          'Portugal',
+        );
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('customer-create-category-category-a')),
+        );
+        await tester.tap(
+          find.byKey(const ValueKey('customer-create-category-category-a')),
+        );
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('customer-create-status-customer-new')),
+        );
+        await tester.tap(
+          find.byKey(const ValueKey('customer-create-status-customer-new')),
+        );
         await tester.tap(find.byKey(const ValueKey('phone-create-customer')));
         await settle();
         expect(

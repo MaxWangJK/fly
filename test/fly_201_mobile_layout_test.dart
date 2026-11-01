@@ -121,7 +121,7 @@ void main() {
           find.byKey(const ValueKey('settings-category-selector')),
           findsNothing,
         );
-        await tester.tap(find.byKey(const ValueKey('settings-category-1')));
+        await tester.tap(find.byKey(const ValueKey('settings-category-2')));
         await settle();
         expect(find.text('显示模式'), findsOneWidget);
         await tester.tap(find.byKey(const ValueKey('settings-back')));

@@ -1,3 +1,4 @@
+import '../../features/account/presentation/my_settings_panel.dart';
 import '../../l10n/service_error_copy.dart';
 
 import 'dart:io';
@@ -36,6 +37,7 @@ class _SettingsCenterState extends ConsumerState<SettingsCenter> {
       context.l10n.isZh ? value : settingsEnglish[value] ?? value;
   static const appVersion = flyAppVersion;
   static const categories = [
+    '我的',
     '常规',
     '外观',
     '导航',
@@ -250,6 +252,7 @@ class _SettingsCenterState extends ConsumerState<SettingsCenter> {
   }
 
   IconData _categoryIcon(String category) => switch (category) {
+    '我的' => Icons.person_outline,
     '常规' => Icons.tune,
     '外观' => Icons.palette_outlined,
     '导航' => Icons.explore_outlined,
@@ -263,10 +266,23 @@ class _SettingsCenterState extends ConsumerState<SettingsCenter> {
   };
 
   List<Widget> _content() {
-    if (categories[selected] == '同步') return [const SyncSettingsPanel()];
+    if (categories[selected] == '我的') return [const MySettingsPanel()];
+    if (categories[selected] == '同步') {
+      return [
+        SyncSettingsPanel(
+          onOpenMy: () => setState(() {
+            selected = categories.indexOf('我的');
+            mobileCategoryOpen = true;
+          }),
+        ),
+      ];
+    }
     final nav = ref.watch(navigationSettingsProvider);
     final root = ref.watch(dataRootPathProvider);
-    switch (!enableKnowledgeHub && selected >= 7 ? selected + 1 : selected) {
+    final contentIndex = selected - 1;
+    switch (!enableKnowledgeHub && contentIndex >= 7
+        ? contentIndex + 1
+        : contentIndex) {
       case 0:
         return [
           _heading('语言'),

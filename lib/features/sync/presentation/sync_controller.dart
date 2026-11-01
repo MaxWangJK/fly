@@ -94,7 +94,7 @@ class SyncController extends ChangeNotifier {
       }
       counts = await outbox.initialCounts();
       ready = true;
-      final savedHost = await outbox.state('lanHostEnabled') == 'true';
+      final savedHost = await outbox.state('lanHostEnabled') != 'false';
       connectionMode = await outbox.state('syncConnectionMode') == 'cloud'
           ? SyncConnectionMode.cloud
           : SyncConnectionMode.lan;
@@ -189,6 +189,47 @@ class SyncController extends ChangeNotifier {
     await auth.logout();
     devices = [];
     conflicts = [];
+  });
+
+  bool accountFileCleanupPending = false;
+
+  Future<void> _disconnectCloudAccount() async {
+    final wasCloud = cloudEnabled;
+    cloudEnabled = false;
+    host.cloudActive = false;
+    await outbox.saveState('cloudEnabled', 'false');
+    if (wasCloud) await _stopEngine();
+    devices = [];
+    conflicts = [];
+    // Keep business rows, files and binding:cloud. A new account must use an
+    // independent workspace rather than uploading the deleted account's data.
+  }
+
+  Future<void> resetPassword({
+    required String email,
+    required String password,
+    required String confirm,
+    required String verificationTicket,
+  }) => run(() async {
+    final isCurrentAccount = auth.email == email.trim().toLowerCase();
+    await auth.resetPassword(
+      email: email,
+      password: password,
+      confirm: confirm,
+      verificationTicket: verificationTicket,
+    );
+    if (isCurrentAccount) await _disconnectCloudAccount();
+  });
+
+  Future<void> deleteAccount({
+    required String password,
+    required String verificationTicket,
+  }) => run(() async {
+    accountFileCleanupPending = await auth.deleteAccount(
+      password: password,
+      verificationTicket: verificationTicket,
+    );
+    await _disconnectCloudAccount();
   });
   Future<void> configureServer(String value) => run(() async {
     final checked = _serverInput(value).toString();
@@ -299,6 +340,15 @@ class SyncController extends ChangeNotifier {
     await outbox.saveState('lanHostEnabled', 'false');
     await outbox.saveState('lanClientEnabled', 'false');
     await outbox.saveState('syncConnectionMode', value.name);
+    if (value == SyncConnectionMode.lan) {
+      if (!isMobile) {
+        await _startHost();
+        await outbox.saveState('lanHostEnabled', 'true');
+      } else if (lanToken != null && lanEndpoint != null) {
+        await _startLanClient();
+        await outbox.saveState('lanClientEnabled', 'true');
+      }
+    }
   });
   Future<void> setHost(bool value, int port) => run(() async {
     if (value) {
@@ -323,6 +373,7 @@ class SyncController extends ChangeNotifier {
     host.syncFiles = lanFiles;
     host.cloudActive = cloudEnabled;
     await host.start(port: lanPort);
+    lanPort = host.port;
     try {
       addresses = await host.addresses();
       if (!cloudEnabled) {
@@ -618,6 +669,17 @@ class SyncController extends ChangeNotifier {
   });
 
   void _changed() {
+    if (cloudEnabled && auth.userId == null) {
+      error = '云端登录已失效，请重新登录 / Cloud session ended. Please sign in again.';
+      unawaited(
+        _disconnectCloudAccount().then((_) => _notify()).catchError((
+          Object failure,
+        ) {
+          error = _errorText(failure);
+          _notify();
+        }),
+      );
+    }
     if (isMobile && engine?.enabled == false) {
       notifications?.dispose();
       notifications = null;

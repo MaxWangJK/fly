@@ -47,7 +47,7 @@ void main() {
     );
     await tester.tap(find.byKey(const ValueKey('primary-settings')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('settings-category-1')));
+    await tester.tap(find.byKey(const ValueKey('settings-category-2')));
     await tester.pumpAndSettle();
     expect(
       tester.getTopLeft(find.byKey(const ValueKey('palette-flyDefault'))).dy,

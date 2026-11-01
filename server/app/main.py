@@ -1,4 +1,5 @@
 import asyncio
+from contextlib import asynccontextmanager, suppress
 from collections import defaultdict, deque
 from datetime import timedelta, timezone
 import hashlib
@@ -19,7 +20,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 from .config import Settings
 from .models import Base, Device, DeviceEnrollmentCode, FileBlob, FileUploadSession, RefreshToken, SyncChange, SyncConflict, SyncRecord, User, now
-from .schemas import CaptchaInput, Credentials, DeviceEnrollmentInput, PushInput, RefreshInput, RegisterCredentials, SendCodeInput, UploadInput, VerifyEmailInput
+from .schemas import CaptchaInput, Credentials, DeleteAccountInput, DeviceEnrollmentInput, PushInput, RefreshInput, RegisterCredentials, ResetPasswordInput, SendCodeInput, UploadInput, VerifyEmailInput
+from .account_lifecycle import cleanup_deleted_accounts, erase_account, invalidate_sessions
 from .email_registration import EmailRegistration
 from .verification_mail import VerificationMailer
 from .storage import LocalDiskBlobStorage
@@ -77,9 +79,30 @@ def create_app(settings=None, engine=None, mailer=None):
     storage = LocalDiskBlobStorage(settings.storage_root)
     password_hasher = PasswordHasher()
     dummy_hash = password_hasher.hash(secrets.token_urlsafe(32))
-    app = FastAPI(title='Fly Sync', version='2.0.0')
+    async def cleanup_loop():
+        while True:
+            await asyncio.sleep(60)
+            try:
+                await asyncio.to_thread(cleanup_deleted_accounts, sessions, storage)
+            except Exception:
+                # A temporary database/storage outage must not stop future retries.
+                continue
+
+    @asynccontextmanager
+    async def lifespan(app):
+        await asyncio.to_thread(cleanup_deleted_accounts, sessions, storage)
+        cleanup = asyncio.create_task(cleanup_loop())
+        try:
+            yield
+        finally:
+            cleanup.cancel()
+            with suppress(asyncio.CancelledError):
+                await cleanup
+
+    app = FastAPI(title='Fly Sync', version='2.0.0', lifespan=lifespan)
     app.state.engine, app.state.settings = engine, settings
     app.state.email_registration = registration
+    app.state.storage = storage
     allowed_hosts = [host.strip() for host in settings.allowed_hosts.split(',') if host.strip()]
     # Host headers retain brackets around IPv6 literals; configuration may omit them.
     allowed_hosts = [f'[{host}]' if ':' in host and not host.startswith('[') else host
@@ -99,7 +122,7 @@ def create_app(settings=None, engine=None, mailer=None):
     @app.middleware('http')
     async def private_auth_responses(request, call_next):
         response = await call_next(request)
-        if request.url.path.startswith('/api/auth/'):
+        if request.url.path.startswith(('/api/auth/', '/api/account/')):
             response.headers['Cache-Control'] = 'no-store'
         return response
 
@@ -137,12 +160,21 @@ def create_app(settings=None, engine=None, mailer=None):
         authorization = request.headers.get('authorization', '')
         if not authorization.startswith('Bearer '):
             raise HTTPException(401, 'Authentication required')
-        return token_device(authorization[7:], db)
+        device = token_device(authorization[7:], db)
+        # Serialize with deletion/reset before serving authenticated requests.
+        lock_user(db, device.user_id)
+        db.refresh(device)
+        if device.revoked_at:
+            raise HTTPException(401, 'Invalid session')
+        return device
 
     def lock_user(db, user_id):
         # Serialize ALL writes for a workspace, including the first creation of a record.
         # This also guarantees that user-specific cursor order follows commit order.
-        return db.scalar(select(User).where(User.id == user_id).with_for_update())
+        user = db.scalar(select(User).where(User.id == user_id).with_for_update().execution_options(populate_existing=True))
+        if not user:
+            raise HTTPException(401, 'Invalid session')
+        return user
 
     def require_file_sync(db, device):
         if not settings.cloud_file_transfer_enabled:
@@ -178,7 +210,9 @@ def create_app(settings=None, engine=None, mailer=None):
         return {'status': 'ok', 'apiVersion': 1, 'serverTime': now().isoformat(),
                 'capabilities': {'automaticMerge': True, 'deviceEnrollment': settings.device_enrollment_enabled,
                                  'fileContents': settings.cloud_file_transfer_enabled,
-                                 'emailRegistration': settings.allow_password_auth}}
+                                 'emailRegistration': settings.allow_password_auth,
+                                 'passwordReset': settings.allow_password_auth,
+                                 'deleteAccount': settings.allow_password_auth}}
 
     def email_auth_enabled():
         if not settings.allow_password_auth:
@@ -199,6 +233,14 @@ def create_app(settings=None, engine=None, mailer=None):
             if user.email_verified_at:
                 raise HTTPException(409, 'This account already has a verified email')
             user_id = user.id
+        elif body.purpose == 'delete':
+            device = authenticated(request, db)
+            user = db.get(User, device.user_id)
+            if not user.email_verified_at or user.email != str(body.email):
+                raise HTTPException(400, 'Use this account\'s verified email')
+            user_id = user.id
+        # Reset requests deliberately do not look up the email. Every address
+        # receives the same verification flow, with no account-existence oracle.
         return registration.create(db, str(body.email), body.purpose, user_id)
 
     @app.post('/api/auth/registration/send-code')
@@ -274,7 +316,7 @@ def create_app(settings=None, engine=None, mailer=None):
         email_auth_enabled()
         rate_limit(request)
         registration.limit(db, f'login:{body.email}', 15, 600)
-        user = db.scalar(select(User).where(User.email == str(body.email).lower()))
+        user = db.scalar(select(User).where(User.email == str(body.email).lower()).with_for_update())
         try:
             password_hasher.verify(user.password_hash if user else dummy_hash, body.password)
         except (VerificationError, InvalidHashError):
@@ -288,11 +330,16 @@ def create_app(settings=None, engine=None, mailer=None):
 
     @app.post('/api/auth/refresh')
     def refresh(body: RefreshInput, db: Session = Depends(database)):
-        token = db.scalar(select(RefreshToken).where(RefreshToken.token_hash == digest(body.refresh_token)).with_for_update())
+        token = db.get(RefreshToken, digest(body.refresh_token))
         if not token or token.revoked_at or aware(token.expires_at) <= now():
             raise HTTPException(401, 'Invalid refresh token')
-        device = db.scalar(select(Device).where(Device.id == token.device_id).with_for_update())
-        if device.revoked_at:
+        device = db.get(Device, token.device_id)
+        if not device:
+            raise HTTPException(401, 'Invalid session')
+        lock_user(db, device.user_id)
+        db.refresh(token)
+        db.refresh(device)
+        if token.revoked_at or device.revoked_at:
             raise HTTPException(401, 'Revoked device')
         token.revoked_at = now()
         result = issue(db, device)
@@ -305,6 +352,52 @@ def create_app(settings=None, engine=None, mailer=None):
         db.commit()
         return {'ok': True}
 
+    @app.post('/api/auth/password/reset')
+    def reset_password(body: ResetPasswordInput, request: Request, db: Session = Depends(database)):
+        email_auth_enabled()
+        auth_ip_limit(db, request, 'reset', 15)
+        user = db.scalar(select(User).where(User.email == str(body.email)).with_for_update())
+        # Hash even for an unknown address; the user has to own the mailbox to
+        # reach this stage. Do not create an account as part of recovery.
+        hashed = password_hasher.hash(body.password)
+        registration.proof(db, body, 'reset')
+        if not user or not user.email_verified_at:
+            raise HTTPException(400, 'Email verification expired; verify again')
+        user.password_hash = hashed
+        invalidate_sessions(db, user)
+        db.commit()
+        notification_sent = True
+        try:
+            registration.mailer.send_password_changed(str(body.email))
+        except Exception:
+            notification_sent = False
+        return {'ok': True, 'signInRequired': True, 'notificationSent': notification_sent}
+
+    @app.post('/api/account/delete')
+    def delete_account(body: DeleteAccountInput, request: Request, device=Depends(authenticated), db: Session = Depends(database)):
+        email_auth_enabled()
+        auth_ip_limit(db, request, 'delete', 10)
+        # Rate counters commit: acquire the workspace lock again and reject
+        # a session that was revoked while waiting for it.
+        user = lock_user(db, device.user_id)
+        db.refresh(device)
+        if device.revoked_at:
+            raise HTTPException(401, 'Invalid session')
+        registration.limit(db, f'delete:{user.id}', 5, 600)
+        user = lock_user(db, device.user_id)
+        db.refresh(device)
+        if device.revoked_at:
+            raise HTTPException(401, 'Invalid session')
+        registration.proof(db, body, 'delete', user.id)
+        try:
+            password_hasher.verify(user.password_hash, body.password)
+        except (VerificationError, InvalidHashError):
+            raise HTTPException(400, 'Account password is incorrect') from None
+        user_id = user.id
+        erase_account(db, user)
+        pending = cleanup_deleted_accounts(sessions, storage, user_id)
+        return {'ok': True, 'localDataPreserved': True, 'fileCleanupPending': pending}
+
     @app.get('/api/account/me')
     def me(device=Depends(authenticated), db: Session = Depends(database)):
         user = db.get(User, device.user_id)
@@ -312,7 +405,8 @@ def create_app(settings=None, engine=None, mailer=None):
         count = db.scalar(select(func.count()).select_from(SyncRecord).where(SyncRecord.user_id == user.id,
             SyncRecord.entity_type == 'attachments', SyncRecord.deleted_at.is_(None)))
         return {'userId': user.id, 'email': user.email, 'fileCount': count, 'blobCount': blob_count, 'fileStorageBytes': size,
-                'capabilities': {'deleteAccount': False, 'passwordReset': False}}
+                'capabilities': {'deleteAccount': settings.allow_password_auth and user.email_verified_at is not None,
+                                 'passwordReset': settings.allow_password_auth}}
 
     @app.get('/api/devices')
     def devices(device=Depends(authenticated), db: Session = Depends(database)):

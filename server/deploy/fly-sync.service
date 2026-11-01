@@ -1,0 +1,32 @@
+[Unit]
+Description=Fly cloud sync API
+Wants=postgresql.service
+After=network.target postgresql.service
+StartLimitIntervalSec=120
+StartLimitBurst=10
+
+[Service]
+Type=exec
+User=fly-sync
+Group=fly-sync
+WorkingDirectory=/opt/fly-sync/server
+EnvironmentFile=/opt/fly-sync/server/.env
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStartPre=/opt/fly-sync/server/.venv/bin/alembic upgrade head
+ExecStart=/opt/fly-sync/server/.venv/bin/uvicorn app.asgi:app --host 127.0.0.1 --port 18766 --workers 1 --proxy-headers --forwarded-allow-ips=127.0.0.1
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=120
+TimeoutStopSec=45
+StateDirectory=fly
+StateDirectoryMode=0750
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/fly
+
+[Install]
+WantedBy=multi-user.target

@@ -56,6 +56,13 @@ class AuthRateBucket(Base):
     count: Mapped[int] = mapped_column(Integer, default=0)
 
 
+class AccountDeletionCleanup(Base):
+    """No foreign key: cleanup must survive deletion of the account itself."""
+    __tablename__ = 'account_deletion_cleanup'
+    user_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
 class Device(Base):
     __tablename__ = 'devices'
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)

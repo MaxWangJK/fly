@@ -163,7 +163,7 @@ void main() {
     }
     await tester.tap(find.byKey(const ValueKey('primary-settings')));
     await _pumpUi(tester);
-    await tester.tap(find.byKey(const ValueKey('settings-category-1')));
+    await tester.tap(find.byKey(const ValueKey('settings-category-2')));
     await _pumpUi(tester);
     expect(find.byKey(const ValueKey('palette-mintCloud')), findsOneWidget);
     expect(find.byKey(const ValueKey('palette-sageMist')), findsOneWidget);

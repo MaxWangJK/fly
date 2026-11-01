@@ -309,7 +309,11 @@ void main() {
               find.byKey(ValueKey('mobile-file-folder-$source')),
             );
           } else {
-            await tester.tap(find.text('原目录'));
+            await tester.tap(find.text('我的文件').first);
+            await settle();
+            await tester.tap(
+              find.byKey(ValueKey('desktop-file-folder-$source')),
+            );
           }
           await settle();
 
@@ -400,9 +404,15 @@ void main() {
             await settle();
             await tester.tap(find.byKey(ValueKey('mobile-file-folder-$child')));
           } else {
-            await tester.tap(find.byTooltip('展开'));
+            await tester.tap(find.text('我的文件').first);
             await settle();
-            await tester.tap(find.text('相册'));
+            await tester.tap(
+              find.byKey(ValueKey('desktop-file-folder-$target')),
+            );
+            await settle();
+            await tester.tap(
+              find.byKey(ValueKey('desktop-file-folder-$child')),
+            );
           }
           await settle();
           await selectBoth();

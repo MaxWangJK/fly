@@ -1,3 +1,5 @@
+import 'package:flutter/gestures.dart';
+
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -57,7 +59,7 @@ void main() {
   });
 
   testWidgets(
-    'small/medium/list preserve selection and parent tree remains independent',
+    'small/medium/list preserve selection and flat folders navigate independently',
     (tester) async {
       tester.view.physicalSize = const Size(1400, 900);
       tester.view.devicePixelRatio = 1;
@@ -141,19 +143,46 @@ void main() {
             .mode,
         FileViewMode.list,
       );
-      await tester.tap(find.text('产品资料'));
+      await tester.tap(find.text('我的文件').first);
+      await settle(tester);
+      await tester.tap(find.byKey(ValueKey('desktop-file-folder-$parent')));
       await settle(tester);
       expect(find.text('产品价格表.pdf'), findsOneWidget);
       expect(find.text('安装手册.pdf'), findsNothing);
-      await tester.tap(find.byTooltip('展开'));
-      await settle(tester);
       expect(find.text('室内产品'), findsOneWidget);
-      await tester.tap(find.text('产品资料'));
+      expect(find.byTooltip('展开'), findsNothing);
+      await tester.tap(find.text('室内产品'));
       await settle(tester);
-      expect(find.text('室内产品'), findsOneWidget);
-      await tester.tap(find.byTooltip('收起'));
+      expect(find.text('安装手册.pdf'), findsOneWidget);
+      expect(find.text('产品价格表.pdf'), findsNothing);
+      await tester.tap(find.text('› 产品资料'));
       await settle(tester);
-      expect(find.text('室内产品'), findsNothing);
+      expect(find.text('产品价格表.pdf'), findsOneWidget);
+      await tester.tapAt(
+        tester.getBottomRight(browser) - const Offset(24, 24),
+        kind: PointerDeviceKind.mouse,
+        buttons: kSecondaryMouseButton,
+      );
+      await settle(tester);
+      await tester.tap(find.text('新建文件夹').last);
+      await settle(tester);
+      await tester.enterText(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.byType(TextField),
+        ),
+        '空白处新建',
+      );
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.byType(FilledButton),
+        ),
+      );
+      await settle(tester);
+      expect(find.text('› 空白处新建'), findsOneWidget);
+      await tester.tap(find.text('› 产品资料'));
+      await settle(tester);
       await tester.tap(find.byTooltip('视图模式'));
       await settle(tester);
       await tester.tap(

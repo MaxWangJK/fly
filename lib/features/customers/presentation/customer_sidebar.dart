@@ -1,3 +1,6 @@
+import '../domain/customer_lifecycle.dart';
+import '../../../l10n/fly_localizations.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../../l10n/crm_copy.dart';
@@ -323,8 +326,6 @@ class _CrmConfigDialog extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final statuses =
-        ref.watch(allCustomerStatusesProvider).valueOrNull ?? const [];
     final sources =
         ref.watch(allCustomerSourcesProvider).valueOrNull ?? const [];
     return DefaultTabController(
@@ -345,57 +346,20 @@ class _CrmConfigDialog extends ConsumerWidget {
               Expanded(
                 child: TabBarView(
                   children: [
-                    _ConfigList(
-                      names: statuses.map((item) => item.name).toList(),
-                      colors: statuses.map((item) => item.colorValue).toList(),
-                      active: statuses.map((item) => item.isActive).toList(),
-                      onAdd: () async {
-                        final name = await _askName(
-                          context,
-                          context.crmCopy('新增客户状态'),
-                        );
-                        if (name != null) {
-                          await ref
-                              .read(customerRepositoryProvider)
-                              .createStatus(
-                                name,
-                                colorValue:
-                                    _configColors[statuses.length %
-                                        _configColors.length],
-                              );
-                        }
-                      },
-                      onRename: (index) async {
-                        final name = await _askName(
-                          context,
-                          context.crmCopy('重命名客户状态'),
-                          statuses[index].name,
-                        );
-                        if (name != null) {
-                          await ref
-                              .read(customerRepositoryProvider)
-                              .renameStatus(statuses[index].id, name);
-                        }
-                      },
-                      onToggle: (index) => ref
-                          .read(customerRepositoryProvider)
-                          .setStatusActive(
-                            statuses[index].id,
-                            active: !statuses[index].isActive,
+                    ListView(
+                      children: [
+                        for (final stage in CustomerLifecycle.stages)
+                          ListTile(
+                            leading: Icon(
+                              Icons.circle,
+                              size: 12,
+                              color: Color(stage.$4),
+                            ),
+                            title: Text(
+                              context.l10n.isZh ? stage.$2 : stage.$3,
+                            ),
                           ),
-                      onColor: (index, color) => ref
-                          .read(customerRepositoryProvider)
-                          .setStatusColor(statuses[index].id, color),
-                      onMove: (index, delta) {
-                        final reordered = [...statuses];
-                        final item = reordered.removeAt(index);
-                        reordered.insert(index + delta, item);
-                        return ref
-                            .read(customerRepositoryProvider)
-                            .reorderStatuses(
-                              reordered.map((item) => item.id).toList(),
-                            );
-                      },
+                      ],
                     ),
                     _ConfigList(
                       names: sources.map((item) => item.name).toList(),

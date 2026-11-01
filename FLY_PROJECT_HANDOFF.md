@@ -4,6 +4,10 @@
 
 ## 现在的 Git 与版本
 
+**Ubuntu 最新部署方式：**服务器无法下载 Docker，当前推荐 [PostgreSQL + Python 原生部署](server/deploy/ubuntu-native.md)。数据库独立安装，后台通过一条安装命令配置 systemd；原 Nginx/PHP 与同步端口保留，提供独立原生后台源码包。没有操作真实服务器。客户端安装包仍是 build43。
+
+**build43 之后的源码续补：**新增手机/电脑找回与修改密码、注销云账号，后端迁移为 `0004`。源码尚未提交，客户端尚未重新打包；新的原生后台源码包包含账号接口，旧 build43 安装包和旧后台压缩包不含这些新增功能。先阅读 [账号生命周期说明](docs/release/cloud_account_lifecycle_20261101.md)，不要把下面 build43 的验证结果当作本轮结果。
+
 **当前交付 build43：**源码 `55bd11d` 已保存于本地2.0分支，Windows/Android与公开Ubuntu后台包已构建，完整客户端405项、后台41项通过，静态检查无问题。未推送，Ubuntu由用户自行部署。[本轮交付](docs/release/fly_2_0_7_build43.md)、[API与同步策略](docs/architecture/cloud_sync_runtime_20261101.md)、[详细部署](server/deploy/cloud_sync_20261101.md)。以下旧阶段未提交/未打包描述以本条及 CURRENT_STATE 为准。
 
 - 当前分支：`codex/fly-2-sync`；build43 源码检查点 `55bd11d` 包含云同步、邮箱账号、双复盘及此前功能。历史文件移动/表头为 `96261db`，build41/42 与内部工具为 `311c7b3`；最新交付文档提交用 `git log -1 --oneline` 核对，官网独立修改另行保留。
@@ -24,7 +28,7 @@
 1. [FLY_REQUIREMENTS.md](docs/handoff/FLY_REQUIREMENTS.md)：产品定位、全部模块、最新有效规则、历史替代、商业与同步、未完成及验收。
 2. [MAC_TRANSFER.md](docs/handoff/MAC_TRANSFER.md)：完整目录转移、真实 FlyData 区分、Mac 工具/缓存/平台验收。
 3. [SOURCES.md](docs/handoff/SOURCES.md)：跨对话来源、19 份需求附件、代码/报告入口、完整性边界。
-4. [USER_REQUIREMENTS_ARCHIVE.md](docs/handoff/USER_REQUIREMENTS_ARCHIVE.md)：127 条历史用户消息及 22 条续补，共 149 条整理摘录；不是待逐条执行的任务单。
+4. [USER_REQUIREMENTS_ARCHIVE.md](docs/handoff/USER_REQUIREMENTS_ARCHIVE.md)：127 条历史用户消息及 25 条续补，共 152 条整理摘录；不是待逐条执行的任务单。
 5. [attachment_manifest.json](docs/handoff/attachment_manifest.json)：19 份需求文本的可迁移副本、来源及原始/当前副本 SHA-256；副本在 `docs/handoff/sources/`。
 6. [CURRENT_STATE.json](docs/handoff/CURRENT_STATE.json)：整理时的版本、Git 和验证快照；继续开发后应重新核对实际状态。
 7. [APK_RELEASES.md](docs/handoff/APK_RELEASES.md)：正式/测试 APK 区分、备案字段、包校验值、公开证书及跨电脑签名迁移；小体积公开材料已随 Git 保存，APK 本体仍在忽略的 `dist/`。

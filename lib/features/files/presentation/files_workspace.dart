@@ -23,7 +23,8 @@ import '../../../l10n/fly_localizations.dart';
 import '../../../shared/attachments/attachment_providers.dart';
 import '../../../shared/data/workspace_folder_repository.dart';
 import '../../../shared/design_system/fly_color_scheme.dart';
-import '../../../shared/design_system/workspace_folder_tree.dart';
+import '../../../shared/design_system/workspace_folder_tree.dart'
+    show workspaceNameDialog;
 import '../../../shared/search/fuzzy_match.dart';
 import '../../customers/presentation/customer_providers.dart';
 import '../../orders/presentation/order_providers.dart';
@@ -1167,46 +1168,7 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
                 icon: const Icon(Icons.add),
               ),
             ),
-            Expanded(
-              child: folders.when(
-                data: (items) => WorkspaceFolderTree(
-                  folders: items,
-                  selectedId: folderId,
-                  selectionColor: clarityStyle
-                      ? null
-                      : context.flyColors.selected,
-                  folderIconColor: clarityStyle
-                      ? null
-                      : context.flyColors.accent,
-                  onSelect: (id) => select(FileCollection.folder, id),
-                  onCreate: createFolder,
-                  onRename: (f) async {
-                    final name = await workspaceNameDialog(
-                      context,
-                      title: context.l10n.t('rename'),
-                      initial: f.name,
-                    );
-                    if (name != null) {
-                      await attempt(
-                        () => ref
-                            .read(fileFolderRepositoryProvider)
-                            .rename(f.id, name),
-                      );
-                    }
-                  },
-                  onDelete: folderDelete,
-                  onReveal: (folder) => attempt(() => revealFolder(folder)),
-                  onFileDrop: (file, id) => attempt(
-                    () =>
-                        ref.read(managedFileRepositoryProvider).move(file, id),
-                  ),
-                ),
-                error: (e, _) => Text(
-                  '${context.l10n.t('filesFolderError')}: ${context.flyError(e)}',
-                ),
-                loading: () => const Center(child: CircularProgressIndicator()),
-              ),
-            ),
+            const Spacer(),
             ListTile(
               dense: true,
               leading: const Icon(Icons.delete_outline),
@@ -1218,267 +1180,304 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
         ),
       ),
     );
-    final browser = ColoredBox(
-      key: const ValueKey('file-browser-background'),
-      color: context.flyColors.surface,
-      child: Column(
-        children: [
-          ColoredBox(
-            color: context.flyColors.surface,
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Wrap(
-                spacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  IconButton(
-                    key: const ValueKey('files-multi-select'),
-                    tooltip: _selecting ? '退出多选' : '多选',
-                    onPressed: _batchBusy
-                        ? null
-                        : () => _setSelecting(!_selecting),
-                    icon: Icon(_selecting ? Icons.close : Icons.checklist),
+    final browser = GestureDetector(
+      key: const ValueKey('desktop-files-blank'),
+      behavior: HitTestBehavior.opaque,
+      onSecondaryTapUp: collection == FileCollection.folder && locateId == null
+          ? (details) async {
+              final overlay =
+                  Overlay.of(context).context.findRenderObject() as RenderBox;
+              final action = await showMenu<String>(
+                context: context,
+                position: RelativeRect.fromRect(
+                  Rect.fromLTWH(
+                    details.globalPosition.dx,
+                    details.globalPosition.dy,
+                    0,
+                    0,
                   ),
-                  if (isPhoneLayout(context))
-                    IconButton(
-                      tooltip: context.l10n.t('filesFolders'),
-                      icon: const Icon(Icons.folder_outlined),
-                      onPressed: () => showModalBottomSheet<void>(
-                        context: context,
-                        useSafeArea: true,
-                        builder: (_) => SizedBox(
-                          height: MediaQuery.sizeOf(context).height * .7,
-                          child: tree,
-                        ),
-                      ),
-                    ),
-                  TextButton(
-                    onPressed: () => select(FileCollection.folder),
-                    child: Text(context.l10n.t('filesRoot')),
+                  Offset.zero & overlay.size,
+                ),
+                items: [
+                  PopupMenuItem(
+                    value: 'folder',
+                    child: Text(context.l10n.t('filesNewFolder')),
                   ),
-                  if (collection == FileCollection.folder)
-                    ..._breadcrumbs(folders.valueOrNull ?? []),
-                  if (collection != FileCollection.folder)
-                    Text(switch (collection) {
-                      FileCollection.recent => context.l10n.t('noteRecent'),
-                      FileCollection.customers => context.l10n.t(
-                        'filesCustomers',
-                      ),
-                      FileCollection.deleted => context.l10n.t('noteDeleted'),
-                      _ => '',
-                    }),
-                  PopupMenuButton<FileViewMode>(
-                    key: const ValueKey('file-view-mode'),
-                    tooltip: context.l10n.t('fileViewMode'),
-                    initialValue: viewMode,
-                    onSelected: (value) {
-                      setState(() => viewMode = value);
-                      _savePreferences();
-                    },
-                    icon: Icon(
-                      viewMode == FileViewMode.list
-                          ? Icons.view_list_outlined
-                          : Icons.grid_view,
-                    ),
-                    itemBuilder: (_) => [
-                      for (final mode
-                          in isPhoneLayout(context)
-                              ? [FileViewMode.small, FileViewMode.list]
-                              : FileViewMode.values)
-                        CheckedPopupMenuItem(
-                          value: mode,
-                          checked: viewMode == mode,
-                          child: Text(
-                            isPhoneLayout(context) && mode == FileViewMode.small
-                                ? '相册'
-                                : context.l10n.t('fileView_${mode.name}'),
-                          ),
-                        ),
-                    ],
-                  ),
-                  if (isPhoneLayout(context))
-                    PopupMenuButton<bool>(
-                      key: const ValueKey('file-kind-order'),
-                      tooltip: '图片和文件顺序',
-                      icon: const Icon(Icons.swap_vert),
-                      onSelected: (v) {
-                        setState(() => imagesFirst = v);
-                        _savePreferences();
-                      },
-                      itemBuilder: (_) => [
-                        for (final value in [true, false])
-                          CheckedPopupMenuItem(
-                            value: value,
-                            checked: imagesFirst == value,
-                            child: Text(value ? '图片在前' : '文件在前'),
-                          ),
-                      ],
-                    ),
-                  TextButton.icon(
-                    onPressed: () => attempt(filters),
-                    icon: const Icon(Icons.filter_list, size: 18),
-                    label: Text(
-                      '${context.l10n.t('filesTagFilter')}${tags.isEmpty && (collection != FileCollection.customers || customerTags.isEmpty) ? '' : ' (${tags.length + (collection == FileCollection.customers ? customerTags.length : 0)})'}',
-                    ),
-                  ),
-                  PopupMenuButton<FileSort>(
-                    tooltip: context.l10n.t('filesSort'),
-                    initialValue: sort,
-                    onSelected: (v) {
-                      sort = v;
-                      reload();
-                      _savePreferences();
-                    },
-                    itemBuilder: (_) => [
-                      for (final s in FileSort.values)
-                        PopupMenuItem(
-                          value: s,
-                          child: Text(switch (s) {
-                            FileSort.modified => context.l10n.t('fileModified'),
-                            FileSort.created => context.l10n.t('filesCreated'),
-                            FileSort.name => context.l10n.t('filesName'),
-                            FileSort.type => context.l10n.t('filesType'),
-                            FileSort.size => context.l10n.t('filesSize'),
-                          }),
-                        ),
-                    ],
-                  ),
-                  if (!isPhoneLayout(context) &&
-                      (collection == FileCollection.folder ||
-                          collection == FileCollection.recent))
-                    TextButton.icon(
-                      onPressed: importing
-                          ? null
-                          : () => attempt(() async {
-                              final files = await openFiles();
-                              await importPicked(files);
-                            }),
-                      icon: const Icon(Icons.file_upload_outlined),
-                      label: Text(context.l10n.t('filesImport')),
-                    ),
-                  if (!isPhoneLayout(context) &&
-                      (Platform.isAndroid || Platform.isIOS) &&
-                      (collection == FileCollection.folder ||
-                          collection == FileCollection.recent))
-                    TextButton.icon(
-                      key: const ValueKey('file-take-photo'),
-                      onPressed: importing ? null : () => attempt(takePhoto),
-                      icon: const Icon(Icons.camera_alt_outlined),
-                      label: Text(context.l10n.isZh ? '拍照上传' : 'Take photo'),
-                    ),
-                  if (cutId != null && collection == FileCollection.folder)
-                    TextButton(
-                      onPressed: () => attempt(() async {
-                        await ref
-                            .read(managedFileRepositoryProvider)
-                            .move(cutId!, folderId);
-                        if (mounted) setState(() => cutId = null);
-                      }),
-                      child: Text(context.l10n.t('filesPaste')),
-                    ),
                 ],
-              ),
-            ),
-          ),
-          if (!isPhoneLayout(context))
+              );
+              if (action == 'folder' && mounted) await createFolder(folderId);
+            }
+          : null,
+      child: ColoredBox(
+        key: const ValueKey('file-browser-background'),
+        color: context.flyColors.surface,
+        child: Column(
+          children: [
             ColoredBox(
               color: context.flyColors.surface,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: TextField(
-                  decoration: InputDecoration(
-                    prefixIcon: const Icon(Icons.search),
-                    hintText: context.l10n.t('filesSearch'),
+                padding: const EdgeInsets.all(12),
+                child: Wrap(
+                  spacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    IconButton(
+                      key: const ValueKey('files-multi-select'),
+                      tooltip: _selecting ? '退出多选' : '多选',
+                      onPressed: _batchBusy
+                          ? null
+                          : () => _setSelecting(!_selecting),
+                      icon: Icon(_selecting ? Icons.close : Icons.checklist),
+                    ),
+                    if (isPhoneLayout(context))
+                      IconButton(
+                        tooltip: context.l10n.t('filesFolders'),
+                        icon: const Icon(Icons.folder_outlined),
+                        onPressed: () => showModalBottomSheet<void>(
+                          context: context,
+                          useSafeArea: true,
+                          builder: (_) => SizedBox(
+                            height: MediaQuery.sizeOf(context).height * .7,
+                            child: tree,
+                          ),
+                        ),
+                      ),
+                    TextButton(
+                      onPressed: () => select(FileCollection.folder),
+                      child: Text(context.l10n.t('filesRoot')),
+                    ),
+                    if (collection == FileCollection.folder)
+                      ..._breadcrumbs(folders.valueOrNull ?? []),
+                    if (collection != FileCollection.folder)
+                      Text(switch (collection) {
+                        FileCollection.recent => context.l10n.t('noteRecent'),
+                        FileCollection.customers => context.l10n.t(
+                          'filesCustomers',
+                        ),
+                        FileCollection.deleted => context.l10n.t('noteDeleted'),
+                        _ => '',
+                      }),
+                    PopupMenuButton<FileViewMode>(
+                      key: const ValueKey('file-view-mode'),
+                      tooltip: context.l10n.t('fileViewMode'),
+                      initialValue: viewMode,
+                      onSelected: (value) {
+                        setState(() => viewMode = value);
+                        _savePreferences();
+                      },
+                      icon: Icon(
+                        viewMode == FileViewMode.list
+                            ? Icons.view_list_outlined
+                            : Icons.grid_view,
+                      ),
+                      itemBuilder: (_) => [
+                        for (final mode
+                            in isPhoneLayout(context)
+                                ? [FileViewMode.small, FileViewMode.list]
+                                : FileViewMode.values)
+                          CheckedPopupMenuItem(
+                            value: mode,
+                            checked: viewMode == mode,
+                            child: Text(
+                              isPhoneLayout(context) &&
+                                      mode == FileViewMode.small
+                                  ? '相册'
+                                  : context.l10n.t('fileView_${mode.name}'),
+                            ),
+                          ),
+                      ],
+                    ),
+                    if (isPhoneLayout(context))
+                      PopupMenuButton<bool>(
+                        key: const ValueKey('file-kind-order'),
+                        tooltip: '图片和文件顺序',
+                        icon: const Icon(Icons.swap_vert),
+                        onSelected: (v) {
+                          setState(() => imagesFirst = v);
+                          _savePreferences();
+                        },
+                        itemBuilder: (_) => [
+                          for (final value in [true, false])
+                            CheckedPopupMenuItem(
+                              value: value,
+                              checked: imagesFirst == value,
+                              child: Text(value ? '图片在前' : '文件在前'),
+                            ),
+                        ],
+                      ),
+                    TextButton.icon(
+                      onPressed: () => attempt(filters),
+                      icon: const Icon(Icons.filter_list, size: 18),
+                      label: Text(
+                        '${context.l10n.t('filesTagFilter')}${tags.isEmpty && (collection != FileCollection.customers || customerTags.isEmpty) ? '' : ' (${tags.length + (collection == FileCollection.customers ? customerTags.length : 0)})'}',
+                      ),
+                    ),
+                    PopupMenuButton<FileSort>(
+                      tooltip: context.l10n.t('filesSort'),
+                      initialValue: sort,
+                      onSelected: (v) {
+                        sort = v;
+                        reload();
+                        _savePreferences();
+                      },
+                      itemBuilder: (_) => [
+                        for (final s in FileSort.values)
+                          PopupMenuItem(
+                            value: s,
+                            child: Text(switch (s) {
+                              FileSort.modified => context.l10n.t(
+                                'fileModified',
+                              ),
+                              FileSort.created => context.l10n.t(
+                                'filesCreated',
+                              ),
+                              FileSort.name => context.l10n.t('filesName'),
+                              FileSort.type => context.l10n.t('filesType'),
+                              FileSort.size => context.l10n.t('filesSize'),
+                            }),
+                          ),
+                      ],
+                    ),
+                    if (!isPhoneLayout(context) &&
+                        (collection == FileCollection.folder ||
+                            collection == FileCollection.recent))
+                      TextButton.icon(
+                        onPressed: importing
+                            ? null
+                            : () => attempt(() async {
+                                final files = await openFiles();
+                                await importPicked(files);
+                              }),
+                        icon: const Icon(Icons.file_upload_outlined),
+                        label: Text(context.l10n.t('filesImport')),
+                      ),
+                    if (!isPhoneLayout(context) &&
+                        (Platform.isAndroid || Platform.isIOS) &&
+                        (collection == FileCollection.folder ||
+                            collection == FileCollection.recent))
+                      TextButton.icon(
+                        key: const ValueKey('file-take-photo'),
+                        onPressed: importing ? null : () => attempt(takePhoto),
+                        icon: const Icon(Icons.camera_alt_outlined),
+                        label: Text(context.l10n.isZh ? '拍照上传' : 'Take photo'),
+                      ),
+                    if (cutId != null && collection == FileCollection.folder)
+                      TextButton(
+                        onPressed: () => attempt(() async {
+                          await ref
+                              .read(managedFileRepositoryProvider)
+                              .move(cutId!, folderId);
+                          if (mounted) setState(() => cutId = null);
+                        }),
+                        child: Text(context.l10n.t('filesPaste')),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            if (!isPhoneLayout(context))
+              ColoredBox(
+                color: context.flyColors.surface,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: TextField(
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.search),
+                      hintText: context.l10n.t('filesSearch'),
+                    ),
+                    onChanged: (s) {
+                      search = s;
+                      _selectedFiles.clear();
+                      reload();
+                    },
                   ),
-                  onChanged: (s) {
-                    search = s;
-                    _selectedFiles.clear();
+                ),
+              ),
+            if (collection == FileCollection.folder)
+              Material(
+                type: MaterialType.transparency,
+                child: CheckboxListTile(
+                  dense: true,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  title: Text(context.l10n.t('filesIncludeChildren')),
+                  value: includeChildren,
+                  onChanged: (v) {
+                    includeChildren = v == true;
                     reload();
+                    _selectedFiles.clear();
+                    _savePreferences();
+                  },
+                ),
+              ),
+            if (importing)
+              Row(
+                children: [
+                  Expanded(child: LinearProgressIndicator(value: progress)),
+                  TextButton(
+                    onPressed: () => cancellation?.cancel(),
+                    child: Text(context.l10n.t('filesCancelImport')),
+                  ),
+                ],
+              ),
+            if (collection == FileCollection.deleted)
+              StreamBuilder<List<WorkspaceFolder>>(
+                stream: ref
+                    .read(fileFolderRepositoryProvider)
+                    .watch(deleted: true),
+                builder: (context, snapshot) => Wrap(
+                  children: [
+                    for (final f in snapshot.data ?? <WorkspaceFolder>[])
+                      TextButton.icon(
+                        onPressed: () => attempt(
+                          () => ref
+                              .read(fileFolderRepositoryProvider)
+                              .restore(f.id),
+                        ),
+                        icon: const Icon(Icons.restore, size: 16),
+                        label: Text('${context.l10n.t('restore')} ${f.name}'),
+                      ),
+                  ],
+                ),
+              ),
+            Expanded(
+              child: DropTarget(
+                onDragDone: (details) => attempt(
+                  () => importPaths(details.files.map((f) => f.path).toList()),
+                ),
+                child: StreamBuilder<List<FileBrowserEntry>>(
+                  stream: rows,
+                  builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      return Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(context.l10n.t('filesLoadError')),
+                            TextButton(
+                              onPressed: reload,
+                              child: Text(context.l10n.t('licenseRetryShort')),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                    if (!snapshot.hasData) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    final entries = snapshot.data!;
+                    final directories = _desktopDirectories(
+                      folders.valueOrNull ?? [],
+                    );
+                    if (entries.isEmpty && directories.isEmpty) {
+                      return Center(child: Text(context.l10n.t('filesEmpty')));
+                    }
+                    return fileResults(entries);
                   },
                 ),
               ),
             ),
-          if (collection == FileCollection.folder)
-            Material(
-              type: MaterialType.transparency,
-              child: CheckboxListTile(
-                dense: true,
-                controlAffinity: ListTileControlAffinity.leading,
-                title: Text(context.l10n.t('filesIncludeChildren')),
-                value: includeChildren,
-                onChanged: (v) {
-                  includeChildren = v == true;
-                  reload();
-                  _selectedFiles.clear();
-                  _savePreferences();
-                },
-              ),
-            ),
-          if (importing)
-            Row(
-              children: [
-                Expanded(child: LinearProgressIndicator(value: progress)),
-                TextButton(
-                  onPressed: () => cancellation?.cancel(),
-                  child: Text(context.l10n.t('filesCancelImport')),
-                ),
-              ],
-            ),
-          if (collection == FileCollection.deleted)
-            StreamBuilder<List<WorkspaceFolder>>(
-              stream: ref
-                  .read(fileFolderRepositoryProvider)
-                  .watch(deleted: true),
-              builder: (context, snapshot) => Wrap(
-                children: [
-                  for (final f in snapshot.data ?? <WorkspaceFolder>[])
-                    TextButton.icon(
-                      onPressed: () => attempt(
-                        () => ref
-                            .read(fileFolderRepositoryProvider)
-                            .restore(f.id),
-                      ),
-                      icon: const Icon(Icons.restore, size: 16),
-                      label: Text('${context.l10n.t('restore')} ${f.name}'),
-                    ),
-                ],
-              ),
-            ),
-          Expanded(
-            child: DropTarget(
-              onDragDone: (details) => attempt(
-                () => importPaths(details.files.map((f) => f.path).toList()),
-              ),
-              child: StreamBuilder<List<FileBrowserEntry>>(
-                stream: rows,
-                builder: (context, snapshot) {
-                  if (snapshot.hasError) {
-                    return Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(context.l10n.t('filesLoadError')),
-                          TextButton(
-                            onPressed: reload,
-                            child: Text(context.l10n.t('licenseRetryShort')),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-                  if (!snapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  final entries = snapshot.data!;
-                  if (entries.isEmpty) {
-                    return Center(child: Text(context.l10n.t('filesEmpty')));
-                  }
-                  return fileResults(entries);
-                },
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
     return CallbackShortcuts(
@@ -1608,9 +1607,12 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
       ),
     );
     if (!mounted) return;
-    if (action == 'delete') await folderDelete(folder);
+    if (action == 'delete') {
+      await folderDelete(folder);
+      return;
+    }
     if (!mounted) return;
-    if (action == 'rename') {
+    if (action == 'rename' && mounted) {
       final name = await workspaceNameDialog(
         context,
         title: context.l10n.t('rename'),
@@ -1998,6 +2000,102 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
     ];
   }
 
+  List<WorkspaceFolder> _desktopDirectories(List<WorkspaceFolder> items) =>
+      collection != FileCollection.folder || locateId != null
+      ? []
+      : items
+            .where(
+              (folder) =>
+                  folder.parentId == folderId &&
+                  (search.trim().isEmpty ||
+                      FuzzyMatch.matches(search, [folder.name])),
+            )
+            .toList();
+
+  Future<void> _desktopFolderMenu(WorkspaceFolder folder, Offset point) async {
+    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
+    final action = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromRect(
+        Rect.fromLTWH(point.dx, point.dy, 0, 0),
+        Offset.zero & overlay.size,
+      ),
+      items: [
+        PopupMenuItem(value: 'rename', child: Text(context.l10n.t('rename'))),
+        PopupMenuItem(value: 'delete', child: Text(context.l10n.t('delete'))),
+      ],
+    );
+    if (!mounted) return;
+    if (action == 'delete') await folderDelete(folder);
+    if (action == 'rename' && mounted) {
+      final name = await workspaceNameDialog(
+        context,
+        title: context.l10n.t('rename'),
+        initial: folder.name,
+      );
+      if (name != null && mounted) {
+        await attempt(
+          () => ref.read(fileFolderRepositoryProvider).rename(folder.id, name),
+        );
+      }
+    }
+  }
+
+  Widget _desktopListing(List<FileBrowserEntry> entries) {
+    final directories = _desktopDirectories(
+      ref.watch(fileFoldersProvider).valueOrNull ?? [],
+    );
+    Widget directory(WorkspaceFolder folder) => GestureDetector(
+      key: ValueKey('desktop-file-folder-${folder.id}'),
+      onSecondaryTapDown: (d) => _desktopFolderMenu(folder, d.globalPosition),
+      child: Material(
+        color: context.flyColors.surface,
+        child: ListTile(
+          leading: const Icon(Icons.folder_rounded),
+          title: Text(folder.name),
+          onTap: () => select(FileCollection.folder, folder.id),
+        ),
+      ),
+    );
+    return CustomScrollView(
+      key: const ValueKey('desktop-flat-files'),
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+          sliver: SliverList.builder(
+            itemCount: directories.length,
+            itemBuilder: (_, i) => directory(directories[i]),
+          ),
+        ),
+        if (viewMode == FileViewMode.list)
+          SliverPadding(
+            padding: const EdgeInsets.all(12),
+            sliver: SliverList.builder(
+              itemCount: entries.length,
+              itemBuilder: (_, i) => Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: tile(entries[i]),
+              ),
+            ),
+          )
+        else
+          SliverPadding(
+            padding: const EdgeInsets.all(12),
+            sliver: SliverGrid.builder(
+              gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: viewMode == FileViewMode.small ? 140 : 200,
+                mainAxisExtent: viewMode == FileViewMode.small ? 145 : 190,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+              ),
+              itemCount: entries.length,
+              itemBuilder: (_, i) => tile(entries[i]),
+            ),
+          ),
+      ],
+    );
+  }
+
   Widget fileResults(
     List<FileBrowserEntry> entries, {
     List<Widget> precedingSlivers = const [],
@@ -2014,53 +2112,7 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
     }
     final listing = isPhoneLayout(context)
         ? _phoneListing(entries, precedingSlivers)
-        : viewMode != FileViewMode.list
-        ? GridView.builder(
-            padding: EdgeInsets.fromLTRB(
-              12,
-              12,
-              12,
-              isPhoneLayout(context) ? 144 : 12,
-            ),
-            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: viewMode == FileViewMode.small ? 150 : 170,
-              mainAxisExtent:
-                  (viewMode == FileViewMode.small ? 118 : 156) +
-                  (MediaQuery.textScalerOf(context).scale(26) - 26),
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-            ),
-            itemCount: entries.length,
-            itemBuilder: (_, i) => tile(entries[i]),
-          )
-        : LayoutBuilder(
-            builder: (context, constraints) => SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: SizedBox(
-                width: useCompactLayout(context)
-                    ? constraints.maxWidth
-                    : constraints.maxWidth.clamp(800, double.infinity),
-                child: ListView.builder(
-                  padding: EdgeInsets.fromLTRB(
-                    12,
-                    12,
-                    12,
-                    isPhoneLayout(context) ? 144 : 12,
-                  ),
-                  itemCount: entries.length,
-                  itemBuilder: (_, i) => Padding(
-                    padding: EdgeInsets.only(
-                      bottom:
-                          ref.watch(flyPaletteProvider) == FlyPaletteId.clarity
-                          ? 0
-                          : 6,
-                    ),
-                    child: tile(entries[i]),
-                  ),
-                ),
-              ),
-            ),
-          );
+        : _desktopListing(entries);
     final selected = entries
         .where((f) => _selectedFiles.contains(f.file.id))
         .toList();

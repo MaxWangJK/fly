@@ -1,3 +1,5 @@
+import 'package:fly/features/tasks/presentation/task_providers.dart';
+
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -25,6 +27,7 @@ class _Auth extends AuthService {
   Future<EmailCaptcha> registrationCaptcha(
     String email, {
     bool bind = false,
+    String? purpose,
   }) async {
     images++;
     return EmailCaptcha(
@@ -102,7 +105,10 @@ void main() {
         final db = AppDatabase(NativeDatabase.memory());
         final controller = _Controller(db);
         final container = ProviderContainer(
-          overrides: [syncControllerProvider.overrideWith((ref) => controller)],
+          overrides: [
+            databaseProvider.overrideWithValue(db),
+            syncControllerProvider.overrideWith((ref) => controller),
+          ],
         );
         final boundary = GlobalKey();
         Future<void> settle() async {

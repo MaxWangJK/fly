@@ -107,7 +107,7 @@ server {
 }
 ```
 
-Nginx 不读取 `public/.htaccess`；上面的 `try_files` 负责把 `/account`、`/download` 等路径交给 PHP。只有 `index.php` 可以被 PHP-FPM 执行，其他 `.php` 路径返回 404。
+Nginx 不读取 `public/.htaccess`；上面的 `try_files` 负责把 `/account`、旧 `/download` 等路径交给 PHP。安装包放在 `/var/www/fly/public/downloads/`，由 Nginx 直接提供，详见 [安装包上传说明](downloads.md)。只有 `index.php` 可以被 PHP-FPM 执行，其他 `.php` 路径返回 404。
 
 启用新站点，先检查配置再重载正在运行的 Nginx：
 

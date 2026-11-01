@@ -115,7 +115,9 @@ void main() {
             language == 'zh' ? source : crmEnglish[source] ?? source;
         void checkColumns(String kind, String id, List<String> labels) {
           final header = find.byKey(ValueKey('$kind-list-columns'));
-          final row = find.byKey(ValueKey('$kind-list-row-$id'));
+          final row = find.byKey(
+            ValueKey(phone ? 'phone-$kind-$id' : '$kind-list-row-$id'),
+          );
           expect(header, findsOneWidget);
           final heading = tester.widget<WorkspaceListColumns>(
             find.descendant(
@@ -123,7 +125,14 @@ void main() {
               matching: find.byType(WorkspaceListColumns),
             ),
           );
-          final record = tester.widget<WorkspaceListColumns>(row);
+          final record = tester.widget<WorkspaceListColumns>(
+            phone
+                ? find.descendant(
+                    of: row,
+                    matching: find.byType(WorkspaceListColumns),
+                  )
+                : row,
+          );
           for (final source in labels) {
             expect(
               find.descendant(of: header, matching: find.text(label(source))),
@@ -215,48 +224,25 @@ void main() {
             ),
           );
           await settle();
+          checkColumns('customer', customer.id, ['客户名称', '国家', '客户状态', '最近跟进']);
           if (phone) {
             final row = find.byKey(ValueKey('phone-customer-${customer.id}'));
-            final fields = tester.widgetList<WorkspaceListField>(
+            expect(
               find.descendant(
                 of: row,
                 matching: find.byType(WorkspaceListField),
               ),
+              findsNothing,
             );
             expect(
-              fields.map((f) => f.label),
-              containsAll(['客户名称', '国家', '客户状态', '最近跟进'].map(label)),
+              find.descendant(of: row, matching: find.text('Portugal')),
+              findsOneWidget,
             );
-            expect(
-              fields.firstWhere((f) => f.label == label('国家')).value,
-              'Portugal',
-            );
-          } else {
-            checkColumns('customer', customer.id, [
-              '客户名称',
-              '国家',
-              '客户状态',
-              '最近跟进',
-            ]);
           }
           await capture('customers');
           router.go('/orders/all');
           await settle();
-          if (phone) {
-            final row = find.byKey(ValueKey('phone-order-${order.id}'));
-            final fields = tester.widgetList<WorkspaceListField>(
-              find.descendant(
-                of: row,
-                matching: find.byType(WorkspaceListField),
-              ),
-            );
-            expect(
-              fields.map((f) => f.label),
-              containsAll(['订单号', '客户名称', '订单状态', '订单日期'].map(label)),
-            );
-          } else {
-            checkColumns('order', order.id, ['订单号', '客户名称', '订单状态', '订单日期']);
-          }
+          checkColumns('order', order.id, ['订单号', '客户名称', '订单状态', '订单日期']);
           await capture('orders');
           // Restore controls use the same leading space as their field headings.
           await tester.runAsync(() => orders.softDeleteOrder(order.id));

@@ -11,6 +11,7 @@ import '../../../shared/search/fuzzy_match.dart';
 import '../domain/customer.dart';
 import '../domain/customer_name.dart';
 import '../domain/customer_repository.dart';
+import '../domain/customer_lifecycle.dart';
 
 class DriftCustomerRepository implements CustomerRepository {
   DriftCustomerRepository(this._db);
@@ -101,7 +102,7 @@ class DriftCustomerRepository implements CustomerRepository {
       country: 'UAE',
       city: 'Dubai',
       categoryName: 'A级',
-      statusName: '报价客户',
+      statusName: '意向客户',
       sourceName: 'Exhibition',
       priority: PriorityLevel.high,
       due: day,
@@ -118,7 +119,7 @@ class DriftCustomerRepository implements CustomerRepository {
       country: 'UK',
       city: 'London',
       categoryName: 'B级',
-      statusName: '样品客户',
+      statusName: '意向客户',
       sourceName: 'Google',
       priority: PriorityLevel.medium,
       due: day.add(const Duration(days: 3)),
@@ -132,7 +133,7 @@ class DriftCustomerRepository implements CustomerRepository {
       country: 'Saudi Arabia',
       city: 'Riyadh',
       categoryName: 'C级',
-      statusName: '待跟进',
+      statusName: '开发中',
       sourceName: 'WhatsApp',
       priority: PriorityLevel.medium,
       due: day.subtract(const Duration(days: 1)),
@@ -147,7 +148,7 @@ class DriftCustomerRepository implements CustomerRepository {
       country: 'Thailand',
       city: 'Bangkok',
       categoryName: 'B级',
-      statusName: '询盘客户',
+      statusName: '开发中',
       sourceName: 'Website',
       priority: PriorityLevel.low,
       due: day.add(const Duration(days: 1)),
@@ -366,22 +367,43 @@ class DriftCustomerRepository implements CustomerRepository {
     final query = _db.select(_db.customerStatuses)
       ..where((row) {
         final active = row.deletedAt.isNull();
-        return includeInactive ? active : active & row.isActive.equals(true);
+        return includeInactive
+            ? active
+            : active & row.id.isIn(CustomerLifecycle.stages.map((s) => s.$1));
       })
       ..orderBy([(row) => OrderingTerm.asc(row.sortOrder)]);
-    return query.watch().map(
-      (rows) => rows
+    return query.watch().map((rows) {
+      if (!includeInactive) {
+        final byId = {for (final row in rows) row.id: row};
+        // The simplified lifecycle has a fixed order even when older devices
+        // previously reordered, hid or deleted a status definition.
+        return [
+          for (var i = 0; i < CustomerLifecycle.stages.length; i++)
+            CustomerStatus(
+              id: CustomerLifecycle.stages[i].$1,
+              name: CustomerLifecycle.stages[i].$2,
+              colorValue:
+                  byId[CustomerLifecycle.stages[i].$1]?.colorValue ??
+                  CustomerLifecycle.stages[i].$4,
+              isActive: true,
+              sortOrder: i,
+            ),
+        ];
+      }
+      return rows
           .map(
             (row) => CustomerStatus(
               id: row.id,
-              name: row.name,
+              name: CustomerLifecycle.stages.any((s) => s.$1 == row.id)
+                  ? CustomerLifecycle.label(row.id, zh: true)
+                  : row.name,
               colorValue: row.colorValue,
               isActive: row.isActive,
               sortOrder: row.sortOrder,
             ),
           )
-          .toList(),
-    );
+          .toList();
+    });
   }
 
   @override
@@ -560,54 +582,67 @@ class DriftCustomerRepository implements CustomerRepository {
           .map((rows) => rows.map(_mapCustomFieldValue).toList());
 
   @override
-  Future<Customer> createCustomer({required String name, String? categoryId}) =>
-      _db.transaction(() async {
-        final trimmed = name.trim();
-        if (trimmed.isEmpty) throw ArgumentError.value(name, 'name');
-        await _checkUniqueName(trimmed);
-        if (categoryId != null) {
-          final category =
-              await (_db.select(_db.customerCategories)..where(
-                    (r) =>
-                        r.id.equals(categoryId) &
-                        r.deletedAt.isNull() &
-                        r.isActive.equals(true),
-                  ))
-                  .getSingleOrNull();
-          if (category == null) throw StateError('客户级别不存在或已停用');
-        }
-        final now = DateTime.now();
-        final customer = Customer(
-          id: _uuid.v7(),
-          name: trimmed,
-          companyName: '',
-          country: '',
-          city: '',
-          address: '',
-          website: '',
-          whatsapp: '',
-          email: '',
-          phone: '',
-          facebook: '',
-          linkedIn: '',
-          alibaba: '',
-          instagram: '',
-          wechat: '',
-          customsInfo: '',
-          statusId: 'customer-new',
-          categoryId: categoryId,
-          priority: PriorityLevel.low,
-          notes: '',
-          nextAction: '',
-          sortOrder: now.microsecondsSinceEpoch,
-          createdAt: now,
-          updatedAt: now,
-          version: 1,
-        );
-        await _db.into(_db.customers).insert(_toCompanion(customer));
-        await _syncCategoryTag(customer.id, newCategoryId: categoryId);
-        return customer;
-      });
+  Future<Customer> createCustomer({
+    required String name,
+    String? categoryId,
+    String country = '',
+    String? statusId,
+    String source = '',
+  }) => _db.transaction(() async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) throw ArgumentError.value(name, 'name');
+    await _checkUniqueName(trimmed);
+    if (categoryId != null) {
+      final category =
+          await (_db.select(_db.customerCategories)..where(
+                (r) =>
+                    r.id.equals(categoryId) &
+                    r.deletedAt.isNull() &
+                    r.isActive.equals(true),
+              ))
+              .getSingleOrNull();
+      if (category == null) throw StateError('客户级别不存在或已停用');
+    }
+    final now = DateTime.now();
+    final customer = Customer(
+      id: _uuid.v7(),
+      name: trimmed,
+      companyName: '',
+      country: country.trim(),
+      city: '',
+      address: '',
+      website: '',
+      whatsapp: '',
+      email: '',
+      phone: '',
+      facebook: '',
+      linkedIn: '',
+      alibaba: '',
+      instagram: '',
+      wechat: '',
+      customsInfo: '',
+      statusId: CustomerLifecycle.normalize(statusId),
+      categoryId: categoryId,
+      priority: PriorityLevel.low,
+      notes: '',
+      nextAction: '',
+      sortOrder: now.microsecondsSinceEpoch,
+      createdAt: now,
+      updatedAt: now,
+      version: 1,
+    );
+    await _db.into(_db.customers).insert(_toCompanion(customer));
+    await _syncCategoryTag(customer.id, newCategoryId: categoryId);
+    if (source.trim().isNotEmpty) {
+      await setCustomerSourceText(customer.id, source);
+      return _mapCustomer(
+        await (_db.select(
+          _db.customers,
+        )..where((r) => r.id.equals(customer.id))).getSingle(),
+      );
+    }
+    return customer;
+  });
 
   Future<void> _checkUniqueName(String name, {String? excluding}) async {
     final normalized = normalizeCustomerName(name);
@@ -1602,7 +1637,7 @@ class DriftCustomerRepository implements CustomerRepository {
     wechat: row.wechat,
     customsInfo: row.customsInfo,
     categoryId: row.categoryId,
-    statusId: row.statusId,
+    statusId: CustomerLifecycle.normalize(row.statusId),
     sourceId: row.sourceId,
     priority: PriorityLevel.values.firstWhere(
       (value) => value.name == row.priority,

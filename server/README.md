@@ -1,6 +1,8 @@
 # Fly 2.0 Sync Backend
 
-2026-11-01 当前版本：邮箱注册和密码登录已加入，支持后台图形验证、六位邮箱码、确认密码，以及临时空间绑定邮箱保留数据。当前迁移 `0003`，密码登录默认开启，云端仍不传图片/文件内容。真实发件参数仅存被忽略的 `private/smtp.json`，运行时只读挂载，见 [邮箱配置与验收](../docs/release/email_cloud_auth_20261101.md)。已有官网请使用 [共存部署](deploy/cloud_sync_20261101.md)，后面的旧“设备码阶段/邮箱关闭”说明以本段及新文档为准。
+**当前推荐部署：**[Ubuntu 原生简化部署](deploy/ubuntu-native.md)。PostgreSQL 单独安装，Python 使用虚拟环境与 systemd；上传代码和私有发件配置后执行 `sudo bash deploy/install-native.sh`。无需 Docker，继续使用现有 Nginx、PHP 官网及 `127.0.0.1:18766`。下文容器部署保留为历史可选方式。
+
+2026-11-01 当前源码：邮箱注册、登录、找回/修改密码和注销云账号已加入，支持图形验证、六位邮箱码，以及临时空间绑定邮箱保留数据。迁移已到 `0004`，新增注销后的持久文件清理任务。build43 成品只含到 `0003`，本轮源码尚未重新打包。密码登录默认开启，云端仍不传图片/文件内容。真实发件参数仅存被忽略的 `private/smtp.json`，运行时只读挂载，见 [邮箱配置](../docs/release/email_cloud_auth_20261101.md)、[账号生命周期](../docs/release/cloud_account_lifecycle_20261101.md)。已有官网请使用 [共存部署](deploy/cloud_sync_20261101.md)，后面的旧“设备码阶段/邮箱关闭”说明以本段及新文档为准。
 
 后端目录：`E:\workSpace\fly\server`。已有官网的 Ubuntu 部署使用 `/opt/fly-sync/server`，详见上方共存部署；云端调度与 API 请求形状见 [协议说明](../docs/architecture/cloud_sync_runtime_20261101.md)。
 
@@ -12,6 +14,8 @@ SQLite 仅用于隔离测试，不替代生产 PostgreSQL。
 - `POST /api/sync/enroll-device`：管理员为同一用户空间的每台设备签发一次性码，默认 15 分钟有效，数据库仅存码哈希，一次消费并按 IP 限流；公开接口不能自报用户 ID。
 - `/api/auth/register|login|link-email`：后台图形与六位邮箱码验证后注册，邮箱密码登录；已有临时空间可绑定邮箱保留用户 ID。`/api/auth/refresh|logout`：20 分钟 JWT、30 天设备独立刷新令牌，哈希存储、轮换和撤销。
 - `/api/account/me`、`/api/devices`、`/api/devices/{id}/revoke`：全部按认证用户隔离。
+- `POST /api/auth/password/reset`：reset 专用邮箱证明及确认新密码；保留原用户 ID/业务数据，撤销全部旧设备与令牌，需重新登录。
+- `POST /api/account/delete`：已验证账号的会话、delete 专用证明、当前密码与 `confirmation=DELETE`；永久移除该用户云端数据，本机数据不受影响。旧云文件清理失败后排队重试；表 `account_deletion_cleanup` 仅保留待清理用户 ID 与创建时间，完成即移除。
 - `POST /api/sync/push`：最多 200 条。`mutationId` 幂等，重复 ID 的不同内容返回 409。整个批次提交或回滚。
 - `GET /api/sync/pull?after=0&limit=100`：变更日志游标，最多 200 条、约 4 MiB/页。每条记录最多 1 MiB。
 - `/api/sync/bootstrap`：采用同样的持久变更日志分页，客户端折叠记录历史。当前实现没有快照压缩，首次同步会读取历史变更。

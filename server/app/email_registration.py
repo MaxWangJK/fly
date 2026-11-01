@@ -102,7 +102,7 @@ class EmailRegistration:
         challenge.code_expires_at = now() + timedelta(minutes=5)
         db.commit()
         try:
-            self.mailer.send_code(challenge.email, code)
+            self.mailer.send_code(challenge.email, code, purpose=challenge.purpose)
         except Exception:
             challenge.code_hash = None
             db.commit()

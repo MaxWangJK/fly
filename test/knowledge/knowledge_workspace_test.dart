@@ -77,7 +77,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('primary-settings')));
       await tester.pumpAndSettle();
       expect(find.text('资料库'), findsNothing);
-      await tester.tap(find.byKey(const ValueKey('settings-category-8')));
+      await tester.tap(find.byKey(const ValueKey('settings-category-9')));
       await tester.pumpAndSettle();
       expect(find.text('关于'), findsWidgets);
       await tester.tap(find.byTooltip('关闭设置'));

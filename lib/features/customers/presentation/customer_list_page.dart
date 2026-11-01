@@ -1,3 +1,5 @@
+import 'customer_create_dialog.dart';
+import '../domain/customer_lifecycle.dart';
 import '../../../l10n/service_error_copy.dart';
 
 import 'package:flutter/material.dart';
@@ -10,7 +12,6 @@ import 'package:go_router/go_router.dart';
 import '../../../l10n/fly_localizations.dart';
 
 import '../../../shared/design_system/design_tokens.dart';
-import '../../../shared/design_system/workspace_empty_state.dart';
 import '../../../shared/design_system/destructive_action.dart';
 import '../../../shared/design_system/priority.dart';
 import '../../../shared/formatters/relative_date_formatter.dart';
@@ -19,8 +20,6 @@ import '../../../shared/domain/priority.dart';
 import '../../orders/domain/order.dart';
 import '../../orders/presentation/order_providers.dart';
 import '../domain/customer.dart';
-import '../domain/customer_name.dart';
-import 'customer_duplicate_dialog.dart';
 import '../import/customer_import_dialog.dart';
 import 'customer_providers.dart';
 import '../../../app/shell/mobile_details.dart';
@@ -46,11 +45,7 @@ class _CustomerListPageState extends ConsumerState<CustomerListPage> {
   static const _captureContextMenu = bool.fromEnvironment(
     'FLY_CAPTURE_CUSTOMER_CONTEXT_MENU',
   );
-  final _quickAddController = TextEditingController();
   final _searchController = TextEditingController();
-  final _quickAddFocus = FocusNode();
-  bool _adding = false;
-  bool _creating = false;
   final _followUpPending = <String>{};
 
   void _selectFirstVisible(List<Customer> items) {
@@ -118,53 +113,8 @@ class _CustomerListPageState extends ConsumerState<CustomerListPage> {
 
   @override
   void dispose() {
-    _quickAddController.dispose();
     _searchController.dispose();
-    _quickAddFocus.dispose();
     super.dispose();
-  }
-
-  Future<void> _createCustomer() async {
-    final name = _quickAddController.text.trim();
-    if (name.isEmpty || _creating) return;
-    _creating = true;
-    try {
-      final customer = await ref
-          .read(customerRepositoryProvider)
-          .createCustomer(
-            name: name,
-            categoryId: widget.projection == CustomerProjection.category
-                ? widget.categoryId
-                : null,
-          );
-      if (!mounted) return;
-      _quickAddController.clear();
-      ref.read(selectedCustomerIdProvider.notifier).state = customer.id;
-      if (useCompactLayout(context)) {
-        _searchController.clear();
-        ref.read(customerSearchProvider.notifier).state = '';
-        ref.read(customerTagFilterProvider.notifier).state = {};
-        context.go('/customers/all');
-      }
-      _quickAddFocus.requestFocus();
-    } on DuplicateCustomerName catch (e) {
-      if (!mounted) return;
-      final open = await showCustomerDuplicate(context, e.existing);
-      if (!mounted) return;
-      if (open) {
-        ref.read(selectedCustomerIdProvider.notifier).state = e.existing.id;
-        context.go('/customers/all');
-      } else {
-        _quickAddFocus.requestFocus();
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(context.flyError(e))));
-      }
-    } finally {
-      _creating = false;
-    }
   }
 
   Future<void> _deleteTag(CrmTag tag) async {
@@ -316,221 +266,197 @@ class _CustomerListPageState extends ConsumerState<CustomerListPage> {
       return _phoneCustomers(customers, categories, allTags);
     }
 
-    return SafeArea(
-      child: ColoredBox(
-        color: Theme.of(context).colorScheme.surface,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      _title(categories),
-                      style: Theme.of(context).textTheme.titleLarge
-                          ?.copyWith(fontWeight: FontWeight.w700),
+    return MobileWorkspaceActions(
+      actionId: 'customer',
+      query: ref.watch(customerSearchProvider),
+      searchHint: context.l10n.isZh ? '搜索客户' : 'Search customers',
+      onSearchChanged: (value) =>
+          ref.read(customerSearchProvider.notifier).state = value,
+      showSearchButton: false,
+      onAdd: canCreate ? _addOnPhone : null,
+      addLabel: context.l10n.isZh ? '添加客户' : 'Add customer',
+      child: SafeArea(
+        child: ColoredBox(
+          color: Theme.of(context).colorScheme.surface,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _title(categories),
+                        style: Theme.of(context).textTheme.titleLarge
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
                     ),
-                  ),
-                  IconButton(
-                    key: const ValueKey('import-customers'),
-                    tooltip: context.crmCopy('导入 Excel'),
-                    onPressed: () => showDialog<void>(
-                      context: context,
-                      builder: (context) => const CustomerImportDialog(),
+                    IconButton(
+                      key: const ValueKey('import-customers'),
+                      tooltip: context.crmCopy('导入 Excel'),
+                      onPressed: () => showDialog<void>(
+                        context: context,
+                        builder: (context) => const CustomerImportDialog(),
+                      ),
+                      icon: const Icon(Icons.table_view_outlined, size: 18),
                     ),
-                    icon: const Icon(Icons.table_view_outlined, size: 18),
-                  ),
-                  IconButton(
-                    key: const ValueKey('export-customers'),
-                    tooltip: context.crmCopy('导出 Excel'),
-                    onPressed: () => showFlyExcelExport(
-                      context,
-                      ref,
-                      origin: FlyExportOrigin.customers,
-                      currentIds:
-                          customers.valueOrNull
-                              ?.map((item) => item.id)
-                              .toSet() ??
-                          <String>{},
+                    IconButton(
+                      key: const ValueKey('export-customers'),
+                      tooltip: context.crmCopy('导出 Excel'),
+                      onPressed: () => showFlyExcelExport(
+                        context,
+                        ref,
+                        origin: FlyExportOrigin.customers,
+                        currentIds:
+                            customers.valueOrNull
+                                ?.map((item) => item.id)
+                                .toSet() ??
+                            <String>{},
+                      ),
+                      icon: const Icon(Icons.file_download_outlined, size: 18),
                     ),
-                    icon: const Icon(Icons.file_download_outlined, size: 18),
-                  ),
-                  _SortButton(
-                    value: ref.watch(customerSortProvider),
+                    _SortButton(
+                      value: ref.watch(customerSortProvider),
+                      onChanged: (value) =>
+                          ref.read(customerSortProvider.notifier).state = value,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: FlySpacing.sm),
+                SizedBox(
+                  height: 36,
+                  child: TextField(
+                    key: const ValueKey('customer-search'),
+                    controller: _searchController,
                     onChanged: (value) =>
-                        ref.read(customerSortProvider.notifier).state = value,
+                        ref.read(customerSearchProvider.notifier).state = value,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      hintText: context.crmCopy(
+                        '搜索名称、公司、Email、WhatsApp、Facebook',
+                      ),
+                      prefixIcon: const Icon(Icons.search, size: 17),
+                      prefixIconColor: Theme.of(context)
+                          .colorScheme
+                          .onSurfaceVariant,
+                      prefixIconConstraints: const BoxConstraints(minWidth: 36),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                      suffixIcon: _searchController.text.isEmpty
+                          ? null
+                          : IconButton(
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              icon: const Icon(Icons.close, size: 16),
+                              onPressed: () {
+                                _searchController.clear();
+                                ref
+                                        .read(customerSearchProvider.notifier)
+                                        .state =
+                                    '';
+                                setState(() {});
+                              },
+                            ),
+                      suffixIconConstraints: const BoxConstraints(minWidth: 34),
+                    ),
+                  ),
+                ),
+                if (allTags.isNotEmpty) ...[
+                  const SizedBox(height: FlySpacing.xs),
+                  _TagFilters(
+                    tags: allTags,
+                    selected: selectedTags,
+                    onToggle: (id) {
+                      final next = {...selectedTags};
+                      next.contains(id) ? next.remove(id) : next.add(id);
+                      ref.read(customerTagFilterProvider.notifier).state = next;
+                    },
+                    onClear: () =>
+                        ref.read(customerTagFilterProvider.notifier).state = {},
+                    onDelete: _deleteTag,
+                    protectedTagIds: categoryTagIds,
                   ),
                 ],
-              ),
-              const SizedBox(height: FlySpacing.sm),
-              SizedBox(
-                height: 36,
-                child: TextField(
-                  key: const ValueKey('customer-search'),
-                  controller: _searchController,
-                  onChanged: (value) =>
-                      ref.read(customerSearchProvider.notifier).state = value,
-                  decoration: InputDecoration(
-                    isDense: true,
-                    hintText: context.crmCopy(
-                      '搜索名称、公司、Email、WhatsApp、Facebook',
-                    ),
-                    prefixIcon: const Icon(Icons.search, size: 17),
-                    prefixIconColor: Theme.of(context)
-                        .colorScheme
-                        .onSurfaceVariant,
-                    prefixIconConstraints: const BoxConstraints(minWidth: 36),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                    suffixIcon: _searchController.text.isEmpty
-                        ? null
-                        : IconButton(
-                            visualDensity: VisualDensity.compact,
-                            padding: EdgeInsets.zero,
-                            icon: const Icon(Icons.close, size: 16),
-                            onPressed: () {
-                              _searchController.clear();
-                              ref.read(customerSearchProvider.notifier).state =
-                                  '';
-                              setState(() {});
-                            },
-                          ),
-                    suffixIconConstraints: const BoxConstraints(minWidth: 34),
-                  ),
-                ),
-              ),
-              if (allTags.isNotEmpty) ...[
                 const SizedBox(height: FlySpacing.xs),
-                _TagFilters(
-                  tags: allTags,
-                  selected: selectedTags,
-                  onToggle: (id) {
-                    final next = {...selectedTags};
-                    next.contains(id) ? next.remove(id) : next.add(id);
-                    ref.read(customerTagFilterProvider.notifier).state = next;
-                  },
-                  onClear: () =>
-                      ref.read(customerTagFilterProvider.notifier).state = {},
-                  onDelete: _deleteTag,
-                  protectedTagIds: categoryTagIds,
-                ),
-              ],
-              const SizedBox(height: FlySpacing.xs),
-              if (canCreate)
-                AnimatedSwitcher(
-                  duration: FlyMotion.standard,
-                  child: _adding
-                      ? TextField(
-                          key: const ValueKey('customer-quick-add-input'),
-                          controller: _quickAddController,
-                          focusNode: _quickAddFocus,
-                          autofocus: true,
-                          onSubmitted: (_) => _createCustomer(),
-                          decoration: InputDecoration(
-                            hintText: context.crmCopy('输入客户名称，Enter 创建到收集箱'),
-                            prefixIcon: const Icon(
-                              Icons.person_add_alt_1_outlined,
-                              size: 18,
-                            ),
-                            suffixIcon: IconButton(
-                              icon: const Icon(Icons.close, size: 17),
-                              onPressed: () => setState(() => _adding = false),
-                            ),
-                          ),
-                        )
-                      : Align(
-                          key: const ValueKey('customer-quick-add-button'),
-                          alignment: Alignment.centerLeft,
-                          child: TextButton.icon(
-                            onPressed: () => setState(() => _adding = true),
-                            icon: const Icon(Icons.add, size: 18),
-                            label: Text(context.crmCopy('添加客户')),
-                          ),
-                        ),
-                ),
-              const SizedBox(height: FlySpacing.xs),
-              WorkspaceListHeader(
-                key: const ValueKey('customer-list-columns'),
-                child: WorkspaceListColumns(
-                  leadingWidth: 40,
-                  dateWidth: context.l10n.isZh ? 64 : 88,
-                  trailingWidth: 72,
-                  primary: Text(context.crmCopy('客户名称')),
-                  secondary: Text(context.crmCopy('国家')),
-                  status: Text(context.crmCopy('客户状态')),
-                  date: Text(
-                    context.crmCopy('最近跟进'),
-                    textAlign: TextAlign.right,
-                  ),
-                  trailing: Tooltip(
-                    message: context.crmCopy('下一步 / 优先级'),
-                    child: Text(
-                      context.crmCopy('优先级'),
+                WorkspaceListHeader(
+                  key: const ValueKey('customer-list-columns'),
+                  child: WorkspaceListColumns(
+                    leadingWidth: 40,
+                    dateWidth: context.l10n.isZh ? 64 : 88,
+                    trailingWidth: 72,
+                    primary: Text(context.crmCopy('客户名称')),
+                    secondary: Text(context.crmCopy('国家')),
+                    status: Text(context.crmCopy('客户状态')),
+                    date: Text(
+                      context.crmCopy('最近跟进'),
                       textAlign: TextAlign.right,
                     ),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: customers.when(
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator.adaptive()),
-                  error: (error, stack) => Center(
-                    child: Text(
-                      context.l10n.isZh
-                          ? '客户读取失败：${context.flyError(error)}'
-                          : 'Unable to load customers: ${context.flyError(error)}',
+                    trailing: Tooltip(
+                      message: context.crmCopy('下一步 / 优先级'),
+                      child: Text(
+                        context.crmCopy('优先级'),
+                        textAlign: TextAlign.right,
+                      ),
                     ),
                   ),
-                  data: (items) => items.isEmpty
-                      ? widget.projection == CustomerProjection.deleted
-                            ? const _EmptyCustomerList()
-                            : WorkspaceEmptyState(
-                                icon: Icons.people_outline,
-                                title: context.crmCopy('这里还没有客户'),
-                                actionLabel: context.crmCopy('添加客户'),
-                                onCreate: () => setState(() => _adding = true),
-                              )
-                      : ListView.separated(
-                          padding: const EdgeInsets.only(bottom: 16),
-                          itemCount: items.length,
-                          separatorBuilder: (_, _) => const SizedBox(height: 5),
-                          itemBuilder: (context, index) => _CustomerRow(
-                            customer: items[index],
-                            status: statuses
-                                .where(
-                                  (status) =>
-                                      status.id == items[index].statusId,
-                                )
-                                .firstOrNull,
-                            selected:
-                                ref.watch(selectedCustomerIdProvider) ==
-                                items[index].id,
-                            deletedView:
-                                widget.projection == CustomerProjection.deleted,
-                            onSelect: () =>
-                                ref
-                                    .read(selectedCustomerIdProvider.notifier)
-                                    .state = items[index]
-                                    .id,
-                            onComplete: () => _toggleFollowUp(items[index]),
-                            onRestore: () => ref
-                                .read(customerRepositoryProvider)
-                                .restoreCustomer(items[index].id),
-                            onSecondaryTapDown:
-                                widget.projection == CustomerProjection.deleted
-                                ? null
-                                : (details) => _showCustomerDeleteMenu(
-                                    items[index],
-                                    orderCounts[items[index].id] ?? 0,
-                                    details.globalPosition,
-                                  ),
-                          ),
-                        ),
                 ),
-              ),
-            ],
+                Expanded(
+                  child: customers.when(
+                    loading: () => const Center(
+                      child: CircularProgressIndicator.adaptive(),
+                    ),
+                    error: (error, stack) => Center(
+                      child: Text(
+                        context.l10n.isZh
+                            ? '客户读取失败：${context.flyError(error)}'
+                            : 'Unable to load customers: ${context.flyError(error)}',
+                      ),
+                    ),
+                    data: (items) => items.isEmpty
+                        ? const _EmptyCustomerList()
+                        : ListView.separated(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            itemCount: items.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(height: 5),
+                            itemBuilder: (context, index) => _CustomerRow(
+                              customer: items[index],
+                              status: statuses
+                                  .where(
+                                    (status) =>
+                                        status.id == items[index].statusId,
+                                  )
+                                  .firstOrNull,
+                              selected:
+                                  ref.watch(selectedCustomerIdProvider) ==
+                                  items[index].id,
+                              deletedView:
+                                  widget.projection ==
+                                  CustomerProjection.deleted,
+                              onSelect: () =>
+                                  ref
+                                      .read(selectedCustomerIdProvider.notifier)
+                                      .state = items[index]
+                                      .id,
+                              onComplete: () => _toggleFollowUp(items[index]),
+                              onRestore: () => ref
+                                  .read(customerRepositoryProvider)
+                                  .restoreCustomer(items[index].id),
+                              onSecondaryTapDown:
+                                  widget.projection ==
+                                      CustomerProjection.deleted
+                                  ? null
+                                  : (details) => _showCustomerDeleteMenu(
+                                      items[index],
+                                      orderCounts[items[index].id] ?? 0,
+                                      details.globalPosition,
+                                    ),
+                            ),
+                          ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -538,49 +464,20 @@ class _CustomerListPageState extends ConsumerState<CustomerListPage> {
   }
 
   Future<void> _addOnPhone() async {
-    final name = await showModalBottomSheet<String>(
+    final customer = await showDialog<Customer>(
       context: context,
-      useRootNavigator: true,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (sheet) => SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(
-          16,
-          20,
-          16,
-          MediaQuery.viewInsetsOf(sheet).bottom + 20,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              context.l10n.isZh ? '新建客户' : 'New customer',
-              style: Theme.of(sheet).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              key: const ValueKey('customer-quick-add-input'),
-              controller: _quickAddController,
-              autofocus: true,
-              textInputAction: TextInputAction.done,
-              decoration: InputDecoration(
-                labelText: context.l10n.isZh ? '客户名称' : 'Customer name',
-              ),
-              onSubmitted: (value) => Navigator.pop(sheet, value),
-            ),
-            const SizedBox(height: 16),
-            FilledButton(
-              key: const ValueKey('phone-create-customer'),
-              onPressed: () => Navigator.pop(sheet, _quickAddController.text),
-              child: Text(context.l10n.isZh ? '创建' : 'Create'),
-            ),
-          ],
-        ),
+      builder: (_) => CustomerCreateDialog(
+        categoryId: widget.projection == CustomerProjection.category
+            ? widget.categoryId
+            : null,
       ),
     );
-    if (!mounted || name == null || name.trim().isEmpty) return;
-    _quickAddController.text = name;
-    await _createCustomer();
+    if (!mounted || customer == null) return;
+    ref.read(selectedCustomerIdProvider.notifier).state = customer.id;
+    ref.read(customerSearchProvider.notifier).state = '';
+    ref.read(customerTagFilterProvider.notifier).state = {};
+    _searchController.clear();
+    context.go('/customers/all');
   }
 
   Widget _phoneCustomers(
@@ -661,95 +558,88 @@ class _CustomerListPageState extends ConsumerState<CustomerListPage> {
                   ),
                 ],
               ),
+              WorkspaceListHeader(
+                key: const ValueKey('customer-list-columns'),
+                child: WorkspaceListColumns(
+                  dateWidth: 64,
+                  primary: Text(context.crmCopy('客户名称')),
+                  secondary: Text(context.crmCopy('国家')),
+                  status: Text(context.crmCopy('客户状态')),
+                  date: Text(
+                    context.crmCopy('最近跟进'),
+                    textAlign: TextAlign.right,
+                  ),
+                  trailingWidth: widget.projection == CustomerProjection.deleted
+                      ? 36
+                      : 0,
+                ),
+              ),
               Expanded(
                 child: customers.when(
                   loading: () =>
                       const Center(child: CircularProgressIndicator.adaptive()),
                   error: (e, _) => Center(child: Text(context.flyError(e))),
                   data: (items) => items.isEmpty
-                      ? WorkspaceEmptyState(
-                          icon: Icons.people_outline,
-                          title: context.crmCopy('这里还没有客户'),
-                          actionLabel: context.crmCopy('添加客户'),
-                          onCreate: _addOnPhone,
-                        )
+                      ? const _EmptyCustomerList()
                       : ListView.builder(
                           padding: const EdgeInsets.only(bottom: 184),
                           itemCount: items.length,
                           itemBuilder: (_, i) {
                             final customer = items[i];
-                            final status = ref
-                                .watch(customerStatusesProvider)
-                                .valueOrNull
-                                ?.where((s) => s.id == customer.statusId)
-                                .firstOrNull;
-                            return ListTile(
+                            return InkWell(
                               key: ValueKey('phone-customer-${customer.id}'),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                              ),
-                              leading: const CircleAvatar(
-                                child: Icon(Icons.person_outline),
-                              ),
-                              title: WorkspaceListField(
-                                label: context.crmCopy('客户名称'),
-                                value: customer.name,
-                              ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Wrap(
-                                    spacing: 12,
-                                    runSpacing: 2,
-                                    children: [
-                                      WorkspaceListField(
-                                        label: context.crmCopy('国家'),
-                                        value: customer.country,
-                                      ),
-                                      WorkspaceListField(
-                                        label: context.crmCopy('客户状态'),
-                                        value: status?.name ?? '—',
-                                      ),
-                                      WorkspaceListField(
-                                        label: context.crmCopy('最近跟进'),
-                                        value:
-                                            RelativeDateFormatter.lastFollowUp(
-                                              customer.lastFollowUpAt,
-                                              isZh: zh,
-                                            ),
-                                      ),
-                                    ],
-                                  ),
-                                  if ([
-                                    customer.companyName,
-                                    customer.phone,
-                                    customer.email,
-                                  ].any((v) => v.trim().isNotEmpty))
-                                    Text(
-                                      [
-                                            customer.companyName,
-                                            customer.phone,
-                                            customer.email,
-                                          ]
-                                          .where((v) => v.trim().isNotEmpty)
-                                          .join(' · '),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                ],
-                              ),
-                              trailing:
-                                  widget.projection ==
-                                      CustomerProjection.deleted
-                                  ? IconButton(
-                                      icon: const Icon(Icons.restore),
-                                      onPressed: () => ref
-                                          .read(customerRepositoryProvider)
-                                          .restoreCustomer(customer.id),
-                                    )
-                                  : const Icon(Icons.chevron_right),
                               onTap: () =>
                                   showCustomerDetailSheet(context, customer.id),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                child: WorkspaceListColumns(
+                                  dateWidth: 64,
+                                  primary: Text(
+                                    customer.name,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  secondary: Text(
+                                    customer.country.isEmpty
+                                        ? '—'
+                                        : customer.country,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  status: Text(
+                                    CustomerLifecycle.label(
+                                      customer.statusId,
+                                      zh: zh,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  date: Text(
+                                    RelativeDateFormatter.lastFollowUp(
+                                      customer.lastFollowUpAt,
+                                      isZh: zh,
+                                    ),
+                                    textAlign: TextAlign.right,
+                                  ),
+                                  trailingWidth:
+                                      widget.projection ==
+                                          CustomerProjection.deleted
+                                      ? 36
+                                      : 0,
+                                  trailing:
+                                      widget.projection ==
+                                          CustomerProjection.deleted
+                                      ? IconButton(
+                                          icon: const Icon(Icons.restore),
+                                          onPressed: () => ref
+                                              .read(customerRepositoryProvider)
+                                              .restoreCustomer(customer.id),
+                                        )
+                                      : null,
+                                ),
+                              ),
                             );
                           },
                         ),
@@ -1278,11 +1168,6 @@ class _EmptyCustomerList extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(context.crmCopy('这里还没有客户')),
-        const SizedBox(height: 4),
-        Text(
-          context.crmCopy('快速创建后，再在右侧逐步完善信息'),
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
       ],
     ),
   );

@@ -6,9 +6,10 @@ import '../domain/sync_protocol.dart';
 import 'resumable_download.dart';
 
 class SyncHttpException implements Exception {
-  const SyncHttpException(this.status, this.message);
+  const SyncHttpException(this.status, this.message, {this.reason});
   final int status;
   final String message;
+  final String? reason;
   @override
   String toString() => '同步服务器 ($status)：$message';
 }
@@ -87,6 +88,23 @@ class CloudSyncTransport implements SyncTransport {
   Future<Map<String, dynamic>> _json(HttpClientResponse response) async {
     final text = await _boundedBody(response);
     if (response.statusCode < 200 || response.statusCode >= 300) {
+      String? reason;
+      try {
+        final data = jsonDecode(text);
+        final detail = data is Map ? data['detail'] : null;
+        // Only known constant reasons may cross the transport boundary. Never
+        // expose a server's echoed credentials, request bodies or tracebacks.
+        if (const {
+          'Graphical verification is incorrect',
+          'Refresh the graphical verification',
+          'Invalid or expired email code',
+          'Account password is incorrect',
+        }.contains(detail)) {
+          reason = detail as String;
+        }
+      } on FormatException {
+        // HTML proxy errors and arbitrary bodies still get the generic message.
+      }
       // Do not include echoed payloads/tokens in errors shown or logged by the app.
       throw SyncHttpException(
         response.statusCode,
@@ -97,6 +115,7 @@ class CloudSyncTransport implements SyncTransport {
           429 => '请求过于频繁，请稍后重试',
           _ => '请求失败',
         },
+        reason: reason,
       );
     }
     final Object? data;

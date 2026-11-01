@@ -50,15 +50,7 @@ if ($method === 'GET' && $path === '/payment/return') {
     exit;
 }
 if ($method === 'GET' && $path === '/download') {
-    $file = Config::value('FLY_DOWNLOAD_FILE');
-    if ($file === '' || !is_file($file) || !is_readable($file)) {
-        http_response_code(404);
-        exit('安装包暂未开放下载');
-    }
-    header('Content-Type: application/octet-stream');
-    header('Content-Disposition: attachment; filename="Fly-Setup.exe"');
-    header('Content-Length: ' . filesize($file));
-    readfile($file);
+    FlyWeb\downloadPage();
     exit;
 }
 
