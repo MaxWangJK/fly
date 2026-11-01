@@ -22,4 +22,25 @@ Windows 10/11 x64；Android 7.0+、minSdk24、targetSdk36。测试包保持 `ENA
 
 Windows 安装器未作发行代码签名。扫码、头像系统选图、相机、外部打开、系统分享仍需实际设备验收；本轮不包含 Apple 构建、Ubuntu/systemd 或生产 PostgreSQL 并发验收。
 
-验证、来源提交、文件哈希和下载链接在构建核验完成后记入本文及 [APK台账](../handoff/APK_RELEASES.md)。
+
+
+
+## 验证与提交
+
+- 构建源码提交 `404aea37047a01d24e29569fbbc2fb21a2995595`。当前交付文档及哈希由后续文档提交保存；应用、后台和网站源码在打包后没有变化。全部公开工作区已纳入提交，未推送远端，未操作生产服务。
+- 客户端：全量运行417项通过、4项发现问题；修正后定向47项全部通过，421个不同用例均有通过记录；未再重复第二次全量。四项为设置菜单位置旧预期、九阶段旧预期、树形导航旧预期，以及新发现的旧状态停用/删除兼容；均已修复并复测。双/三设备临时后台及20MiB LAN传输在全量检查中通过，临时服务均已关闭。
+- 后台全量 **61项通过**，最终 Flutter 静态检查无问题；PHP核心及首页/下载页HTTP检查通过，原生安装脚本Bash语法通过。测试中的Drift内存库提示和Starlette弃用提示没有导致失败。
+- Windows release、安装器、便携ZIP及Android release构建成功。程序版本、原书籍配置、SQLite相对绑定和运行库文件完整；APK两个原证书、非调试属性、16KB对齐、三种ABI、文件完整性和非签名内容一致已核验。公开文件及消费包不含真实发件授权码、私有配置文件或内部发码器。
+- 独立原生后台包来自同一已提交源码，含迁移0004、Python运行文件和原生部署工具；不含SMTP配置、数据库或venv。旧`Fly-Sync-native-20261101.tar.gz`及build43二进制保留作为历史，部署使用本次build44包。
+
+## 交付文件
+
+| 文件 | 字节数 | SHA-256 |
+| --- | --- | --- |
+| [Fly-Setup-2.0.8-build44-testing.exe](../../dist/Fly-Setup-2.0.8-build44-testing.exe) | 13,466,487 | `C4BA586C378E6128ABC004D24AA704191976489FBE640336392938CCC80AE0BA` |
+| [Fly-2.0.8-build44-windows-test-20261101.zip](../../dist/Fly-2.0.8-build44-windows-test-20261101.zip) | 16,090,854 | `00C356922B6749A5A82C884E8761D7216B93A39E4168F238F4AEB892469AD745` |
+| [Fly-2.0.8-build44-android-release-signed-20261101.apk](../../dist/Fly-2.0.8-build44-android-release-signed-20261101.apk) | 94,748,532 | `5CE407A199E9B6E8969AD3B0335C32B3698F1DDB0EE212E4CFAB5F09F080326E` |
+| [Fly-2.0.8-build44-android-test-20261101.apk](../../dist/Fly-2.0.8-build44-android-test-20261101.apk) | 94,748,904 | `244094340BA94B7E0C4DBDFEB548BF5B57A4DEADD773B31D59DFBC0920E2C64D` |
+| [Fly-Sync-2.0.8-build44-ubuntu-native-20261101.tar.gz](../../dist/Fly-Sync-2.0.8-build44-ubuntu-native-20261101.tar.gz) | 35,614 | `0A6D53A4CF79CC67080454A7C13E26D0460674BC7B8DEFB4AFDF4F964C0072AE` |
+
+[公开清单及备案字段](../handoff/apk/20261101-build44/README.md)、[迁移台账](../handoff/APK_RELEASES.md)、[七项需求记录](../handoff/FLY_REQUIREMENTS.md#2026-11-01-最新优化补充build44)。

@@ -44,3 +44,8 @@
 ## 账号生命周期源码续补（2026-11-01，未重新打包）
 
 [手机找回密码](cloud-account-reset-phone.png)、[电脑注销说明](cloud-account-delete-desktop.png)、[深色窄屏注销说明](cloud-account-delete-dark-narrow.png)。均为真实 Flutter 渲染、隔离账号，无实际邮件或云账号删除；手机/电脑及 1.3 倍文字已目视检查。对应源码测试还走通横屏、验证码和密码错误后重试、取消及注销勾选确认。本目录累计 40 张 PNG。
+
+
+## build44 当前界面（2026-11-01）
+
+[手机新客户](customer-create-build44-phone.png)、[桌面新客户](customer-create-build44-desktop.png)、[深色窄屏我的](my-build44-dark-narrow.png)、[简化云同步页](sync-build44-phone.png)、[桌面平面文件夹](files-flat-build44-desktop.png)、[保留基础复盘](review-basic-build44-desktop.png)、[手机客户单表头](customer-rows-build44-phone.png)。均使用隔离数据、真实 Flutter 渲染并已目视核对；深色窄屏为360×780、1.3倍文字。账号生命周期截图随本版一起交付，原生系统选图、扫码和分享仍待真机验收。

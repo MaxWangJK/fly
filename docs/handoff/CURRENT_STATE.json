@@ -1,12 +1,12 @@
 {
-  "capturedAtUtc": "2026-11-01T12:15:38.234478+00:00",
+  "capturedAtUtc": "2026-11-01T15:30:24.284738+00:00",
   "documentationOnly": false,
   "branch": "codex/fly-2-sync",
-  "releaseCommitSource": "Build43 source committed at 55bd11da84281ae650648967490562660bdfe0fb; delivery metadata is recorded by the following documentation commit",
+  "releaseCommitSource": "Build44 source committed at 404aea37047a01d24e29569fbbc2fb21a2995595; delivery metadata follows in documentation commit",
   "developmentBaseCommit": "6b59521571e522474f9f6d7303d5fe6d3df60e27",
   "master": "94efdc2d9ac34feb2f3d1b635302278b4671a414",
   "gitDirectoryIsLocalFolder": true,
-  "appVersion": "2.0.7+43",
+  "appVersion": "2.0.8+44",
   "databaseSchemaVersion": 20,
   "originalSdk": {
     "frameworkVersion": "3.47.7",
@@ -22,64 +22,59 @@
     "devToolsVersion": "2.60.0",
     "flutterVersion": "3.47.7"
   },
-  "buildStatus": "Native backend source bundle verified; Windows/Android remain build43; latest client source not repackaged",
-  "releaseReport": "../release/fly_2_0_7_build43.md",
-  "currentFeaturesIncludeUncommittedFiles": true,
-  "latestPublishedTestBundle": "Local Windows / Android 2.0.7+43 (2026-11-01)",
-  "verifiedClientTests": 34,
-  "clientTestsEvidence": "Current source: 34 focused account and sync regression tests passed. Full build43 suite (405) was not rerun for this feature.",
-  "verifiedServerTests": 49,
+  "buildStatus": "Windows installer/portable, two original Android signatures and committed native backend bundle verified",
+  "releaseReport": "../release/fly_2_0_8_build44.md",
+  "currentFeaturesIncludeUncommittedFiles": false,
+  "latestPublishedTestBundle": "Local Windows / Android 2.0.8+44 (2026-11-01)",
+  "verifiedClientTests": 421,
+  "clientTestsEvidence": "全量运行417项通过、4项发现问题；修正后定向47项全部通过，421个不同用例均有通过记录；未再重复第二次全量",
+  "verifiedServerTests": 61,
   "websiteCoreAndHttpTests": "passed",
   "analyze": "No issues found",
   "appleBuildAndDeviceAcceptance": "not performed",
-  "latestSourceNotRepackaged": true,
+  "latestSourceNotRepackaged": false,
   "noDeploymentPerformed": true,
   "remotePushPerformed": false,
-  "historicalUserMessagesArchived": 152,
+  "historicalUserMessagesArchived": 153,
   "textAttachmentsCopied": 19,
   "inlinePromptCopies": 2,
   "historicalTextNormalization": "Brand-neutral portable copies; SHA-256 entries refer to current bytes, with original digest retained separately.",
   "brandNeutralDocumentsAndWebsite": true,
-  "screenshotsCopied": 40,
+  "screenshotsCopied": 47,
   "developmentSkillsCopied": 4,
   "workingTreeStatusSource": "git status --short",
   "localReleaseCommitCompleted": true,
-  "expectedWorkingTreeAfterReleaseCommit": "Build43 release documents committed; preserve independent website work",
+  "expectedWorkingTreeAfterReleaseCommit": "Clean; all public source and delivery documents committed",
   "artifacts": [
     {
-      "name": "Fly-Setup-2.0.7-build43-testing.exe",
-      "bytes": 13453780,
-      "sha256": "D7FB0893809327114CDCDA7029392BE536418EDCF6C239FCC19D31D778B96792"
+      "name": "Fly-Setup-2.0.8-build44-testing.exe",
+      "bytes": 13466487,
+      "sha256": "C4BA586C378E6128ABC004D24AA704191976489FBE640336392938CCC80AE0BA"
     },
     {
-      "name": "Fly-2.0.7-build43-windows-test-20261101.zip",
-      "bytes": 16068120,
-      "sha256": "1886E49FF4C8132159FE527A4521217BBB8130CF7113E738C1A025A8063977FE"
+      "name": "Fly-2.0.8-build44-windows-test-20261101.zip",
+      "bytes": 16090854,
+      "sha256": "00C356922B6749A5A82C884E8761D7216B93A39E4168F238F4AEB892469AD745"
     },
     {
-      "name": "Fly-2.0.7-build43-android-release-signed-20261101.apk",
-      "bytes": 94633956,
-      "sha256": "D483D504B5B1587459493669144CC7569EA70AC8C6D3A2CB9C885C63EC3DDEAC"
+      "name": "Fly-2.0.8-build44-android-release-signed-20261101.apk",
+      "bytes": 94748532,
+      "sha256": "5CE407A199E9B6E8969AD3B0335C32B3698F1DDB0EE212E4CFAB5F09F080326E"
     },
     {
-      "name": "Fly-2.0.7-build43-android-test-20261101.apk",
-      "bytes": 94634216,
-      "sha256": "A2AA832024906F271F61650FDA469B195B99CCBC41D444C5AF7CD80C509DF704"
+      "name": "Fly-2.0.8-build44-android-test-20261101.apk",
+      "bytes": 94748904,
+      "sha256": "244094340BA94B7E0C4DBDFEB548BF5B57A4DEADD773B31D59DFBC0920E2C64D"
     },
     {
-      "name": "Fly-Sync-2.0.7-build43-ubuntu-20261101.tar.gz",
-      "bytes": 218326,
-      "sha256": "FF6E5D806C31B2FB8C5CB01A96284EFC39E43F9A66622E0F9257E030629799DB"
-    },
-    {
-      "name": "Fly-Foreign-Trade-Fieldbook-v1.fly",
-      "bytes": 114856,
-      "sha256": "7C27E28E1E687487F8F51EC0D353CF02FDD154B87C0916976BA38ACD956A1EB1"
+      "name": "Fly-Sync-2.0.8-build44-ubuntu-native-20261101.tar.gz",
+      "bytes": 35614,
+      "sha256": "0A6D53A4CF79CC67080454A7C13E26D0460674BC7B8DEFB4AFDF4F964C0072AE"
     }
   ],
   "android": {
     "minSdk": 24,
-    "versionCode": 43,
+    "versionCode": 44,
     "abis": [
       "arm64-v8a",
       "armeabi-v7a",
@@ -91,12 +86,13 @@
     "signatureMatchesBuild39": true,
     "packageName": "com.flyproduct.fly",
     "targetSdk": 36,
-    "signatureMatchFieldsApplyTo": "build 42 testing APK only; formal signing identity is separate and unchanged",
+    "signatureMatchFieldsApplyTo": "build44 testing APK; formal signing identity is separate and unchanged",
     "signatureMatchesBuild40": true,
     "debuggable": false,
     "aligned16KB": true,
     "signatureMatchesBuild41": true,
-    "signatureMatchesBuild42": true
+    "signatureMatchesBuild42": true,
+    "signatureMatchesBuild43": true
   },
   "buildFlags": {
     "ENABLE_LOCAL_LICENSE": false,
@@ -108,12 +104,12 @@
   "bookChapters": 16,
   "bookReaderDesktopOnly": true,
   "bookReadingStateCloudSync": false,
-  "additionalCurrentUserRequests": 22,
+  "additionalCurrentUserRequests": 26,
   "formalAndroidSigning": {
     "date": "2026-10-16",
-    "appVersion": "2.0.7+43",
-    "apk": "Fly-2.0.7-build43-android-release-signed-20261101.apk",
-    "apkSHA256": "D483D504B5B1587459493669144CC7569EA70AC8C6D3A2CB9C885C63EC3DDEAC",
+    "appVersion": "2.0.8+44",
+    "apk": "Fly-2.0.8-build44-android-release-signed-20261101.apk",
+    "apkSHA256": "5CE407A199E9B6E8969AD3B0335C32B3698F1DDB0EE212E4CFAB5F09F080326E",
     "certificateMD5": "5E96E7B982BF8DB94FEF71F148BC0859",
     "certificateSHA1": "9E8BC6EFA12D280843F92FD7E1DCAE22AD70008F",
     "certificateSHA256": "5240E834C4F5800EC22E9B882526A9CCBFE3366E334857CAE0154A0B66079EB2",
@@ -125,17 +121,18 @@
     "filingApplicationSubmitted": false,
     "privateIdentityDirectory": "license_tools/private/android",
     "report": "../release/android_release_signing_20261016.md",
-    "publicMetadataPath": "apk/20261101/",
+    "publicMetadataPath": "apk/20261101-build44/",
     "privateKeyIndependentOfflineBackupVerified": false,
     "privateKeyLocalBackupScope": "same-disk initial backup only; owner must retain independent secure backup",
     "identityEstablishedDate": "2026-10-16",
     "latestArtifactDate": "2026-11-01",
-    "actualApkCertificateVerifiedForBuild43": true
+    "actualApkCertificateVerifiedForBuild43": true,
+    "actualApkCertificateVerifiedForBuild44": true
   },
   "clientTestsLastRunDate": "2026-11-01",
   "analyzeLastRunDate": "2026-11-01",
-  "latestPreferredAndroidPackage": "Fly-2.0.7-build43-android-release-signed-20261101.apk",
-  "publicApkMetadataPath": "apk/20261101/",
+  "latestPreferredAndroidPackage": "Fly-2.0.8-build44-android-release-signed-20261101.apk",
+  "publicApkMetadataPath": "apk/20261101-build44/",
   "releaseArtifactFilesTracked": false,
   "privateSigningFilesTracked": false,
   "handoffPackageLedger": "APK_RELEASES.md",
@@ -145,9 +142,9 @@
     "filingPublicKeyAndSHA1Available": false,
     "appleBuildAndDeviceAcceptance": "not performed"
   },
-  "latestSourceNotRepackagedExplanation": "Current authored application/backend source is included in build43; original build42 binaries retained as history",
-  "localReleaseCommitHash": "55bd11da84281ae650648967490562660bdfe0fb",
-  "workingTreeStatusAtCapture": "Build43 application/backend source committed; delivery documentation follows; independent website footer edit retained outside this commit scope",
+  "latestSourceNotRepackagedExplanation": "Current application/backend source is included in build44; original historical binaries retained",
+  "localReleaseCommitHash": "404aea37047a01d24e29569fbbc2fb21a2995595",
+  "workingTreeStatusAtCapture": "Source committed; delivery documentation and package hashes are committed next",
   "portableInternalIssuer": {
     "version": "1.0.0",
     "date": "2026-10-17",
@@ -182,9 +179,9 @@
     "androidBuild41LicenseGateEnabled": false,
     "sourceCommit": "311c7b3799d4d3a8fc3a0dcef867781f275a135b"
   },
-  "latestAndroidTestingUpgradePackage": "Fly-2.0.7-build43-android-test-20261101.apk",
+  "latestAndroidTestingUpgradePackage": "Fly-2.0.8-build44-android-test-20261101.apk",
   "temporaryBackendStopped": true,
-  "latestWindowsPackageVersion": "2.0.7+43",
+  "latestWindowsPackageVersion": "2.0.8+44",
   "windowsRebuiltThisTurn": true,
   "mobileUiLatestVerification": {
     "date": "2026-10-17",
@@ -448,7 +445,7 @@
     "scope": "Earlier multi-device sync checks; before dual review programs and email auth"
   },
   "historicalFunctionalCheckpointCommitHash": "96261dbb90a9725bfab91058a1c2fe50ea5862ef",
-  "sourceBuildCommitHash": "55bd11da84281ae650648967490562660bdfe0fb",
+  "sourceBuildCommitHash": "404aea37047a01d24e29569fbbc2fb21a2995595",
   "cloudSyncRuntimeReport": "../architecture/cloud_sync_runtime_20261101.md",
   "cloudForegroundFallbackMinutes": 5,
   "cloudWriteCoalescingMilliseconds": 250,
@@ -468,19 +465,9 @@
     "/api/checkout",
     "/api/activate"
   ],
-  "unrelatedWorkingTreePathsRetained": [
-    "web/README.md",
-    "web/deploy/apache-env.conf.example",
-    "web/deploy/ubuntu-24.04-nginx.md",
-    "web/deploy/ubuntu-24.04.md",
-    "web/public/assets/site.css",
-    "web/public/index.php",
-    "web/src/site.php",
-    "web/deploy/downloads.md",
-    "web/public/downloads/"
-  ],
-  "websiteHasIndependentUncommittedChanges": true,
-  "sourceCommitScope": "Application, sync backend, tests and handoff/deployment documentation; independent website work excluded",
+  "unrelatedWorkingTreePathsRetained": [],
+  "websiteHasIndependentUncommittedChanges": false,
+  "sourceCommitScope": "All authorized public application, backend, website, tests, requirements and handoff files",
   "reviewProgramIncludedInBuild43": true,
   "emailAuthIncludedInBuild43": true,
   "packagedBuild43Verification": {
@@ -493,13 +480,41 @@
   "passwordResetIncludedInBuild43": false,
   "cloudAccountDeletionIncludedInBuild43": false,
   "accountLifecycleReport": "../release/cloud_account_lifecycle_20261101.md",
-  "currentWorkingTreeExpected": "Uncommitted account lifecycle source/tests/docs plus preserved independent website changes",
+  "currentWorkingTreeExpected": "Clean after final delivery documentation commit",
   "accountLifecycleScreenshots": [
     "screenshots/cloud-account-reset-phone.png",
     "screenshots/cloud-account-delete-desktop.png",
     "screenshots/cloud-account-delete-dark-narrow.png"
   ],
-  "accountLifecycleVerification": {
+  "preferredUbuntuDeployment": "native PostgreSQL + Python venv + systemd",
+  "nativeDeploymentReport": "../release/native_backend_20261101.md",
+  "ubuntuDeploymentGuide": "server/deploy/ubuntu-native.md",
+  "nativeBackendSourcePackaged": true,
+  "nativeDeploymentVerification": {
+    "date": "2026-11-01",
+    "focusedTestsPassed": 20,
+    "newNativeCasesPassed": 12,
+    "bashSyntaxPassed": true,
+    "pythonProcessStartupAndMigrationPassed": true,
+    "isolatedDatabase": "SQLite",
+    "ubuntuSystemdAcceptance": false,
+    "productionPostgresqlAcceptance": false,
+    "actualSmtpDeliveryVerified": false,
+    "deploymentPerformed": false,
+    "dockerRequired": false,
+    "testLog": ".buildlog/native-deploy-tests.log"
+  },
+  "nativeBackendBundle": {
+    "name": "Fly-Sync-2.0.8-build44-ubuntu-native-20261101.tar.gz",
+    "bytes": 35614,
+    "sha256": "0A6D53A4CF79CC67080454A7C13E26D0460674BC7B8DEFB4AFDF4F964C0072AE",
+    "sourceCommit": "404aea37047a01d24e29569fbbc2fb21a2995595",
+    "uncommittedSource": false,
+    "containsMigration0004": true,
+    "smtpSecretsIncluded": false,
+    "archiveFilesVerified": 32
+  },
+  "accountLifecycleInitialVerification": {
     "date": "2026-11-01",
     "clientFocusedPassed": 34,
     "newClientCasesPassed": 9,
@@ -532,32 +547,44 @@
       "Starlette testclient httpx deprecation"
     ]
   },
-  "preferredUbuntuDeployment": "native PostgreSQL + Python venv + systemd",
-  "nativeDeploymentReport": "../release/native_backend_20261101.md",
-  "ubuntuDeploymentGuide": "server/deploy/ubuntu-native.md",
-  "nativeBackendSourcePackaged": true,
-  "nativeDeploymentVerification": {
-    "date": "2026-11-01",
-    "focusedTestsPassed": 20,
-    "newNativeCasesPassed": 12,
-    "bashSyntaxPassed": true,
-    "pythonProcessStartupAndMigrationPassed": true,
-    "isolatedDatabase": "SQLite",
-    "ubuntuSystemdAcceptance": false,
-    "productionPostgresqlAcceptance": false,
-    "actualSmtpDeliveryVerified": false,
-    "deploymentPerformed": false,
-    "dockerRequired": false,
-    "testLog": ".buildlog/native-deploy-tests.log"
+  "clientRegression": {
+    "broadPassed": 417,
+    "broadFailedBeforeRepairs": 4,
+    "finalFocusedPassed": 47,
+    "distinctCasesWithPassingEvidence": 421,
+    "allFourFailuresRepaired": true,
+    "cleanSecondFullRunPerformed": false,
+    "fullLog": ".buildlog/build44-full.log",
+    "repairLog": ".buildlog/build44-final-focused.log"
   },
-  "nativeBackendBundle": {
-    "name": "Fly-Sync-native-20261101.tar.gz",
-    "bytes": 29594,
-    "sha256": "2760ff13f4fafe8377ce929a7f37ff34fe2938e9f04d273ca175d80b7e420982",
-    "sourceBaseCommit": "b384a1bfdaa39d768009895d0febef04b3973185",
-    "uncommittedSource": true,
-    "containsMigration0004": true,
-    "smtpSecretsIncluded": false,
-    "archiveFilesVerified": 32
-  }
+  "previouslyIndependentWebsiteChangesCommitted": true,
+  "passwordResetIncludedInBuild44": true,
+  "cloudAccountDeletionIncludedInBuild44": true,
+  "accountLifecycleVerification": {
+    "currentBuild": 44,
+    "clientRegression": {
+      "broadPassed": 417,
+      "broadFailedBeforeRepairs": 4,
+      "finalFocusedPassed": 47,
+      "distinctCasesWithPassingEvidence": 421,
+      "allFourFailuresRepaired": true,
+      "cleanSecondFullRunPerformed": false,
+      "fullLog": ".buildlog/build44-full.log",
+      "repairLog": ".buildlog/build44-final-focused.log"
+    },
+    "backendFullPassed": 61,
+    "analyze": "No issues found",
+    "nativeBuildPerformed": true,
+    "productionDeploymentPerformed": false,
+    "actualSmtpDeliveryVerified": false
+  },
+  "build44Features": [
+    "required customer profile dialog and fixed five stages",
+    "phone column headers without repeated labels",
+    "classic review retained",
+    "flat desktop folder browsing and blank-area creation",
+    "Me local profile, cloud account and optional custom server",
+    "mutually exclusive sync modes and default LAN QR"
+  ],
+  "localProfileNameAndAvatarCloudSync": false
 }

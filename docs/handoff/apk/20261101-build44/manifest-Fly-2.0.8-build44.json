@@ -1,0 +1,67 @@
+{
+  "version": "2.0.8+44",
+  "databaseSchemaVersion": 20,
+  "backendMigration": "0004",
+  "createdAtUtc": "2026-11-01T15:30:24.149735+00:00",
+  "sourceCommit": "404aea37047a01d24e29569fbbc2fb21a2995595",
+  "sourceIncludesUncommittedChanges": false,
+  "branch": "codex/fly-2-sync",
+  "artifacts": [
+    {
+      "name": "Fly-Setup-2.0.8-build44-testing.exe",
+      "bytes": 13466487,
+      "sha256": "C4BA586C378E6128ABC004D24AA704191976489FBE640336392938CCC80AE0BA"
+    },
+    {
+      "name": "Fly-2.0.8-build44-windows-test-20261101.zip",
+      "bytes": 16090854,
+      "sha256": "00C356922B6749A5A82C884E8761D7216B93A39E4168F238F4AEB892469AD745"
+    },
+    {
+      "name": "Fly-2.0.8-build44-android-release-signed-20261101.apk",
+      "bytes": 94748532,
+      "sha256": "5CE407A199E9B6E8969AD3B0335C32B3698F1DDB0EE212E4CFAB5F09F080326E"
+    },
+    {
+      "name": "Fly-2.0.8-build44-android-test-20261101.apk",
+      "bytes": 94748904,
+      "sha256": "244094340BA94B7E0C4DBDFEB548BF5B57A4DEADD773B31D59DFBC0920E2C64D"
+    },
+    {
+      "name": "Fly-Sync-2.0.8-build44-ubuntu-native-20261101.tar.gz",
+      "bytes": 35614,
+      "sha256": "0A6D53A4CF79CC67080454A7C13E26D0460674BC7B8DEFB4AFDF4F964C0072AE"
+    }
+  ],
+  "clientRegression": {
+    "broadPassed": 417,
+    "broadFailedBeforeRepairs": 4,
+    "finalFocusedPassed": 47,
+    "distinctCasesWithPassingEvidence": 421,
+    "allFourFailuresRepaired": true,
+    "cleanSecondFullRunPerformed": false,
+    "fullLog": ".buildlog/build44-full.log",
+    "repairLog": ".buildlog/build44-final-focused.log"
+  },
+  "verifiedServerTests": 61,
+  "analyze": "No issues found",
+  "ENABLE_LOCAL_LICENSE": false,
+  "compiledOriginalBookReaderConfigurationVerified": true,
+  "androidFormalSigningIdentityUnchanged": true,
+  "androidTestingSigningIdentityUnchanged": true,
+  "android16KBAligned": true,
+  "androidApplicationContentsMatch": true,
+  "androidMinSdk": 24,
+  "androidTargetSdk": 36,
+  "androidDebuggable": false,
+  "androidAbis": [
+    "arm64-v8a",
+    "armeabi-v7a",
+    "x86_64"
+  ],
+  "privateConfigurationFilesIncluded": false,
+  "productionDeploymentPerformed": false,
+  "actualSmtpDeliveryVerified": false,
+  "physicalDeviceAcceptancePerformed": false,
+  "appleBuildPerformed": false
+}

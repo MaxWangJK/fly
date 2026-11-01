@@ -11,3 +11,8 @@
 独立原生源码包：`dist/Fly-Sync-native-20261101.tar.gz`。只含运行源码、迁移、固定依赖和原生部署文件；不含 `.env`、SMTP 凭据、虚拟环境、测试数据库或客户数据。包内 `server/SOURCE.json` 说明来源于当前未提交工作区，并列出各公开文件的校验值。客户端未重新打包，Git 未提交/推送，旧 build43 Windows/APK 不因此获得新界面。
 
 包校验值见 [CURRENT_STATE.json](../handoff/CURRENT_STATE.json) 的 `nativeBackendBundle`。需求来源为当前聊天新增的一条，累计 152 条。
+
+
+## build44 后续交付
+
+上述为该阶段当时记录。现已随源码 `404aea3` 一起提交并纳入2.0.8+44 Windows/APK及原生后台包，后台全量61项、客户端全量与修复复测证据见 [build44](fly_2_0_8_build44.md)。原生部署仍由用户自行执行，未真实发件或部署。

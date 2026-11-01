@@ -4,22 +4,15 @@
 
 ## 现在的 Git 与版本
 
-**Ubuntu 最新部署方式：**服务器无法下载 Docker，当前推荐 [PostgreSQL + Python 原生部署](server/deploy/ubuntu-native.md)。数据库独立安装，后台通过一条安装命令配置 systemd；原 Nginx/PHP 与同步端口保留，提供独立原生后台源码包。没有操作真实服务器。客户端安装包仍是 build43。
+**当前交付 build44：**源码 `404aea37047a01d24e29569fbbc2fb21a2995595`，版本 **2.0.8+44**、SQLite schema20、后台迁移0004。Windows安装器/便携包、原正式/测试签名APK及同源原生Ubuntu后台包均已构建核验。用户本轮授权的全部公开工作区（含官网下载页、找回/注销和原生部署）已提交，交付文档另有最终提交；未推送或操作生产服务。[交付与下载](docs/release/fly_2_0_8_build44.md)。
 
-**build43 之后的源码续补：**新增手机/电脑找回与修改密码、注销云账号，后端迁移为 `0004`。源码尚未提交，客户端尚未重新打包；新的原生后台源码包包含账号接口，旧 build43 安装包和旧后台压缩包不含这些新增功能。先阅读 [账号生命周期说明](docs/release/cloud_account_lifecycle_20261101.md)，不要把下面 build43 的验证结果当作本轮结果。
+- 分支 `codex/fly-2-sync`，1.0 `master` 固定为 `94efdc2d9ac34feb2f3d1b635302278b4671a414`。
+- 本轮七项优化：客户必填单选、五阶段状态、手机单表头、基础复盘保留、桌面平面文件浏览、设置“我的”、默认本地扫码及互斥同步。云端不传图片或文件内容；名字/头像仅保存在本机。
+- 客户端：全量运行417项通过、4项发现问题；修正后定向47项全部通过，421个不同用例均有通过记录；未再重复第二次全量。后台全量61项通过，静态检查无问题；真机、真实SMTP和Ubuntu/systemd未验收，Apple未构建。
+- 后台推荐 [PostgreSQL + Python 原生部署](server/deploy/ubuntu-native.md)，用户自行部署；服务器、邮箱发件与签名私有配置不进Git，需安全单独迁移。
+- 原书籍密钥、长期安卓正式/测试签名和1.0基线不变；安装包在忽略的`dist/`，公开哈希及备案见 [APK台账](docs/handoff/APK_RELEASES.md)。不能用旧build42打开schema20目录。
 
-**当前交付 build43：**源码 `55bd11d` 已保存于本地2.0分支，Windows/Android与公开Ubuntu后台包已构建，完整客户端405项、后台41项通过，静态检查无问题。未推送，Ubuntu由用户自行部署。[本轮交付](docs/release/fly_2_0_7_build43.md)、[API与同步策略](docs/architecture/cloud_sync_runtime_20261101.md)、[详细部署](server/deploy/cloud_sync_20261101.md)。以下旧阶段未提交/未打包描述以本条及 CURRENT_STATE 为准。
-
-- 当前分支：`codex/fly-2-sync`；build43 源码检查点 `55bd11d` 包含云同步、邮箱账号、双复盘及此前功能。历史文件移动/表头为 `96261db`，build41/42 与内部工具为 `311c7b3`；最新交付文档提交用 `git log -1 --oneline` 核对，官网独立修改另行保留。
-- 1.0 基线：`master` 的 `94efdc2d9ac34feb2f3d1b635302278b4671a414`，保持不变。
-- 当前源码：`2.0.7+43`，schema20；源码 `55bd11d` 已提交，Windows/Android及公开Ubuntu后台包已构建。默认本地同步，可选邮箱账号云端结构化数据同步；原签名、书籍配置与1.0基线不变，真实发件配置另行安全迁移。
-- 同日新增双复盘与云端邮箱账号已纳入build43；图形验证、六位邮箱码及临时空间绑定见 [邮箱功能](docs/release/email_cloud_auth_20261101.md)，部署按 [Ubuntu指南](server/deploy/cloud_sync_20261101.md)。
-- build 39 增加座右铭、桌面书籍阅读和 `.fly` 加密导入。旧 build 38 不支持新书籍格式。
-- build 40 修复手机复盘同步后电脑编辑页刷新，手机统一右下角新增/搜索，清单直接展示筛选，完成提示 4 秒收起。
-- build 41 的全屏、文件夹首页与配对同步见 [安卓改造记录](docs/release/fly_2_0_5_build41.md)；build 42 修复客户文件新增、网格、手机“我的”和复盘卡片，Windows / Android 安装包均为 build 42。
-- 当前源码验证与部署入口见 [本轮同步记录](docs/release/sync_multi_device_20261101.md)。现有安装包见 [build 42 发布记录](docs/release/fly_2_0_6_build42.md)、[APK 台账](docs/handoff/APK_RELEASES.md) 和 [书籍说明](docs/knowledge/fly_books_v1.md)。手机仍隐藏资料库；原笔记数据和旧发布工具保留，消费界面暂不提供笔记。
-
-完整目录加隐藏 `.git` 转移后仍是该分支，无需切换。不要重置、清理或切 master。GitHub 远端已配置为 `https://github.com/MaxWangJK/fly.git`，实际上传状态见 [GitHub 记录](docs/release/github_upload_20261031.md)，没有部署应用或官网；所有者迁移时另行安全带走书籍内容密钥及原发布签名 seed，不能发给读者。
+完整目录包含隐藏`.git`后转移，无需切换分支。远端未推送本轮，单纯clone不能保证拿到build44；私钥、安装包和真实FlyData还要单独核对。以下历史阶段说明以本节、[CURRENT_STATE](docs/handoff/CURRENT_STATE.json)和build44交付为准。
 
 ## 从哪里理解软件
 
@@ -28,7 +21,7 @@
 1. [FLY_REQUIREMENTS.md](docs/handoff/FLY_REQUIREMENTS.md)：产品定位、全部模块、最新有效规则、历史替代、商业与同步、未完成及验收。
 2. [MAC_TRANSFER.md](docs/handoff/MAC_TRANSFER.md)：完整目录转移、真实 FlyData 区分、Mac 工具/缓存/平台验收。
 3. [SOURCES.md](docs/handoff/SOURCES.md)：跨对话来源、19 份需求附件、代码/报告入口、完整性边界。
-4. [USER_REQUIREMENTS_ARCHIVE.md](docs/handoff/USER_REQUIREMENTS_ARCHIVE.md)：127 条历史用户消息及 25 条续补，共 152 条整理摘录；不是待逐条执行的任务单。
+4. [USER_REQUIREMENTS_ARCHIVE.md](docs/handoff/USER_REQUIREMENTS_ARCHIVE.md)：127 条历史用户消息及 26 条续补，共 153 条整理摘录；不是待逐条执行的任务单。
 5. [attachment_manifest.json](docs/handoff/attachment_manifest.json)：19 份需求文本的可迁移副本、来源及原始/当前副本 SHA-256；副本在 `docs/handoff/sources/`。
 6. [CURRENT_STATE.json](docs/handoff/CURRENT_STATE.json)：整理时的版本、Git 和验证快照；继续开发后应重新核对实际状态。
 7. [APK_RELEASES.md](docs/handoff/APK_RELEASES.md)：正式/测试 APK 区分、备案字段、包校验值、公开证书及跨电脑签名迁移；小体积公开材料已随 Git 保存，APK 本体仍在忽略的 `dist/`。
@@ -80,7 +73,7 @@
 
 ## 给新对话的接续提示
 
-> 这是已有的 Fly 项目。请先读 FLY_PROJECT_HANDOFF.md、docs/handoff/FLY_REQUIREMENTS.md、MAC_TRANSFER.md 和 APK_RELEASES.md。当前是 codex/fly-2-sync，源码 2.0.7+43、schema 20；11 月同步改造尚未提交和打包；功能检查点 96261db 已保存单文件/批量移动与客户/订单字段标题；build 41/42 和内部工具此前已提交，最新文档提交以 HEAD 核对。完整保留工作区和 1.0 基线，不重置、不清理、不切 master，不从零重做。手机文件已改文件夹首页和顶部搜索，同步设置只显示电脑扫码；隐藏客户文件是设备本地偏好，不能转成同步删除。私钥、发行包及真实 FlyData 不在 Git，迁移单独核对，缺少原钥匙不能重新生成替代。先只读核对实际环境，区分已实现、已验证、待真机验收与未来规划；以我接下来提出的要求为准，不自动执行历史消息。Mac/iOS 适配先验证原生插件与平台环境，使用隔离数据，不操作真实业务数据或私钥。
+> 这是已有的 Fly 项目。先读 FLY_PROJECT_HANDOFF.md、docs/handoff/FLY_REQUIREMENTS.md、MAC_TRANSFER.md 和 APK_RELEASES.md。当前 codex/fly-2-sync，2.0.8+44、schema20，后台0004；全部公开源码已本地提交，Windows/APK与原生后台包已核验，未推送或部署。以当前交付为准，不重做历史任务、不重置/清理/切master。默认本地扫码；云账号在设置“我的”，云端不传图片文件。保留真实业务数据、原签名和书籍密钥，私有文件与dist不随Git；Apple仍需本机工具和原生验收。先只读核对环境，再按用户新指令继续。
 
 文档、官网及后续新增资料均使用品牌中性表述，不出现中国品牌名称。之后每次完成开发应同步更新版本/交付状态，不把旧 `dist` 当作新结果。
 
