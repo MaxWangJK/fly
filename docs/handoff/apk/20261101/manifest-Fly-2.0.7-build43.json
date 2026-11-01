@@ -1,0 +1,58 @@
+{
+  "version": "2.0.7+43",
+  "databaseSchemaVersion": 20,
+  "backendMigration": "0003",
+  "createdAtUtc": "2026-11-01T08:16:01.350922+00:00",
+  "sourceCommit": "55bd11da84281ae650648967490562660bdfe0fb",
+  "sourceIncludesUncommittedChanges": false,
+  "branch": "codex/fly-2-sync",
+  "artifacts": [
+    {
+      "name": "Fly-Setup-2.0.7-build43-testing.exe",
+      "bytes": 13453780,
+      "sha256": "D7FB0893809327114CDCDA7029392BE536418EDCF6C239FCC19D31D778B96792"
+    },
+    {
+      "name": "Fly-2.0.7-build43-windows-test-20261101.zip",
+      "bytes": 16068120,
+      "sha256": "1886E49FF4C8132159FE527A4521217BBB8130CF7113E738C1A025A8063977FE"
+    },
+    {
+      "name": "Fly-2.0.7-build43-android-release-signed-20261101.apk",
+      "bytes": 94633956,
+      "sha256": "D483D504B5B1587459493669144CC7569EA70AC8C6D3A2CB9C885C63EC3DDEAC"
+    },
+    {
+      "name": "Fly-2.0.7-build43-android-test-20261101.apk",
+      "bytes": 94634216,
+      "sha256": "A2AA832024906F271F61650FDA469B195B99CCBC41D444C5AF7CD80C509DF704"
+    },
+    {
+      "name": "Fly-Sync-2.0.7-build43-ubuntu-20261101.tar.gz",
+      "bytes": 218326,
+      "sha256": "FF6E5D806C31B2FB8C5CB01A96284EFC39E43F9A66622E0F9257E030629799DB"
+    }
+  ],
+  "verifiedClientTests": 405,
+  "verifiedServerTests": 41,
+  "analyze": "No issues found",
+  "ENABLE_LOCAL_LICENSE": false,
+  "compiledOriginalBookReaderConfigurationVerified": true,
+  "androidFormalSigningIdentityUnchanged": true,
+  "androidTestingSigningIdentityUnchanged": true,
+  "android16KBAligned": true,
+  "androidApplicationContentsMatch": true,
+  "androidMinSdk": 24,
+  "androidTargetSdk": 36,
+  "androidAbis": [
+    "arm64-v8a",
+    "armeabi-v7a",
+    "x86_64"
+  ],
+  "androidDebuggable": false,
+  "privateConfigurationFilesIncluded": false,
+  "productionDeploymentPerformed": false,
+  "actualSmtpDeliveryVerified": false,
+  "physicalDeviceAcceptancePerformed": false,
+  "appleBuildPerformed": false
+}

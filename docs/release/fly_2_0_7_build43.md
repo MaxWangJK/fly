@@ -21,3 +21,24 @@
 ## 本机代理配置验证
 
 官方便携 Nginx 1.30.6 对配置完成语法和 8 项 HTTP/TLS/WebSocket 检查：保留官网入口，两个 PHP API 的 POST/正文/原 URI 仍正确，HTTP 跳转、同步前缀、WebSocket 升级与首帧、原隐藏文件及 PHP 规则通过。只替换了回环端口、测试路径、临时证书与 PHP/API 替身，测试后已关闭进程；不代表 Ubuntu 或真实官网业务已验收。
+
+
+## 已完成验证与提交
+
+- 源码提交 `55bd11da84281ae650648967490562660bdfe0fb`；打包时应用/后台源码无未提交差异。交付文档与哈希在后续文档提交归档；官网页脚的独立本地改动保留，不属于本次源码提交。
+- 完整客户端 **405 项通过**，包含临时双/三设备后台、云模式恢复和手机前后台、改动即时发送及同步中追加、WebSocket 重连取消、邮箱流程、双复盘及原业务场景。后台全套 **41 项通过**；最终静态检查无问题。
+- Windows release、安装器、便携 ZIP 与 Android release 构建成功。SQLite 相对绑定、原书籍配置、必需运行库、ZIP/APK 完整性、安卓原正式/测试证书、16 KB 对齐及两种 APK 的非签名内容一致均已核验。
+- 公开 Ubuntu 包来自上述提交，包含初始化、迁移、Nginx 及详细步骤；不含 SMTP、环境秘密、数据库、venv 或业务数据。源码与客户包检查未发现真实发件授权码。
+- 临时后台已关闭；没有推送远端、修改真实 Ubuntu/Nginx、发送真实邮件、安装/卸载用户软件或执行 Apple 构建。Nginx 目标机语法与公网链路、邮件投递、二维码/相机/分享/外部打开仍按部署和真机步骤验收。
+
+## 交付文件
+
+| 文件 | 字节数 | SHA-256 |
+| --- | --- | --- |
+| [Fly-Setup-2.0.7-build43-testing.exe](../../dist/Fly-Setup-2.0.7-build43-testing.exe) | 13,453,780 | `D7FB0893809327114CDCDA7029392BE536418EDCF6C239FCC19D31D778B96792` |
+| [Fly-2.0.7-build43-windows-test-20261101.zip](../../dist/Fly-2.0.7-build43-windows-test-20261101.zip) | 16,068,120 | `1886E49FF4C8132159FE527A4521217BBB8130CF7113E738C1A025A8063977FE` |
+| [Fly-2.0.7-build43-android-release-signed-20261101.apk](../../dist/Fly-2.0.7-build43-android-release-signed-20261101.apk) | 94,633,956 | `D483D504B5B1587459493669144CC7569EA70AC8C6D3A2CB9C885C63EC3DDEAC` |
+| [Fly-2.0.7-build43-android-test-20261101.apk](../../dist/Fly-2.0.7-build43-android-test-20261101.apk) | 94,634,216 | `A2AA832024906F271F61650FDA469B195B99CCBC41D444C5AF7CD80C509DF704` |
+| [Fly-Sync-2.0.7-build43-ubuntu-20261101.tar.gz](../../dist/Fly-Sync-2.0.7-build43-ubuntu-20261101.tar.gz) | 218,326 | `FF6E5D806C31B2FB8C5CB01A96284EFC39E43F9A66622E0F9257E030629799DB` |
+
+[公开机器可读清单](../handoff/apk/20261101/manifest-Fly-2.0.7-build43.json)、[安卓备案字段](../handoff/apk/20261101/Fly-Android-Release-Filing-Info-build43.txt)。正式/测试签名包按已有安装身份选择，不能混用覆盖升级。

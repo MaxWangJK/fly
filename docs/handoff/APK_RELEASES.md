@@ -1,5 +1,15 @@
 # Fly 安装包、安卓备案与迁移台账
 
+## 当前 build43（2026-11-01）
+
+版本 **2.0.7+43**，SQLite schema20，源码提交 `55bd11da84281ae650648967490562660bdfe0fb`。Windows安装器/便携包、原正式签名APK、原测试签名APK及公开Ubuntu后台包均已构建核验；完整客户端 405 项、后台41项通过，静态检查无问题。下方 build42 为保留的历史记录。
+
+[本轮交付与下载](../release/fly_2_0_7_build43.md)、[公开清单与备案字段](apk/20261101/README.md)。正式包名 `com.flyproduct.fly`、证书MD5 `5E96E7B982BF8DB94FEF71F148BC0859` 不变。测试包继续沿用原测试证书，不能与正式包互相覆盖；保持原签名、保留完整备份，不让旧 build42 打开 schema20 数据。
+
+没有推送或部署，Ubuntu由用户按[详细文档](../../server/deploy/cloud_sync_20261101.md)自行操作，发件配置另行安全复制。
+
+---
+
 最后核对：2026-10-18；源码 `2.0.6+42`，schema 19，分支 `codex/fly-2-sync`。本轮安卓已重新编译并核验；Windows 和 Android 均为 build 42。本轮源码及内部发码工具已保存于功能检查点 `311c7b3`；原构建日期和哈希保持不变。完整功能需求见 [FLY_REQUIREMENTS.md](FLY_REQUIREMENTS.md)，迁移步骤见 [MAC_TRANSFER.md](MAC_TRANSFER.md)。
 
 ## 1. 当前应使用哪一个 APK

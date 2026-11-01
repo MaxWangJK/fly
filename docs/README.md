@@ -6,7 +6,7 @@
 
 2026-11-01 新复盘：[基础/航向双方案与实现边界](product/review_compass_20261101.md)、[收费建议（尚未实施）](product/monetization_20261101.md)。原复盘和卡片保留，进阶当前开放体验，不接支付。
 
-跨对话需求、状态及 Mac 迁移入口：[项目交接](../FLY_PROJECT_HANDOFF.md)、[完整需求](handoff/FLY_REQUIREMENTS.md)、[来源及附件](handoff/SOURCES.md)。当前 Windows / Android 见 [2.0.6 build 42](release/fly_2_0_6_build42.md)，此前安卓改造见 [build 41](release/fly_2_0_5_build41.md)。
+跨对话需求、状态及 Mac 迁移入口：[项目交接](../FLY_PROJECT_HANDOFF.md)、[完整需求](handoff/FLY_REQUIREMENTS.md)、[来源及附件](handoff/SOURCES.md)。历史 Windows / Android 见 [2.0.6 build 42](release/fly_2_0_6_build42.md)，此前安卓改造见 [build 41](release/fly_2_0_5_build41.md)。
 
 Fly is a Windows-first, cross-platform-ready, local-first task manager.
 
