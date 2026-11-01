@@ -14,6 +14,75 @@ class SyncOutboxRepository {
   static const namespace = 'e8cd67db-7ae2-4ea8-bba7-baeeb52375a1';
   static String identity(String entity, String key) =>
       const Uuid().v5(namespace, '$entity:$key');
+  static String fieldClockKey(String entity, String key) =>
+      'fieldClocks:$entity:$key';
+  Future<Map<String, dynamic>> fieldClocks(String entity, String key) async =>
+      jsonObject(await state(fieldClockKey(entity, key)) ?? '{}');
+
+  Future<Map<String, dynamic>> _mutationClocks(
+    QueryRow row,
+    Map<String, dynamic> known,
+  ) async {
+    final id = row.read<String>('mutation_id');
+    final stored = await state('mutationClocks:$id');
+    if (stored != null) return jsonObject(stored);
+    final fields = (jsonDecode(row.read<String>('changed_fields')) as List)
+        .cast<String>();
+    final captured = <String, dynamic>{};
+    for (final field in fields) {
+      final prior = known[field];
+      final at = row.read<int>('created_at');
+      final milliseconds = at >= 1000000000000 ? at : at * 1000;
+      final observed = prior is List && prior.isNotEmpty && prior.first is int
+          ? prior.first as int
+          : 0;
+      captured[field] = [
+        milliseconds > observed ? milliseconds : observed + 1,
+        id,
+      ];
+    }
+    if (row.read<String>('entity_type') == 'daily_reviews' &&
+        fields.contains('answers_json')) {
+      final key = row.read<String>('record_key');
+      final baseline = jsonObject(await state('reviewBaseline:$key') ?? '{}');
+      final baselineClocks = jsonObject(
+        await state('reviewBaselineClocks:$key') ?? '{}',
+      );
+      final payload = jsonObject(row.read<String>('payload'));
+      final answers = jsonObject(payload['answers_json'] as String? ?? '{}');
+      for (final question in {...baseline.keys, ...answers.keys}) {
+        final field = 'answers_json/$question';
+        if (answers[question] != baseline[question] ||
+            (known.containsKey(field) &&
+                jsonEncode(known[field]) !=
+                    jsonEncode(baselineClocks[field]))) {
+          captured[field] = captured['answers_json'];
+        }
+      }
+    }
+    await saveState('mutationClocks:$id', jsonEncode(captured));
+    return captured;
+  }
+
+  /// Carry edit provenance with business rows when the phone changes LAN hosts.
+  Future<void> captureFieldClocks() async {
+    for (final row
+        in await db
+            .customSelect('SELECT * FROM sync_outbox ORDER BY ordinal')
+            .get()) {
+      final entity = row.read<String>('entity_type'),
+          key = row.read<String>('record_key');
+      final clocks = await fieldClocks(entity, key);
+      final frozen = row.data['dispatched'] as String?;
+      clocks.addAll(
+        frozen == null
+            ? await _mutationClocks(row, clocks)
+            : (jsonObject(frozen)['fieldClocks'] as Map? ?? const {})
+                  .cast<String, dynamic>(),
+      );
+      await saveState(fieldClockKey(entity, key), jsonEncode(clocks));
+    }
+  }
 
   Future<String?> state(String key) async =>
       (await db
@@ -68,10 +137,25 @@ class SyncOutboxRepository {
         .get();
     for (final row in records) {
       final data = jsonObject(row.read<String>('payload'));
+      final mutationId = const Uuid().v4();
+      final clocks = await fieldClocks(
+        row.read<String>('entity_type'),
+        row.read<String>('record_key'),
+      );
+      final at =
+          (data['updated_at'] as num? ??
+                  data['created_at'] as num? ??
+                  row.read<int>('local_updated_at'))
+              .toInt() *
+          1000;
+      for (final field in data.keys) {
+        clocks.putIfAbsent(field, () => [at, mutationId]);
+      }
+      await saveState('mutationClocks:$mutationId', jsonEncode(clocks));
       await db.customStatement(
         'INSERT INTO sync_outbox(mutation_id,entity_type,record_key,base_version,changed_fields,payload,operation,created_at) VALUES(?,?,?,?,?,?,?,?)',
         [
-          const Uuid().v4(),
+          mutationId,
           row.read<String>('entity_type'),
           row.read<String>('record_key'),
           0,
@@ -112,6 +196,8 @@ class SyncOutboxRepository {
       var operation = row.read<String>('operation');
       final version = row.read<int>('sync_version');
       var payload = jsonObject(row.read<String>('payload'));
+      final clocks = await fieldClocks(entity, key);
+      clocks.addAll(await _mutationClocks(row, clocks));
       final fields = (jsonDecode(row.read<String>('changed_fields')) as List)
           .cast<String>();
       final following = await db
@@ -121,6 +207,7 @@ class SyncOutboxRepository {
           )
           .get();
       for (final edit in following) {
+        clocks.addAll(await _mutationClocks(edit, clocks));
         payload = jsonObject(edit.read<String>('payload'));
         operation = edit.read<String>('operation');
         fields.addAll(
@@ -144,6 +231,7 @@ class SyncOutboxRepository {
             : (version == 0 ? payload.keys.toList() : fields.toSet().toList()),
         'payload': payload,
         'operation': operation,
+        'fieldClocks': clocks,
       };
       await db.customStatement(
         'UPDATE sync_outbox SET payload=?,operation=?,changed_fields=? WHERE ordinal=?',
@@ -167,6 +255,7 @@ class SyncOutboxRepository {
         [serialized, row.read<int>('ordinal')],
       );
       result.add(mutation);
+      await saveState(fieldClockKey(entity, key), jsonEncode(clocks));
     }
     return result;
   });
@@ -269,6 +358,13 @@ class SyncOutboxRepository {
       throw StateError('同步记录缺少主键');
     }
     final key = jsonEncode(keys.map((k) => data[k]).toList());
+    if (record['fieldClocks'] is Map &&
+        (record['fieldClocks'] as Map).isNotEmpty) {
+      await saveState(
+        fieldClockKey(entity, key),
+        jsonEncode(record['fieldClocks']),
+      );
+    }
     final expectedId = identity(entity, key);
     if (id != expectedId) throw StateError('同步 ID 与业务主键不一致');
     if (entity == 'app_settings' && !syncSettingKeys.contains(data['key'])) {
@@ -285,6 +381,16 @@ class SyncOutboxRepository {
       return;
     }
     final canonical = Map<String, dynamic>.from(data);
+    if (entity == 'daily_reviews' && canonical['answers_json'] is String) {
+      await saveState(
+        'reviewBaseline:$key',
+        canonical['answers_json'] as String,
+      );
+      await saveState(
+        'reviewBaselineClocks:$key',
+        jsonEncode(record['fieldClocks'] ?? {}),
+      );
+    }
     final pending = await db
         .customSelect(
           'SELECT * FROM sync_outbox WHERE entity_type=? AND record_key=? ORDER BY ordinal',

@@ -17,6 +17,7 @@ import '../services/file_sync_service.dart';
 import '../services/device_service.dart';
 import '../services/sync_conflict_service.dart';
 import '../services/lan_host_service.dart';
+import '../services/lan_discovery_service.dart';
 import '../services/sync_engine.dart';
 import '../services/sync_notification_service.dart';
 import '../services/sync_workspace_binding.dart';
@@ -58,6 +59,7 @@ class SyncController extends ChangeNotifier {
         )
       : null;
   String? error, lanEndpoint, lanToken, lanWorkspace;
+  String? lanDeviceId;
   List<String> addresses = [];
   List<Map<String, dynamic>> devices = [], conflicts = [], trustedDevices = [];
   Map<String, int> counts = {};
@@ -80,19 +82,28 @@ class SyncController extends ChangeNotifier {
       lanPort = int.tryParse(await outbox.state('lanPort') ?? '') ?? 8765;
       lanEndpoint = await outbox.state('lanEndpoint');
       lanWorkspace = await outbox.state('lanRemoteWorkspace');
+      lanDeviceId = await outbox.state('lanDeviceId');
       if (lanEndpoint != null) {
-        lanToken = await auth.storage.read(
+        if (lanWorkspace != null) {
+          lanToken = await auth.storage.read(key: _lanSecretKey(lanWorkspace!));
+        }
+        lanToken ??= await auth.storage.read(
           key: 'fly-lan-${AuthService(lanEndpoint!, root).storageKey}',
         );
+        if (lanToken != null) await _rememberLanPeer();
       }
       counts = await outbox.initialCounts();
       ready = true;
       final savedHost = await outbox.state('lanHostEnabled') == 'true';
-      // The product now exposes desktop pairing only. Keep saved cloud identity
-      // and workspace contexts intact, but do not reconnect a hidden mode.
-      connectionMode = SyncConnectionMode.lan;
-      await outbox.saveState('syncConnectionMode', 'lan');
-      await outbox.saveState('cloudEnabled', 'false');
+      connectionMode = await outbox.state('syncConnectionMode') == 'cloud'
+          ? SyncConnectionMode.cloud
+          : SyncConnectionMode.lan;
+      cloudEnabled = false;
+      if (connectionMode == SyncConnectionMode.cloud &&
+          auth.userId != null &&
+          await outbox.state('cloudEnabled') == 'true') {
+        await _enableCloud();
+      }
       if (connectionMode == SyncConnectionMode.lan) {
         if (savedHost && !isMobile) await _startHost();
         if (!host.running &&
@@ -129,22 +140,45 @@ class SyncController extends ChangeNotifier {
     '',
   );
 
+  Future<void> enrollCloudDevice(String code) => run(() async {
+    if (code.trim().length < 32) throw ArgumentError('请填写后台签发的一次性设备接入码');
+    final pinned = await outbox.state('binding:cloud');
+    if (pinned != null && !pinned.startsWith('cloud:$server:')) {
+      throw StateError('此数据目录已连接其他云服务器，请使用独立数据目录');
+    }
+    await auth.enrollDevice(
+      code,
+      expectedUserId: pinned?.substring('cloud:$server:'.length),
+    );
+    await _enableCloud();
+    await outbox.saveState('cloudEnabled', 'true');
+    await refreshDetails();
+  });
+
   Future<void> login(
     bool register,
     String email,
     String password,
-    String confirm,
-  ) => run(() async {
+    String confirm, {
+    String? verificationTicket,
+    bool bindEmail = false,
+  }) => run(() async {
+    final pinned = await outbox.state('binding:cloud');
+    if (pinned != null && !pinned.startsWith('cloud:$server:')) {
+      throw StateError('此数据目录已连接其他云服务器，请使用独立数据目录');
+    }
     await auth.authenticate(
       register: register,
       email: email,
       password: password,
       confirm: confirm,
+      verificationTicket: verificationTicket,
+      bindEmail: bindEmail,
+      expectedUserId: pinned?.substring('cloud:$server:'.length),
     );
     counts = await outbox.initialCounts();
-    if (connectionMode == SyncConnectionMode.cloud) {
-      engine?.syncFiles = cloudFiles;
-    }
+    await _enableCloud();
+    await outbox.saveState('cloudEnabled', 'true');
     await refreshDetails();
   });
   Future<void> logout() => run(() async {
@@ -157,8 +191,9 @@ class SyncController extends ChangeNotifier {
     conflicts = [];
   });
   Future<void> configureServer(String value) => run(() async {
-    if (cloudEnabled) throw StateError('请先关闭云同步再修改服务器');
     final checked = _serverInput(value).toString();
+    if (checked == server) return;
+    if (cloudEnabled) throw StateError('请先关闭云同步再修改服务器');
     await _saveServer(checked);
   });
   Uri _serverInput(String value) {
@@ -223,9 +258,10 @@ class SyncController extends ChangeNotifier {
   });
   Future<void> _enableCloud() async {
     if (connectionMode != SyncConnectionMode.cloud) throw StateError('请先选择云同步');
-    if (auth.userId == null) throw StateError('请先登录');
+    if (auth.userId == null) throw StateError('请先登录云同步账号');
     await _stopEngine();
     await SyncWorkspaceBinding(outbox).activate('cloud:$server:${auth.userId}');
+    await SyncConflictService(outbox.db).archiveLegacyCandidates();
     if (_disposed || (isMobile && !_foreground)) return;
     final transport = CloudSyncTransport(
       server,
@@ -236,6 +272,7 @@ class SyncController extends ChangeNotifier {
       outbox: outbox,
       transport: transport,
       cursorKey: 'cloudCursor',
+      automaticMergeRequired: true,
       files: FileSyncService(outbox.db, root, transport),
       syncFiles: cloudFiles,
       failureLimit: isMobile ? 3 : null,
@@ -356,12 +393,15 @@ class SyncController extends ChangeNotifier {
       lanEndpoint = checked;
       lanToken = response['token'] as String;
       lanWorkspace = workspace;
+      lanDeviceId = response['deviceId'] as String;
       await auth.storage.write(
         key: 'fly-lan-${AuthService(checked, root).storageKey}',
         value: lanToken,
       );
       await outbox.saveState('lanEndpoint', checked);
       await outbox.saveState('lanRemoteWorkspace', workspace);
+      await outbox.saveState('lanDeviceId', lanDeviceId!);
+      await _rememberLanPeer();
       await outbox.saveState('lanClientEnabled', 'true');
       if (!cloudEnabled) await _startLanClient();
       final checkedTransport = LanSyncTransport(
@@ -391,11 +431,16 @@ class SyncController extends ChangeNotifier {
   });
   Future<void> _startLanClient() async {
     await _stopEngine();
+    if (_disposed || (isMobile && !_foreground)) return;
+    await _selectReachableLanPeer();
     await SyncWorkspaceBinding(outbox).activate('lan:$lanWorkspace');
+    await SyncConflictService(outbox.db).archiveLegacyCandidates();
     if (_disposed || (isMobile && !_foreground)) return;
     final transport = LanSyncTransport(
       lanEndpoint!,
       token: () async => lanToken,
+      reconnect: _rediscoverCurrentLanPeer,
+      resumeScope: 'lan:$lanWorkspace',
     );
     engine = SyncEngine(
       outbox: outbox,
@@ -408,6 +453,123 @@ class SyncController extends ChangeNotifier {
     );
     engine!.addListener(_changed);
     engine!.start();
+  }
+
+  String _lanSecretKey(String workspace) =>
+      'fly-lan-workspace-${AuthService(workspace, root).storageKey}';
+  Future<void> _rememberLanPeer() async {
+    if (lanWorkspace == null || lanEndpoint == null || lanToken == null) return;
+    await auth.storage.write(
+      key: _lanSecretKey(lanWorkspace!),
+      value: lanToken,
+    );
+    final peers = (jsonDecode(await outbox.state('lanPeers') ?? '[]') as List)
+        .whereType<Map>()
+        .where((p) => p['workspace'] != lanWorkspace)
+        .take(4)
+        .toList();
+    await outbox.saveState(
+      'lanPeers',
+      jsonEncode([
+        {
+          'workspace': lanWorkspace,
+          'endpoint': lanEndpoint,
+          'deviceId': lanDeviceId,
+        },
+        ...peers,
+      ]),
+    );
+  }
+
+  Future<bool> _probeLanPeer(
+    String endpoint,
+    String token,
+    String workspace,
+  ) async {
+    final probe = LanSyncTransport(
+      endpoint,
+      token: () async => token,
+      connectionTimeout: const Duration(milliseconds: 800),
+    );
+    try {
+      final info = await probe
+          .request('GET', '/lan/info')
+          .timeout(const Duration(milliseconds: 1200));
+      if (workspace == lanWorkspace &&
+          token == lanToken &&
+          info['deviceId'] is String &&
+          (lanDeviceId == null || lanDeviceId!.isEmpty)) {
+        lanDeviceId = info['deviceId'] as String;
+        await outbox.saveState('lanDeviceId', lanDeviceId!);
+        await _rememberLanPeer();
+      }
+      return info['workspaceId'] == null || info['workspaceId'] == workspace;
+    } on Object {
+      return false;
+    } finally {
+      probe.close();
+    }
+  }
+
+  Future<String?> _rediscoverCurrentLanPeer() async {
+    if (_disposed ||
+        !_foreground ||
+        lanWorkspace == null ||
+        lanDeviceId == null ||
+        lanToken == null) {
+      return null;
+    }
+    final found = await discoverPairedLanHost(
+      workspace: lanWorkspace!,
+      deviceId: lanDeviceId!,
+      token: lanToken!,
+    );
+    if (found == null ||
+        !await _probeLanPeer(found, lanToken!, lanWorkspace!)) {
+      return null;
+    }
+    lanEndpoint = found;
+    await outbox.saveState('lanEndpoint', found);
+    await _rememberLanPeer();
+    return found;
+  }
+
+  Future<void> _selectReachableLanPeer() async {
+    if (lanWorkspace == null || lanEndpoint == null || lanToken == null) return;
+    if (await _probeLanPeer(lanEndpoint!, lanToken!, lanWorkspace!)) return;
+    if (await _rediscoverCurrentLanPeer() != null) return;
+    final peers = (jsonDecode(await outbox.state('lanPeers') ?? '[]') as List)
+        .whereType<Map>()
+        .take(5);
+    for (final peer in peers) {
+      final workspace = peer['workspace'] as String;
+      if (workspace == lanWorkspace) continue;
+      final token = await auth.storage.read(key: _lanSecretKey(workspace));
+      if (token == null) continue;
+      var endpoint = peer['endpoint'] as String;
+      if (!await _probeLanPeer(endpoint, token, workspace)) {
+        final id = peer['deviceId'] as String?;
+        if (id == null) continue;
+        final found = await discoverPairedLanHost(
+          workspace: workspace,
+          deviceId: id,
+          token: token,
+        );
+        if (found == null || !await _probeLanPeer(found, token, workspace)) {
+          continue;
+        }
+        endpoint = found;
+      }
+      lanWorkspace = workspace;
+      lanDeviceId = peer['deviceId'] as String?;
+      lanEndpoint = endpoint;
+      lanToken = token;
+      await outbox.saveState('lanRemoteWorkspace', workspace);
+      await outbox.saveState('lanDeviceId', lanDeviceId ?? '');
+      await outbox.saveState('lanEndpoint', endpoint);
+      await _rememberLanPeer();
+      return;
+    }
   }
 
   Future<void> suspend() {

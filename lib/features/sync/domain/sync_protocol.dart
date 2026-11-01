@@ -2,12 +2,10 @@ import 'dart:convert';
 
 class SyncServerConfig {
   static const defaultBaseUrl = 'https://world-workshop.cn/api';
-  static const officialFileEmail = 'max@ceiling-arts.com';
   static bool isOfficial(String input) =>
       validate(input).host.toLowerCase().replaceFirst(RegExp(r'\.$'), '') ==
       'world-workshop.cn';
-  static bool allowsCloudFiles(String input, String? email) =>
-      !isOfficial(input) || email?.trim().toLowerCase() == officialFileEmail;
+  static bool allowsCloudFiles(String input, String? email) => false;
   static String displayAddress(String input) =>
       validate(input).toString().replaceFirst(RegExp(r'^https?://'), '');
   static Uri validate(String input) {

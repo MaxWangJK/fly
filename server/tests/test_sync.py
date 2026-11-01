@@ -9,6 +9,7 @@ from sqlalchemy.pool import StaticPool
 from app.config import Settings
 from app.main import create_app
 from app.models import Base, Device, ProcessedMutation, RefreshToken, SyncConflict, SyncRecord, User
+from tests.email_auth_helpers import verification_ticket
 
 
 @pytest.fixture
@@ -16,6 +17,7 @@ def client(tmp_path):
     engine = create_engine('sqlite://', connect_args={'check_same_thread': False}, poolclass=StaticPool)
     Base.metadata.create_all(engine)
     settings = Settings(jwt_private_secret='development-test-secret-at-least-32-characters', app_env='test',
+                        allow_password_auth=True, cloud_file_transfer_enabled=True,
                         database_url='sqlite://', storage_root=tmp_path)
     with TestClient(create_app(settings, engine)) as api:
         yield api
@@ -26,7 +28,9 @@ def credentials(email='max@example.com'):
 
 
 def register(client, email='max@example.com'):
-    response = client.post('/api/auth/register', json=credentials(email))
+    body = credentials(email)
+    body.update(confirmPassword=body['password'], verificationTicket=verification_ticket(client, email))
+    response = client.post('/api/auth/register', json=body)
     assert response.status_code == 201, response.text
     return response.json()
 
@@ -69,7 +73,7 @@ def push(client, session, *mutations):
 
 def test_auth_normalization_and_rotation(client):
     session = register(client, ' Max@Example.com ')
-    assert client.post('/api/auth/register', json=credentials('MAX@example.com')).status_code == 409
+    assert client.post('/api/auth/register', json=credentials('MAX@example.com')).status_code == 422
     wrong = credentials(); wrong['password'] = 'wrong-password-long'
     assert client.post('/api/auth/login', json=wrong).status_code == 401
     token = session['refreshToken']
@@ -147,11 +151,16 @@ def test_multi_device_union_merge_conflict_cursor_idempotency(client):
     two = mutation(rid, 3, {'company': 'XYZ'}, ['company'])
     push(client, a, one)
     conflict = push(client, b, two)[0]
-    assert conflict['status'] == 'conflict'
+    assert conflict['status'] == 'accepted'
+    assert conflict['autoMerged'] is True
     assert conflict['record']['data']['company'] == 'XYZ'
-    saved = client.get('/api/sync/conflicts', headers=headers(a)).json()[0]
-    assert saved['serverCandidate']['company'] == 'DEF'
-    assert saved['localCandidate']['company'] == 'XYZ'
+    assert client.get('/api/sync/conflicts', headers=headers(a)).json() == []
+    from sqlalchemy.orm import Session
+    with Session(client.app.state.engine) as db:
+        saved = db.scalars(select(SyncConflict)).one()
+        assert saved.server_candidate['company'] == 'DEF'
+        assert saved.local_candidate['company'] == 'XYZ'
+        assert saved.resolved_at is not None
     tom = mutation(payload={'name': 'Tom'})
     push(client, b, tom)
     later = client.get('/api/sync/pull', params={'after': original['nextCursor'], 'limit': 2}, headers=headers(a)).json()
@@ -170,7 +179,8 @@ def test_delete_wins_explicit_restore(client):
     conflict = push(client, a, stale)[0]
     assert conflict['record']['deletedAt'] is not None
     assert conflict['record']['version'] == 2
-    assert conflict['status'] == 'conflict'
+    assert conflict['status'] == 'accepted'
+    assert conflict['autoMerged'] is True
     stale_restore = mutation(first['recordId'], 1, operation='restore')
     assert push(client, a, stale_restore)[0]['record']['deletedAt'] is not None
     restore = mutation(first['recordId'], 2, operation='restore')
@@ -224,10 +234,15 @@ def test_binary_conflict_preserves_both(client):
     push(client, a, first)
     push(client, a, mutation(first['recordId'], 1, {'sha256': 'b' * 64}, ['sha256'], entity='attachments'))
     result = push(client, a, mutation(first['recordId'], 1, {'sha256': 'c' * 64}, ['sha256'], entity='attachments'))[0]
-    assert result['status'] == 'conflict'
+    assert result['status'] == 'accepted'
+    assert result['autoMerged'] is True
     assert result['record']['data']['sha256'] == 'b' * 64
-    conflict = client.get('/api/sync/conflicts', headers=headers(a)).json()[0]
-    assert conflict['localCandidate']['sha256'] == 'c' * 64
+    assert client.get('/api/sync/conflicts', headers=headers(a)).json() == []
+    from sqlalchemy.orm import Session
+    with Session(client.app.state.engine) as db:
+        saved = db.scalars(select(SyncConflict)).one()
+        assert saved.local_candidate['sha256'] == 'c' * 64
+        assert saved.resolved_at is not None
 
 
 def test_rate_limit_and_request_bound(client):
@@ -292,7 +307,8 @@ def test_delete_before_first_upload_retains_keys_for_other_devices(client):
     assert ack['record']['deletedAt'] is not None
     stale = mutation(deleted['recordId'], 0, {'id': business_id, 'name': 'Offline edit'}, ['id', 'name'])
     result = push(client, account, stale)[0]
-    assert result['status'] == 'conflict'
+    assert result['status'] == 'accepted'
+    assert result['autoMerged'] is True
     assert result['record']['data']['id'] == business_id
     assert result['record']['deletedAt'] is not None
 

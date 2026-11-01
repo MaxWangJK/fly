@@ -74,7 +74,7 @@ void main() {
   );
 
   test(
-    'startup retains saved cloud data but only reconnects desktop pairing',
+    'startup retains selected cloud mode without fabricating a session',
     () async {
       final db = AppDatabase(NativeDatabase.memory());
       final controller = SyncController(SyncOutboxRepository(db), '');
@@ -91,10 +91,10 @@ void main() {
           'https://retained.example/api',
         );
         await controller.initialize();
-        expect(controller.connectionMode, SyncConnectionMode.lan);
+        expect(controller.connectionMode, SyncConnectionMode.cloud);
         expect(controller.engine, isNull);
         expect(controller.cloudEnabled, isFalse);
-        expect(await controller.outbox.state('cloudEnabled'), 'false');
+        expect(await controller.outbox.state('cloudEnabled'), 'true');
         expect(
           await controller.outbox.state('workspace'),
           'cloud:retained-workspace',
@@ -504,7 +504,11 @@ void main() {
         expect(find.byKey(const ValueKey('scan-desktop-qr')), findsOneWidget);
         expect(find.byKey(const ValueKey('sync-mode-cloud')), findsNothing);
         expect(find.byKey(const ValueKey('sync-mode-lan')), findsNothing);
-        expect(find.text('云同步'), findsNothing);
+        expect(find.text('云同步'), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('sync-mode-selector')),
+          findsOneWidget,
+        );
         await capture('sync-settings');
         expect(tester.takeException(), isNull);
       } finally {

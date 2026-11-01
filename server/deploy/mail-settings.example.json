@@ -1,0 +1,6 @@
+{
+  "server": "smtp.example.com",
+  "port": 465,
+  "sender": "verification@example.com",
+  "authCode": "REPLACE_WITH_PRIVATE_SMTP_CREDENTIAL"
+}

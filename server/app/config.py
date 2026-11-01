@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     chunk_bytes: int = 4 * 1024 * 1024
     # Empty for self-hosting; official deployment sets an explicit account allowlist.
     file_sync_allowed_emails: str = ''
+    cloud_file_transfer_enabled: bool = False
+    allow_password_auth: bool = True
+    device_enrollment_enabled: bool = True
+    smtp_config_file: Path = Path('private/smtp.json')
 
     @model_validator(mode='after')
     def production_secret(self):

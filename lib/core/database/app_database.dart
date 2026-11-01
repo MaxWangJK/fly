@@ -85,7 +85,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 19;
+  int get schemaVersion => 20;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -401,7 +401,18 @@ class AppDatabase extends _$AppDatabase {
             );
           }
         }
-        if (from < 19) await createSyncSchema(this);
+        if (from < 20) {
+          // Preserve pending and frozen requests; replace sync capture triggers
+          // to timestamp new edits in milliseconds, including offline edits.
+          for (final table in syncTables) {
+            for (final event in ['insert', 'update', 'delete']) {
+              await customStatement(
+                'DROP TRIGGER IF EXISTS sync_${table}_$event',
+              );
+            }
+          }
+          await createSyncSchema(this);
+        }
         await _createIndexes();
         final violations = await customSelect('PRAGMA foreign_key_check').get();
         if (violations.isNotEmpty) {

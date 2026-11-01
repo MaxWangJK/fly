@@ -34,3 +34,9 @@
 ## build 42 补充（2026-10-17）
 
 [review-card-build42-phone.png](review-card-build42-phone.png)、[review-card-build42-desktop.png](review-card-build42-desktop.png)、[review-card-build42-dark-narrow.png](review-card-build42-dark-narrow.png)、[review-edit-build42-phone.png](review-edit-build42-phone.png)、[files-folders-build42-phone.png](files-folders-build42-phone.png)、[files-customer-add-build42-phone.png](files-customer-add-build42-phone.png)、[my-build42-phone.png](my-build42-phone.png)。均为隔离数据的 Flutter 渲染，目录三列、客户新增按钮和复盘卡片已检查，含窄屏 1.3 倍文字深色模式。共 30 张 PNG；不代替系统真机验收。
+
+## 当前源码补充（2026-11-01，未打包）
+
+双复盘：[手机选择](review-program-choice-phone.png)、[电脑选择](review-program-choice-desktop.png)、[只读浏览](review-program-preview-phone.png)、[深色窄屏卡片](review-program-card-dark-narrow.png)。
+
+邮箱账号：[电脑登录](cloud-email-login-desktop.png)、[手机图形验证](cloud-email-captcha-phone.png)、[深色窄屏设置密码](cloud-email-password-dark-narrow.png)。使用隔离账号和测试验证码，未发送真实邮件。以上均为 Flutter 渲染，不能代替真机、真实 SMTP 或服务器部署验收。本目录现有 37 张 PNG。

@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:async';
 
 import '../domain/sync_protocol.dart';
+import 'resumable_download.dart';
 
 class SyncHttpException implements Exception {
   const SyncHttpException(this.status, this.message);
@@ -12,13 +14,19 @@ class SyncHttpException implements Exception {
 }
 
 class CloudSyncTransport implements SyncTransport {
-  CloudSyncTransport(String baseUrl, {this.token, this.onUnauthorized})
-    : baseUrl = SyncServerConfig.validate(baseUrl);
-  final Uri baseUrl;
+  CloudSyncTransport(
+    String baseUrl, {
+    this.token,
+    this.onUnauthorized,
+    this.resumeScope,
+    Duration connectionTimeout = const Duration(seconds: 15),
+  }) : baseUrl = SyncServerConfig.validate(baseUrl),
+       _client = (HttpClient()..connectionTimeout = connectionTimeout);
+  Uri baseUrl;
   final Future<String?> Function()? token;
   final Future<void> Function()? onUnauthorized;
-  final HttpClient _client = HttpClient()
-    ..connectionTimeout = const Duration(seconds: 15);
+  final String? resumeScope;
+  final HttpClient _client;
 
   Future<HttpClientResponse> _send(
     String method,
@@ -26,6 +34,7 @@ class CloudSyncTransport implements SyncTransport {
     Object? body,
     List<int>? bytes,
     bool retry = true,
+    Map<String, String> headers = const {},
   }) async {
     if (!path.startsWith('/') || path.startsWith('//')) {
       throw ArgumentError('Invalid API path');
@@ -36,6 +45,7 @@ class CloudSyncTransport implements SyncTransport {
         .timeout(const Duration(seconds: 20));
     request.followRedirects =
         false; // Credentials must never follow a changed origin.
+    headers.forEach(request.headers.set);
     final access = await token?.call();
     if (access != null) {
       request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $access');
@@ -51,7 +61,14 @@ class CloudSyncTransport implements SyncTransport {
     if (response.statusCode == 401 && retry && onUnauthorized != null) {
       await response.drain<void>();
       await onUnauthorized!();
-      return _send(method, path, body: body, bytes: bytes, retry: false);
+      return _send(
+        method,
+        path,
+        body: body,
+        bytes: bytes,
+        retry: false,
+        headers: headers,
+      );
     }
     return response;
   }
@@ -114,27 +131,23 @@ class CloudSyncTransport implements SyncTransport {
     String path,
     String destination, {
     void Function(int, int)? onProgress,
+    String? expectedSha256,
+    int? expectedSize,
   }) async {
-    final response = await _send('GET', path);
-    if (response.statusCode != 200) {
-      await _json(response);
-      return;
-    }
-    final target = File(destination);
-    await target.parent.create(recursive: true);
-    final output = target.openWrite();
-    try {
-      var count = 0;
-      await for (final chunk in response.timeout(const Duration(seconds: 40))) {
-        count += chunk.length;
-        if (count > 2 * 1024 * 1024 * 1024) throw StateError('文件超过大小限制');
-        output.add(chunk);
-        onProgress?.call(count, response.contentLength);
-      }
-      await output.flush();
-    } finally {
-      await output.close();
-    }
+    await receiveResumableFile(
+      destination: destination,
+      source: '${resumeScope ?? baseUrl.toString()}$path',
+      sha256: expectedSha256,
+      size: expectedSize,
+      onProgress: onProgress,
+      open: (headers) async {
+        final response = await _send('GET', path, headers: headers);
+        if (response.statusCode != 200 && response.statusCode != 206) {
+          await _json(response);
+        }
+        return response;
+      },
+    );
   }
 
   @override
@@ -142,5 +155,62 @@ class CloudSyncTransport implements SyncTransport {
 }
 
 class LanSyncTransport extends CloudSyncTransport {
-  LanSyncTransport(super.baseUrl, {required super.token});
+  LanSyncTransport(
+    super.baseUrl, {
+    required super.token,
+    super.connectionTimeout,
+    super.resumeScope,
+    this.reconnect,
+  });
+  final Future<String?> Function()? reconnect;
+  Future<String?>? _reconnecting;
+  Future<T> _connected<T>(Future<T> Function() action) async {
+    try {
+      return await action();
+    } on SocketException {
+      return _recover(action);
+    } on TimeoutException {
+      return _recover(action);
+    } on HttpException {
+      return _recover(action);
+    }
+  }
+
+  Future<T> _recover<T>(Future<T> Function() action) async {
+    final old = baseUrl;
+    final endpoint = await (_reconnecting ??= Future.sync(
+      () => reconnect?.call(),
+    ).whenComplete(() => _reconnecting = null));
+    if (endpoint == null || endpoint == old.toString()) {
+      throw const SocketException('无法连接已配对电脑');
+    }
+    baseUrl = SyncServerConfig.validate(endpoint);
+    return action();
+  }
+
+  @override
+  Future<Map<String, dynamic>> request(
+    String method,
+    String path, {
+    Object? body,
+  }) => _connected(() => super.request(method, path, body: body));
+  @override
+  Future<Map<String, dynamic>> uploadChunk(String path, List<int> chunk) =>
+      _connected(() => super.uploadChunk(path, chunk));
+  @override
+  Future<void> downloadWithProgress(
+    String path,
+    String destination, {
+    void Function(int, int)? onProgress,
+    String? expectedSha256,
+    int? expectedSize,
+  }) => _connected(
+    () => super.downloadWithProgress(
+      path,
+      destination,
+      onProgress: onProgress,
+      expectedSha256: expectedSha256,
+      expectedSize: expectedSize,
+    ),
+  );
 }

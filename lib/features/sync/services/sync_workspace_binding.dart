@@ -29,7 +29,7 @@ class SyncWorkspaceBinding {
       );
     }
     final pinned = await outbox.state('binding:$kind');
-    if (pinned != null && pinned != workspace) {
+    if (kind == 'cloud' && pinned != null && pinned != workspace) {
       throw StateError(
         '此数据目录已连接其它${kind == 'cloud' ? '账号或服务器' : '电脑'}。请使用独立数据目录，避免混入其它工作区的数据。',
       );
@@ -39,6 +39,7 @@ class SyncWorkspaceBinding {
       await outbox.bind(workspace);
       return;
     }
+    await outbox.captureFieldClocks();
     await db.customStatement(
       'CREATE TABLE IF NOT EXISTS sync_workspace_contexts (workspace TEXT PRIMARY KEY, data TEXT NOT NULL)',
     );
@@ -167,10 +168,15 @@ class SyncWorkspaceBinding {
           : deleted
           ? 'restore'
           : 'upsert';
+      final mutationId = const Uuid().v4();
+      await outbox.saveState(
+        'mutationClocks:$mutationId',
+        jsonEncode(await outbox.fieldClocks(entity, key)),
+      );
       await db.customStatement(
         'INSERT INTO sync_outbox(mutation_id,entity_type,record_key,base_version,changed_fields,payload,operation,created_at) VALUES(?,?,?,?,?,?,?,?)',
         [
-          const Uuid().v4(),
+          mutationId,
           entity,
           key,
           metadata.read<int>('sync_version'),

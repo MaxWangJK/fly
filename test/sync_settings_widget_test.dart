@@ -17,7 +17,7 @@ import 'package:fly/l10n/fly_localizations.dart';
 void main() {
   for (final width in [1000.0, 390.0]) {
     testWidgets(
-      'account settings render at width $width and confirm password locally',
+      'cloud email settings retain optional device enrollment at width $width',
       (tester) async {
         tester.view.physicalSize = Size(width, 900);
         tester.view.devicePixelRatio = 1;
@@ -82,8 +82,16 @@ void main() {
           ),
         );
         await tester.pump();
-        expect(find.text('账号'), findsOneWidget);
-        expect(find.text('云同步'), findsNothing);
+        expect(find.text('云同步'), findsOneWidget);
+        expect(find.byKey(const ValueKey('cloud-email')), findsOneWidget);
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('cloud-device-code-option')),
+        );
+        await tester.tap(
+          find.byKey(const ValueKey('cloud-device-code-option')),
+        );
+        await tester.pumpAndSettle();
+        expect(find.byKey(const ValueKey('sync-device-code')), findsOneWidget);
         expect(tester.takeException(), isNull);
         await tester.runAsync(() async {
           final image =
@@ -96,25 +104,14 @@ void main() {
           await file.writeAsBytes(bytes!.buffer.asUint8List());
           image.dispose();
         });
-        await tester.ensureVisible(find.text('创建账号'));
-        await tester.tap(find.text('创建账号'));
+        await tester.enterText(
+          find.byKey(const ValueKey('sync-device-code')),
+          'short',
+        );
+        await tester.ensureVisible(find.text('连接云同步'));
+        await tester.tap(find.text('连接云同步'));
         await tester.pump();
-        await tester.enterText(
-          find.byKey(const ValueKey('sync-email')),
-          'synthetic@example.com',
-        );
-        await tester.enterText(
-          find.byKey(const ValueKey('sync-password')),
-          'synthetic-password',
-        );
-        await tester.enterText(
-          find.byKey(const ValueKey('sync-confirm')),
-          'different-password',
-        );
-        await tester.ensureVisible(find.text('注册'));
-        await tester.tap(find.text('注册'));
-        await tester.pump();
-        expect(find.text('两次密码不一致'), findsOneWidget);
+        expect(find.text('请填写后台签发的一次性设备接入码'), findsWidgets);
         expect(c.auth.userId, isNull);
         await tester.pumpWidget(const SizedBox.shrink());
         await tester.runAsync(db.close);

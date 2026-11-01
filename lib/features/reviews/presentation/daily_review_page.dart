@@ -17,7 +17,8 @@ import 'review_providers.dart';
 import 'review_answer_field.dart';
 
 class DailyReviewPage extends ConsumerStatefulWidget {
-  const DailyReviewPage({super.key});
+  const DailyReviewPage({this.onChooseProgram, super.key});
+  final VoidCallback? onChooseProgram;
   @override
   ConsumerState<DailyReviewPage> createState() => _DailyReviewPageState();
 }
@@ -118,6 +119,13 @@ class _DailyReviewPageState extends ConsumerState<DailyReviewPage> {
                 text('dailyReview'),
                 style: Theme.of(context).textTheme.titleLarge,
               ),
+              if (widget.onChooseProgram != null)
+                TextButton.icon(
+                  key: const ValueKey('review-choose-program'),
+                  onPressed: widget.onChooseProgram,
+                  icon: const Icon(Icons.style_outlined, size: 18),
+                  label: Text(context.l10n.isZh ? '复盘方案' : 'Review programs'),
+                ),
               TextButton.icon(
                 icon: const Icon(Icons.calendar_today_outlined, size: 18),
                 label: Text(day),

@@ -1,10 +1,9 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../l10n/fly_localizations.dart';
+import '../../account/presentation/cloud_account_form.dart';
 import '../domain/sync_protocol.dart';
 import 'lan_pairing_scanner.dart';
 import 'sync_controller.dart';
@@ -18,17 +17,15 @@ class SyncSettingsPanel extends ConsumerStatefulWidget {
 }
 
 class _SyncSettingsPanelState extends ConsumerState<SyncSettingsPanel> {
-  final email = TextEditingController(),
-      password = TextEditingController(),
-      confirm = TextEditingController(),
-      endpoint = TextEditingController(),
-      port = TextEditingController(text: '8765');
-  bool register = false, initialized = false;
+  final endpoint = TextEditingController(),
+      port = TextEditingController(text: '8765'),
+      code = TextEditingController();
+  bool initialized = false;
   String tr(String zh, String en) => context.l10n.isZh ? zh : en;
   @override
   void dispose() {
-    for (final c in [email, password, confirm, endpoint, port]) {
-      c.dispose();
+    for (final controller in [endpoint, port, code]) {
+      controller.dispose();
     }
     super.dispose();
   }
@@ -50,13 +47,13 @@ class _SyncSettingsPanelState extends ConsumerState<SyncSettingsPanel> {
       key: key == null ? null : ValueKey(key),
       controller: controller,
       obscureText: secret,
-      enableSuggestions: !secret,
+      enableSuggestions: false,
       autocorrect: false,
       keyboardType: keyboardType,
       decoration: InputDecoration(
         labelText: label,
         helperText: helperText,
-        helperMaxLines: 4,
+        helperMaxLines: 5,
       ),
     ),
   );
@@ -81,35 +78,6 @@ class _SyncSettingsPanelState extends ConsumerState<SyncSettingsPanel> {
     );
   }
 
-  Future<void> enableCloud(SyncController c, bool value) async {
-    if (value) {
-      final accepted = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: Text(tr('首次同步', 'Initial sync')),
-          content: Text(
-            tr(
-              '本机数据将合并到此账号工作区，请先做好备份。',
-              'Local data will merge into this account workspace. Back up first.',
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(tr('取消', 'Cancel')),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(tr('开始同步', 'Start sync')),
-            ),
-          ],
-        ),
-      );
-      if (accepted != true) return;
-    }
-    await c.setCloud(value);
-  }
-
   @override
   Widget build(BuildContext context) {
     final c = ref.watch(syncControllerProvider);
@@ -119,31 +87,46 @@ class _SyncSettingsPanelState extends ConsumerState<SyncSettingsPanel> {
       endpoint.text = SyncServerConfig.displayAddress(c.server);
       port.text = '${c.lanPort}';
     }
+    final cloudSelected =
+        widget.accountOnly || c.connectionMode == SyncConnectionMode.cloud;
     final engine = c.engine;
-    if (widget.accountOnly) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (c.busy) const LinearProgressIndicator(),
-          if (c.error != null)
-            Text(
-              c.error!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-          ...cloud(c),
-        ],
-      );
-    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          tr(
-            '两端连接同一网络，在电脑开启同步服务后，用手机扫码连接。',
-            'Connect both devices to the same network, enable desktop sync, then scan the QR code on your phone.',
+        if (!widget.accountOnly) ...[
+          heading('同步方式', 'Sync method'),
+          SegmentedButton<SyncConnectionMode>(
+            key: const ValueKey('sync-mode-selector'),
+            segments: [
+              ButtonSegment(
+                value: SyncConnectionMode.lan,
+                icon: const Icon(Icons.devices),
+                label: Text(tr('本地同步', 'Local')),
+              ),
+              ButtonSegment(
+                value: SyncConnectionMode.cloud,
+                icon: const Icon(Icons.cloud_outlined),
+                label: Text(tr('云同步', 'Cloud')),
+              ),
+            ],
+            selected: {c.connectionMode},
+            onSelectionChanged: c.busy
+                ? null
+                : (value) => c.selectConnectionMode(value.single),
           ),
+          const SizedBox(height: 12),
+        ],
+        Text(
+          cloudSelected
+              ? tr(
+                  '工作电脑、手机和家庭电脑使用同一用户空间，离线修改会在连接后自动合并。',
+                  'Use one personal space on your work computer, phone and home computer. Offline changes merge when connected.',
+                )
+              : tr(
+                  '在电脑开启同步服务，再用手机扫码。本地同步会传输数据和实体文件。',
+                  'Enable desktop sync, then scan its QR code on your phone. Local sync transfers records and file contents.',
+                ),
         ),
-        const SizedBox(height: 12),
         if (c.busy) const LinearProgressIndicator(),
         if (c.error != null)
           Padding(
@@ -153,7 +136,7 @@ class _SyncSettingsPanelState extends ConsumerState<SyncSettingsPanel> {
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           ),
-        ...lan(c),
+        ...(cloudSelected ? cloud(c) : lan(c)),
         if (engine != null) ...[
           heading('同步状态', 'Sync status'),
           Text(engine.status),
@@ -162,241 +145,208 @@ class _SyncSettingsPanelState extends ConsumerState<SyncSettingsPanel> {
               engine.error!,
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
-          Text(
-            '${tr('最后同步', 'Last sync')}: ${engine.lastSuccess?.toLocal().toString() ?? '—'}',
-          ),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: FilledButton.tonal(
-              onPressed: engine.running || c.busy
-                  ? null
-                  : () => c.run(() async {
-                      await engine.synchronize();
-                      await c.refreshDetails();
-                    }),
-              child: Text(tr('立即同步', 'Sync now')),
-            ),
+          FilledButton.tonal(
+            onPressed: engine.running || c.busy
+                ? null
+                : () => c.run(() async {
+                    await engine.synchronize();
+                    await c.refreshDetails();
+                  }),
+            child: Text(tr('立即同步', 'Sync now')),
           ),
         ],
-        ExpansionTile(
-          tilePadding: EdgeInsets.zero,
-          title: Text(tr('设备', 'Devices')),
-          children: [
-            for (final d in c.trustedDevices)
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text('${d['name']}'),
-                subtitle: const Text('LAN'),
-                trailing: TextButton(
-                  onPressed: c.busy || d['revoked'] == 1
-                      ? null
-                      : () => c.run(() async {
-                          await c.host.revoke(d['id'] as String);
-                          await c.refreshDetails();
-                        }),
-                  child: Text(tr('撤销', 'Revoke')),
-                ),
-              ),
-          ],
-        ),
-        const SyncStatusDetails(),
-        const SizedBox(height: 12),
-        heading('同步冲突', 'Sync conflicts'),
-        if (c.conflicts.isEmpty)
-          Text(tr('没有待处理冲突。', 'No unresolved conflicts.')),
-        for (final conflict in c.conflicts)
+        if (cloudSelected && c.devices.isNotEmpty)
           ExpansionTile(
             tilePadding: EdgeInsets.zero,
-            title: Text(
-              '${conflict['entityType']} · ${(conflict['fields'] as List).join(', ')}',
-            ),
-            subtitle: Text('${conflict['kind']}'),
+            title: Text(tr('已连接设备', 'Connected devices')),
             children: [
-              SelectableText(
-                '${tr('候选版本 A', 'Candidate A')}\n${const JsonEncoder.withIndent('  ').convert(conflict['serverCandidate'])}',
-              ),
-              SelectableText(
-                '${tr('候选版本 B', 'Candidate B')}\n${const JsonEncoder.withIndent('  ').convert(conflict['localCandidate'])}',
-              ),
-              Wrap(
-                spacing: 12,
-                children: [
-                  TextButton(
-                    onPressed: c.busy ? null : () => c.resolve(conflict, false),
-                    child: Text(tr('保留当前', 'Keep current')),
+              for (final device in c.devices)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text('${device['deviceName']}'),
+                  subtitle: Text('${device['platform']}'),
+                  trailing: TextButton(
+                    onPressed:
+                        c.busy ||
+                            device['revoked'] == true ||
+                            device['id'] == c.auth.deviceId
+                        ? null
+                        : () => c.revokeDevice(device['id'] as String),
+                    child: Text(tr('撤销', 'Revoke')),
                   ),
-                  TextButton(
-                    onPressed: c.busy ? null : () => c.resolve(conflict, true),
-                    child: Text(tr('使用保存的另一份', 'Use the other saved version')),
-                  ),
-                ],
-              ),
+                ),
             ],
           ),
-        ExpansionTile(
-          tilePadding: EdgeInsets.zero,
-          title: Text(tr('诊断信息', 'Diagnostics')),
-          children: [
-            SelectableText(
-              'User: ${c.auth.userId ?? "—"}\nDevice: ${c.auth.deviceId ?? "—"}\nServer: ${c.server}\nPending: ${engine?.pending ?? 0}\nFile queue: ${engine?.files.queued ?? 0}',
-            ),
-          ],
+        if (!cloudSelected && c.trustedDevices.isNotEmpty)
+          ExpansionTile(
+            tilePadding: EdgeInsets.zero,
+            title: Text(tr('已配对设备', 'Paired devices')),
+            children: [
+              for (final device in c.trustedDevices)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text('${device['name']}'),
+                  trailing: TextButton(
+                    onPressed: c.busy || device['revoked'] == 1
+                        ? null
+                        : () => c.run(() async {
+                            await c.host.revoke(device['id'] as String);
+                            await c.refreshDetails();
+                          }),
+                    child: Text(tr('撤销', 'Revoke')),
+                  ),
+                ),
+            ],
+          ),
+        const SyncStatusDetails(),
+        const SizedBox(height: 12),
+        Text(
+          tr(
+            '不同记录自动保留，同一记录按字段与修改顺序自动合并。',
+            'Distinct records are kept. Changes to a shared record merge automatically by field and edit order.',
+          ),
         ),
       ],
     );
   }
 
   List<Widget> cloud(SyncController c) => [
-    heading('服务器', 'Server'),
+    heading('云同步', 'Cloud sync'),
+    ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: const Icon(Icons.info_outline),
+      title: Text(tr('仅同步数据', 'Records only')),
+      subtitle: Text(
+        tr(
+          '同步客户、订单、任务、复盘等数据。不上传或下载图片和文件内容；文件内容请使用本地同步。',
+          'Sync customers, orders, tasks and reviews. Images and file contents use local sync only.',
+        ),
+      ),
+    ),
     input(
       endpoint,
-      tr('服务器地址', 'Server address'),
-      key: 'sync-server-address',
+      tr('同步服务器', 'Sync server'),
+      key: 'sync-server',
       helperText: tr(
-        '默认 world-workshop.cn/api。自建服务器可填 192.168.0.21/api 或 192.168.0.21:8765/api，无需填写协议。',
-        'Default: world-workshop.cn/api. You may enter an IP with a port and /api; no scheme is needed.',
+        '默认 world-workshop.cn/api，无需填写 http 或 https。',
+        'Default: world-workshop.cn/api. The scheme is optional.',
       ),
     ),
-    Wrap(
-      spacing: 12,
-      runSpacing: 8,
-      children: [
-        OutlinedButton(
-          onPressed: c.busy || c.cloudEnabled
-              ? null
-              : () async {
-                  await c.configureServer(endpoint.text);
-                  if (mounted && c.error == null) {
-                    setState(
-                      () => endpoint.text = SyncServerConfig.displayAddress(
-                        c.server,
-                      ),
-                    );
-                  }
-                },
-          child: Text(tr('保存服务器', 'Save server')),
-        ),
-        TextButton(
-          onPressed: c.busy
-              ? null
-              : () async {
-                  await c.testConnection(endpoint.text);
-                  await resultDialog(tr('服务器连接正常。', 'Server reachable.'), c);
-                },
-          child: Text(tr('测试连接', 'Test connection')),
-        ),
-      ],
+    Align(
+      alignment: Alignment.centerLeft,
+      child: OutlinedButton.icon(
+        onPressed: c.busy
+            ? null
+            : () async {
+                await c.testConnection(endpoint.text);
+                await resultDialog(
+                  tr('同步服务器连接正常。', 'Sync server is available.'),
+                  c,
+                );
+              },
+        icon: const Icon(Icons.network_check),
+        label: Text(tr('测试连接', 'Test connection')),
+      ),
     ),
-    heading('账号', 'Account'),
     if (c.auth.userId == null) ...[
-      input(
-        email,
-        tr('邮箱', 'Email'),
-        key: 'sync-email',
-        keyboardType: TextInputType.emailAddress,
-      ),
-      input(
-        password,
-        tr('密码（至少 10 位）', 'Password (10+ characters)'),
-        secret: true,
-        key: 'sync-password',
-      ),
-      if (register)
-        input(
-          confirm,
-          tr('确认密码', 'Confirm password'),
-          secret: true,
-          key: 'sync-confirm',
+      CloudAccountForm(
+        controller: c,
+        prepare: () => prepareAccount(c),
+        onSuccess: () => resultDialog(
+          tr(
+            '已登录，云同步已开启。文件和图片内容仍通过本地同步。',
+            'Signed in. Cloud sync is enabled. File contents still use local sync.',
+          ),
+          c,
         ),
-      Wrap(
-        spacing: 12,
+      ),
+      ExpansionTile(
+        key: const ValueKey('cloud-device-code-option'),
+        tilePadding: EdgeInsets.zero,
+        title: Text(tr('设备接入码（测试入口）', 'Device code (testing)')),
         children: [
-          FilledButton(
+          const SizedBox(height: 16),
+          input(
+            code,
+            tr('一次性设备接入码', 'One-use device code'),
+            key: 'sync-device-code',
+            secret: true,
+            helperText: tr(
+              '管理员签发的临时测试入口。已有账号请使用上方邮箱登录。',
+              'Temporary access issued by an administrator. Use email sign-in above for an existing account.',
+            ),
+          ),
+          FilledButton.icon(
+            key: const ValueKey('enroll-cloud-device'),
             onPressed: c.busy
                 ? null
                 : () async {
-                    if (register && password.text != confirm.text) {
-                      await c.login(
-                        register,
-                        email.text,
-                        password.text,
-                        confirm.text,
-                      );
-                      return;
-                    }
                     await c.configureServer(endpoint.text);
                     if (c.error != null) return;
-                    await c.login(
-                      register,
-                      email.text,
-                      password.text,
-                      confirm.text,
-                    );
-                    if (c.auth.userId != null) {
-                      password.clear();
-                      confirm.clear();
+                    if (widget.accountOnly) {
+                      await c.selectConnectionMode(SyncConnectionMode.cloud);
                     }
+                    await c.enrollCloudDevice(code.text);
+                    if (c.error == null) code.clear();
+                    await resultDialog(
+                      tr(
+                        '设备已接入，数据将自动同步。',
+                        'Device connected. Records will sync automatically.',
+                      ),
+                      c,
+                    );
                   },
-            child: Text(register ? tr('注册', 'Register') : tr('登录', 'Log in')),
-          ),
-          TextButton(
-            onPressed: c.busy
-                ? null
-                : () => setState(() => register = !register),
-            child: Text(
-              register
-                  ? tr('已有账号，登录', 'Have an account? Log in')
-                  : tr('创建账号', 'Create account'),
-            ),
+            icon: const Icon(Icons.link),
+            label: Text(tr('连接云同步', 'Connect cloud sync')),
           ),
         ],
       ),
-      Text(
-        tr(
-          '暂不支持邮箱验证或忘记密码重置。',
-          'Email verification and password reset are not yet supported.',
-        ),
-      ),
     ] else ...[
-      SelectableText(c.auth.email ?? ''),
-      Align(
-        alignment: Alignment.centerLeft,
-        child: TextButton(
-          onPressed: c.busy ? null : c.logout,
-          child: Text(tr('退出当前设备', 'Log out this device')),
-        ),
+      Text(
+        c.auth.emailVerified
+            ? '${tr('登录邮箱', 'Email')}: ${c.auth.email}'
+            : tr(
+                '当前空间尚未绑定验证邮箱',
+                'This space does not have a verified email yet',
+              ),
       ),
-    ],
-    if (!widget.accountOnly)
+      if (!c.auth.emailVerified)
+        CloudAccountForm(
+          controller: c,
+          prepare: () => prepareAccount(c),
+          onSuccess: () => resultDialog(
+            tr(
+              '邮箱已绑定，原同步空间和数据已保留。',
+              'Email linked. Your sync space and existing data are preserved.',
+            ),
+            c,
+          ),
+        ),
+      Text('${tr('同步空间', 'Sync space')}: ${c.auth.userId}'),
       SwitchListTile(
         contentPadding: EdgeInsets.zero,
         title: Text(tr('开启云同步', 'Enable cloud sync')),
         value: c.cloudEnabled,
-        onChanged: c.busy || c.auth.userId == null
-            ? null
-            : (v) => enableCloud(c, v),
+        onChanged: c.busy ? null : c.setCloud,
       ),
-    if (!widget.accountOnly)
-      ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: Icon(
-          c.cloudFiles ? Icons.folder_shared_outlined : Icons.info_outline,
-        ),
-        title: Text(
-          c.cloudFiles
-              ? tr('文件内容自动同步', 'File contents sync automatically')
-              : tr('此账号仅同步文件信息', 'This account syncs file information only'),
-        ),
-        subtitle: Text(
-          c.cloudFiles
-              ? tr('同步名称、目录和实体文件。', 'Names, folders and file contents sync.')
-              : tr(
-                  '官方平台仅为 max@ceiling-arts.com 同步实体文件；其他账号可使用自建服务器或电脑扫码同步文件。',
-                  'Official file contents are enabled only for max@ceiling-arts.com. Other accounts may use self-hosting or desktop pairing.',
-                ),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton(
+          onPressed: c.busy ? null : c.logout,
+          child: Text(tr('断开此设备', 'Disconnect this device')),
         ),
       ),
+    ],
   ];
+
+  Future<bool> prepareAccount(SyncController c) async {
+    await c.configureServer(endpoint.text);
+    if (c.error != null) return false;
+    if (widget.accountOnly) {
+      await c.selectConnectionMode(SyncConnectionMode.cloud);
+    }
+    return c.error == null;
+  }
 
   List<Widget> lan(SyncController c) => [
     heading('设备连接', 'Device connection'),

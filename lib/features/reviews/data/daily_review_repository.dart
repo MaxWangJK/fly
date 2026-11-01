@@ -12,8 +12,34 @@ class ReviewHistoryEntry {
 }
 
 class DailyReviewRepository {
-  const DailyReviewRepository(this.db);
+  const DailyReviewRepository(
+    this.db, {
+    this.fields = classicFields,
+    this.historyFields,
+  });
   final AppDatabase db;
+  static const classicFields = {
+    'q1',
+    'q2',
+    'q3',
+    'q4',
+    'q5',
+    'q6',
+    'q7',
+    'q8',
+    'q9',
+    'q10',
+    'q11',
+  };
+  final Set<String> fields;
+  final Set<String>? historyFields;
+  Map<String, String> _answers(String json, {bool history = false}) =>
+      Map<String, String>.fromEntries(
+        Map<String, String>.from(jsonDecode(json) as Map).entries.where(
+          (entry) =>
+              (history ? historyFields ?? fields : fields).contains(entry.key),
+        ),
+      );
   static String key(DateTime date) {
     final d = date.toLocal();
     return '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
@@ -33,7 +59,7 @@ class DailyReviewRepository {
       db.dailyReviews,
     )..where((r) => r.dayKey.equals(day))).getSingleOrNull();
     if (row == null) return {};
-    return Map<String, String>.from(jsonDecode(row.answersJson) as Map);
+    return _answers(row.answersJson);
   }
 
   Stream<Map<String, String>> watchAnswers(String day) {
@@ -41,17 +67,14 @@ class DailyReviewRepository {
     return (db.select(
       db.dailyReviews,
     )..where((r) => r.dayKey.equals(day))).watchSingleOrNull().map(
-      (row) => row == null
-          ? <String, String>{}
-          : Map<String, String>.from(jsonDecode(row.answersJson) as Map),
+      (row) => row == null ? <String, String>{} : _answers(row.answersJson),
     );
   }
 
   Future<void> saveAnswer(String day, String field, String value) =>
       db.transaction(() async {
         date(day);
-        if (!RegExp(r'^q([1-9]|10|11)$').hasMatch(field) ||
-            value.length > 20000) {
+        if (!fields.contains(field) || value.length > 20000) {
           throw ArgumentError('Invalid review answer');
         }
         final row = await (db.select(
@@ -82,10 +105,8 @@ class DailyReviewRepository {
         (rows) =>
             rows
                 .where((row) {
-                  final values = jsonDecode(row.answersJson) as Map;
-                  return values.values.any(
-                    (value) => value is String && value.trim().isNotEmpty,
-                  );
+                  final values = _answers(row.answersJson, history: true);
+                  return values.values.any((value) => value.trim().isNotEmpty);
                 })
                 .map((row) => row.dayKey)
                 .toList()
@@ -100,9 +121,7 @@ class DailyReviewRepository {
     return query.watch().map((rows) {
       final history = <ReviewHistoryEntry>[];
       for (final row in rows) {
-        final values = Map<String, String>.from(
-          jsonDecode(row.answersJson) as Map,
-        );
+        final values = _answers(row.answersJson, history: true);
         final visible = Map<String, String>.fromEntries(
           values.entries.where((entry) => entry.value.trim().isNotEmpty),
         );

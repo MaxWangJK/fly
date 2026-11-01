@@ -290,7 +290,10 @@ void main() {
         );
         await tester.tap(find.byKey(const ValueKey('phone-create-customer')));
         await settle();
-        expect(find.text('Phone created customer'), findsOneWidget);
+        expect(
+          find.textContaining('Phone created customer', findRichText: true),
+          findsOneWidget,
+        );
         await capture('customers');
         await tester.tap(find.byKey(ValueKey('phone-customer-$customerId')));
         await settle();
@@ -447,6 +450,8 @@ void main() {
         }
         await capture('file-actions');
         shareResult = 'dev.fluttercommunity.plus/share/unavailable';
+        await tester.ensureVisible(find.text('分享'));
+        await settle();
         await tester.tap(find.text('分享'));
         await tester.runAsync(
           () async => Future<void>.delayed(const Duration(milliseconds: 150)),
@@ -504,12 +509,15 @@ void main() {
         final event = find.byKey(
           ValueKey('week-drag-$scheduledId-${now.weekday - 1}'),
         );
+        // Scroll into view, then use the exposed left edge: the floating add
+        // button can overlap Sunday's event center in a short viewport.
         await Scrollable.ensureVisible(tester.element(event), alignment: .4);
         await settle();
-        final source = tester.getCenter(event);
+        final source = tester.getTopLeft(event) + const Offset(8, 8);
         final slot = find.byKey(
           ValueKey('week-drop-${day.toIso8601String()}-555'),
         );
+        await capture('calendar-before-drag');
         final gesture = await tester.startGesture(source);
         await tester.pump(const Duration(milliseconds: 650));
         expect(
@@ -517,7 +525,7 @@ void main() {
           findsNWidgets(2),
           reason: 'drag feedback appears after long press',
         );
-        await gesture.moveTo(tester.getCenter(slot));
+        await gesture.moveTo(tester.getTopLeft(slot) + const Offset(8, 7));
         await tester.pump(const Duration(milliseconds: 80));
         await capture('calendar-dragging');
         await gesture.up();

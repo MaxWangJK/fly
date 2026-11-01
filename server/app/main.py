@@ -9,7 +9,8 @@ from uuid import UUID
 from argon2 import PasswordHasher
 from argon2.exceptions import VerificationError, InvalidHashError
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 import jwt
@@ -17,8 +18,10 @@ from sqlalchemy import create_engine, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 from .config import Settings
-from .models import Base, Device, FileBlob, FileUploadSession, RefreshToken, SyncChange, SyncConflict, SyncRecord, User, now
-from .schemas import Credentials, PushInput, RefreshInput, UploadInput
+from .models import Base, Device, DeviceEnrollmentCode, FileBlob, FileUploadSession, RefreshToken, SyncChange, SyncConflict, SyncRecord, User, now
+from .schemas import CaptchaInput, Credentials, DeviceEnrollmentInput, PushInput, RefreshInput, RegisterCredentials, SendCodeInput, UploadInput, VerifyEmailInput
+from .email_registration import EmailRegistration
+from .verification_mail import VerificationMailer
 from .storage import LocalDiskBlobStorage
 from .sync import accept, record_json
 
@@ -66,15 +69,17 @@ def digest(token):
     return hashlib.sha256(token.encode()).hexdigest()
 
 
-def create_app(settings=None, engine=None):
+def create_app(settings=None, engine=None, mailer=None):
     settings = settings or Settings()
     engine = engine or create_engine(settings.database_url, pool_pre_ping=True)
     sessions = sessionmaker(engine, expire_on_commit=False)
+    registration = EmailRegistration(settings.jwt_private_secret, mailer or VerificationMailer(settings.smtp_config_file))
     storage = LocalDiskBlobStorage(settings.storage_root)
     password_hasher = PasswordHasher()
     dummy_hash = password_hasher.hash(secrets.token_urlsafe(32))
     app = FastAPI(title='Fly Sync', version='2.0.0')
     app.state.engine, app.state.settings = engine, settings
+    app.state.email_registration = registration
     allowed_hosts = [host.strip() for host in settings.allowed_hosts.split(',') if host.strip()]
     # Host headers retain brackets around IPv6 literals; configuration may omit them.
     allowed_hosts = [f'[{host}]' if ':' in host and not host.startswith('[') else host
@@ -84,6 +89,19 @@ def create_app(settings=None, engine=None):
                        allow_credentials=False, allow_methods=['GET', 'POST', 'PUT'], allow_headers=['Authorization', 'Content-Type'])
     app.add_middleware(BodyLimit, limit=settings.max_request_bytes)
     attempts = defaultdict(deque)
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_error(request, error):
+        # Do not echo submitted passwords, codes or tokens in validation errors.
+        return JSONResponse(status_code=422, content={'detail': [
+            {key: item[key] for key in ('loc', 'msg', 'type')} for item in error.errors()]})
+
+    @app.middleware('http')
+    async def private_auth_responses(request, call_next):
+        response = await call_next(request)
+        if request.url.path.startswith('/api/auth/'):
+            response.headers['Cache-Control'] = 'no-store'
+        return response
 
     def database():
         with sessions() as db:
@@ -127,6 +145,8 @@ def create_app(settings=None, engine=None):
         return db.scalar(select(User).where(User.id == user_id).with_for_update())
 
     def require_file_sync(db, device):
+        if not settings.cloud_file_transfer_enabled:
+            raise HTTPException(403, 'Cloud file contents are disabled; use local sync')
         allowed = {email.strip().lower() for email in settings.file_sync_allowed_emails.split(',') if email.strip()}
         user = db.get(User, device.user_id)
         if allowed and (not user or user.email.lower() not in allowed):
@@ -142,7 +162,8 @@ def create_app(settings=None, engine=None):
             'exp': now() + timedelta(minutes=settings.access_minutes), 'iss': 'fly-sync', 'aud': 'fly-client'},
             settings.jwt_private_secret, algorithm='HS256')
         return {'accessToken': access, 'refreshToken': refresh, 'userId': user.id,
-                'deviceId': device.id, 'email': user.email, 'expiresIn': settings.access_minutes * 60}
+                'deviceId': device.id, 'email': user.email, 'emailVerified': user.email_verified_at is not None,
+                'expiresIn': settings.access_minutes * 60}
 
     def add_device(db, user, body):
         device = Device(user_id=user.id, device_name=body.device_name,
@@ -154,12 +175,70 @@ def create_app(settings=None, engine=None):
     @app.get('/api/health')
     def health(db: Session = Depends(database)):
         db.execute(select(1))
-        return {'status': 'ok', 'apiVersion': 1}
+        return {'status': 'ok', 'apiVersion': 1, 'serverTime': now().isoformat(),
+                'capabilities': {'automaticMerge': True, 'deviceEnrollment': settings.device_enrollment_enabled,
+                                 'fileContents': settings.cloud_file_transfer_enabled,
+                                 'emailRegistration': settings.allow_password_auth}}
+
+    def email_auth_enabled():
+        if not settings.allow_password_auth:
+            raise HTTPException(404, 'Email authentication is not enabled')
+
+    def auth_ip_limit(db, request, action, maximum=30):
+        host = request.client.host if request.client else 'unknown'
+        registration.limit(db, f'ip:{action}:{host}', maximum, 600)
+
+    @app.post('/api/auth/registration/captcha')
+    def registration_captcha(body: CaptchaInput, request: Request, db: Session = Depends(database)):
+        email_auth_enabled()
+        auth_ip_limit(db, request, 'captcha')
+        user_id = None
+        if body.purpose == 'bind':
+            device = authenticated(request, db)
+            user = db.get(User, device.user_id)
+            if user.email_verified_at:
+                raise HTTPException(409, 'This account already has a verified email')
+            user_id = user.id
+        return registration.create(db, str(body.email), body.purpose, user_id)
+
+    @app.post('/api/auth/registration/send-code')
+    def registration_send(body: SendCodeInput, request: Request, db: Session = Depends(database)):
+        email_auth_enabled()
+        auth_ip_limit(db, request, 'send', 15)
+        return registration.send(db, str(body.challenge_id), body.captcha)
+
+    @app.post('/api/auth/registration/verify-code')
+    def registration_verify(body: VerifyEmailInput, request: Request, db: Session = Depends(database)):
+        email_auth_enabled()
+        auth_ip_limit(db, request, 'verify', 40)
+        return registration.verify(db, str(body.challenge_id), body.code)
+
+    @app.post('/api/sync/enroll-device')
+    def enroll_device(body: DeviceEnrollmentInput, request: Request, db: Session = Depends(database)):
+        if not settings.device_enrollment_enabled:
+            raise HTTPException(404, 'Device enrollment is disabled')
+        rate_limit(request)
+        # Lock the user before consuming the code; one code creates one device,
+        # even when two workers receive the same request concurrently.
+        code = db.get(DeviceEnrollmentCode, digest(body.code.strip()))
+        if not code:
+            raise HTTPException(401, 'Invalid or expired device code')
+        lock_user(db, code.user_id)
+        db.refresh(code)
+        if code.used_at or aware(code.expires_at) <= now():
+            raise HTTPException(401, 'Invalid or expired device code')
+        user = db.get(User, code.user_id)
+        code.used_at = now()
+        result = issue(db, add_device(db, user, body))
+        db.commit()
+        return result
 
     @app.post('/api/auth/register', status_code=201)
-    def register(body: Credentials, request: Request, db: Session = Depends(database)):
+    def register(body: RegisterCredentials, request: Request, db: Session = Depends(database)):
+        email_auth_enabled()
         rate_limit(request)
-        user = User(email=str(body.email).lower(), password_hash=password_hasher.hash(body.password))
+        registration.proof(db, body, 'register')
+        user = User(email=str(body.email), password_hash=password_hasher.hash(body.password), email_verified_at=now())
         db.add(user)
         try:
             db.flush()
@@ -170,15 +249,37 @@ def create_app(settings=None, engine=None):
             db.rollback()
             raise HTTPException(409, 'Email already registered') from None
 
+    @app.post('/api/auth/link-email')
+    def link_email(body: RegisterCredentials, request: Request, device=Depends(authenticated), db: Session = Depends(database)):
+        email_auth_enabled()
+        rate_limit(request)
+        user = lock_user(db, device.user_id)
+        if user.email_verified_at:
+            raise HTTPException(409, 'This account already has a verified email')
+        registration.proof(db, body, 'bind', user.id)
+        user.email = str(body.email)
+        user.password_hash = password_hasher.hash(body.password)
+        user.email_verified_at = now()
+        try:
+            db.flush()
+            result = issue(db, device)
+            db.commit()
+            return result
+        except IntegrityError:
+            db.rollback()
+            raise HTTPException(409, 'Email already registered') from None
+
     @app.post('/api/auth/login')
     def login(body: Credentials, request: Request, db: Session = Depends(database)):
+        email_auth_enabled()
         rate_limit(request)
+        registration.limit(db, f'login:{body.email}', 15, 600)
         user = db.scalar(select(User).where(User.email == str(body.email).lower()))
         try:
             password_hasher.verify(user.password_hash if user else dummy_hash, body.password)
         except (VerificationError, InvalidHashError):
             raise HTTPException(401, 'Invalid credentials') from None
-        if not user:
+        if not user or not user.email_verified_at:
             raise HTTPException(401, 'Invalid credentials')
         lock_user(db, user.id)
         result = issue(db, add_device(db, user, body))
@@ -391,7 +492,8 @@ def create_app(settings=None, engine=None):
         path = storage.blob(device.user_id, blob.sha256)
         if not path.exists():
             raise HTTPException(404, 'File content unavailable')
-        return FileResponse(path, media_type='application/octet-stream', headers={'X-Content-SHA256': blob.sha256})
+        return FileResponse(path, media_type='application/octet-stream',
+                            headers={'X-Content-SHA256': blob.sha256, 'ETag': f'"{blob.sha256}"'})
 
     @app.websocket('/api/ws')
     async def websocket(ws: WebSocket):

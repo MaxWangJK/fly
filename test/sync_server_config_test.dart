@@ -47,7 +47,7 @@ void main() {
       expect(() => SyncServerConfig.validate(invalid), throwsFormatException);
     });
   }
-  test('official file policy cannot be bypassed by a scheme, port or path', () {
+  test('cloud file contents stay disabled for all accounts and addresses', () {
     for (final url in [
       'world-workshop.cn/api',
       'http://world-workshop.cn:8765/api',
@@ -59,7 +59,7 @@ void main() {
       );
       expect(
         SyncServerConfig.allowsCloudFiles(url, ' MAX@CEILING-ARTS.COM '),
-        isTrue,
+        isFalse,
       );
     }
     expect(
@@ -67,7 +67,7 @@ void main() {
         '192.168.0.21:8765/api',
         'other@example.com',
       ),
-      isTrue,
+      isFalse,
     );
   });
   test('pairing QR validates type, local address and expiration', () {

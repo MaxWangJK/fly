@@ -116,6 +116,8 @@ class FileSyncService {
             await (transport as CloudSyncTransport).downloadWithProgress(
               '/files/$id/download',
               partial.path,
+              expectedSha256: expected,
+              expectedSize: size,
               onProgress: (received, _) {
                 bytesTransferred = received;
                 _notify();
@@ -126,6 +128,7 @@ class FileSyncService {
           }
           final hash = (await sha256.bind(partial.openRead()).first).toString();
           if (hash != expected || await partial.length() != size) {
+            await partial.delete();
             throw StateError('下载文件校验失败');
           }
           await partial.rename(local.path);
@@ -134,7 +137,11 @@ class FileSyncService {
           bytesTransferred = size;
           db.notifyUpdates({const TableUpdate('attachments')});
         } finally {
-          if (await partial.exists()) await partial.delete();
+          // Keep verified-identity partials on network/lifecycle interruption.
+          if (!await partial.exists()) {
+            final marker = File('${partial.path}.resume.json');
+            if (await marker.exists()) await marker.delete();
+          }
         }
       } on SyncHttpException catch (e) {
         // A peer may have published metadata before its file has arrived.

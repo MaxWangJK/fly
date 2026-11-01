@@ -53,6 +53,7 @@ class PermanentFileDeletion {
     if (shared.isEmpty) {
       await storage.deleteOwned(file.relativePath);
       await storage.deleteOwned('${file.relativePath}.part');
+      await storage.deleteOwned('${file.relativePath}.part.resume.json');
     }
     final hash = file.sha256;
     if (hash != null && RegExp(r'^[a-f0-9]{64}$').hasMatch(hash)) {

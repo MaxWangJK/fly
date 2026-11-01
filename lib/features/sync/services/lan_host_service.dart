@@ -10,6 +10,10 @@ import '../../files/data/managed_file_storage.dart';
 import '../data/sync_outbox_repository.dart';
 import '../data/sync_schema.dart';
 import '../domain/sync_protocol.dart';
+import '../domain/automatic_sync_merge.dart';
+import 'file_transfer_scheduler.dart';
+import 'lan_file_response.dart';
+import 'lan_discovery_service.dart';
 
 class LanHostService {
   LanHostService(this.outbox, this.root);
@@ -17,6 +21,9 @@ class LanHostService {
   final String root;
   HttpServer? _server;
   Future<void> _queue = Future.value();
+  final _fileScheduler = FileTransferScheduler();
+  final _fileRequests = <Future<void>>{};
+  final _discovery = LanDiscoveryHost();
   final _random = Random.secure();
   late final String hostToken = _token();
   String pairingCode = '';
@@ -69,16 +76,48 @@ class LanHostService {
     _server = server;
     rotatePairing();
     server.listen((request) {
+      if (request.uri.path.startsWith('/api/files/')) {
+        if (_fileRequests.length >= 32) {
+          request.response.statusCode = HttpStatus.serviceUnavailable;
+          unawaited(request.response.close());
+          return;
+        }
+        final upload = RegExp(r'/upload/([a-f0-9]{64})/')
+            .firstMatch(request.uri.path);
+        final task = _fileScheduler
+            .run(() => _handle(request), key: upload?[1])
+            .catchError((Object _) {});
+        _fileRequests.add(task);
+        unawaited(task.whenComplete(() => _fileRequests.remove(task)));
+        return;
+      }
       // All authority mutations and cursors share one serial queue.
       _queue = _queue.then((_) => _handle(request)).catchError((Object _) {});
     });
+    await _discovery.start(
+      workspace: workspace!,
+      httpPort: server.port,
+      tokenHash: (id) async =>
+          (await outbox.db
+                  .customSelect(
+                    'SELECT token_hash FROM lan_devices WHERE id=? AND revoked=0',
+                    variables: sqlVariables([id]),
+                  )
+                  .getSingleOrNull())
+              ?.read<String>('token_hash'),
+    );
+    await outbox.db.customStatement(
+      'UPDATE sync_conflicts SET resolved=1 WHERE resolved=0',
+    );
   }
 
   Future<void> stop() async {
     final server = _server;
     _server = null;
+    _discovery.close();
     await server?.close(force: true);
     await _queue;
+    await Future.wait(_fileRequests.toList());
     pairingCode = '';
   }
 
@@ -168,6 +207,8 @@ class LanHostService {
           'mode': mode.name,
           'desktop': internal,
           'cloudActive': cloudActive,
+          'workspaceId': workspace,
+          'deviceId': deviceId,
         });
       }
       if (path.startsWith('/api/sync/') && cloudActive) {
@@ -318,6 +359,10 @@ class LanHostService {
     final before = previous == null
         ? <String, dynamic>{}
         : jsonObject(previous.read<String>('data'));
+    final clockKey = 'lanFieldClocks:$entity:$id';
+    final clocks = jsonObject(await outbox.state(clockKey) ?? '{}');
+    final incomingClocks = (mutation['fieldClocks'] as Map? ?? const {})
+        .cast<String, dynamic>();
     final deleted = previous?.data['deleted_at'] as String?;
     final overlap = fields.toSet().intersection(changed)
       ..removeWhere(
@@ -352,6 +397,7 @@ class LanHostService {
               : 'same_field',
           'deviceId': device,
           'createdAt': DateTime.now().toUtc().toIso8601String(),
+          'resolved': true,
         },
       ]);
       if (binaryConflict || (entity == 'note_blocks' && overlap.isNotEmpty)) {
@@ -373,9 +419,33 @@ class LanHostService {
       'version': version,
       'data': before,
       'deletedAt': deleted,
+      'fieldClocks': clocks,
     };
     if (!blocked && !binaryConflict) {
-      final data = {...before, for (final f in fields) f: payload[f]};
+      final data = mergeRecordFields(
+        before: before,
+        payload: payload,
+        fields: fields,
+        concurrentFields: changed,
+        clocks: clocks,
+        incomingClocks: incomingClocks,
+        mutationId: mutationId,
+        nowMilliseconds: DateTime.now().millisecondsSinceEpoch,
+      );
+      if (const {'orders', 'tags', 'file_tags'}.contains(entity)) {
+        final others = await outbox.db
+            .customSelect(
+              'SELECT data FROM lan_records WHERE entity_type=?',
+              variables: sqlVariables([entity]),
+            )
+            .get();
+        disambiguateSyncUniqueFields(
+          entity,
+          id,
+          data,
+          others.map((r) => jsonObject(r.read<String>('data'))),
+        );
+      }
       if (operation == 'delete' && version == 0) {
         data.addAll(payload);
       }
@@ -393,6 +463,7 @@ class LanHostService {
         'version': version + 1,
         'data': data,
         'deletedAt': tombstone,
+        'fieldClocks': clocks,
       };
       await outbox.db.customStatement(
         'INSERT INTO lan_records(entity_type,record_id,version,data,deleted_at) VALUES(?,?,?,?,?) ON CONFLICT(entity_type,record_id) DO UPDATE SET version=excluded.version,data=excluded.data,deleted_at=excluded.deleted_at',
@@ -408,10 +479,12 @@ class LanHostService {
           }),
         ],
       );
+      await outbox.saveState(clockKey, jsonEncode(clocks));
     }
     final result = {
       'mutationId': mutationId,
-      'status': conflictId == null ? 'accepted' : 'conflict',
+      'status': 'accepted',
+      'autoMerged': conflictId != null,
       'conflictId': conflictId,
       'record': current,
     };
@@ -563,10 +636,7 @@ class LanHostService {
           file = File(storage.absolute('sync_blobs/$hash'));
         }
         if (!await file.exists()) break;
-        request.response.headers.contentType = ContentType.binary;
-        request.response.contentLength = await file.length();
-        await request.response.addStream(file.openRead());
-        await request.response.close();
+        await serveLanFile(request, file, hash);
         return;
       }
       throw const _LanError(404, '文件内容仅存在于其它设备');

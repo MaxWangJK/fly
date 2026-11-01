@@ -26,6 +26,34 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(320), unique=True)
     password_hash: Mapped[str] = mapped_column(String(512))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    email_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class EmailAuthChallenge(Base):
+    __tablename__ = 'email_auth_challenges'
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    email: Mapped[str] = mapped_column(String(320), index=True)
+    purpose: Mapped[str] = mapped_column(String(20))
+    user_id: Mapped[str | None] = mapped_column(ForeignKey('users.id'))
+    captcha_hash: Mapped[str] = mapped_column(String(64))
+    captcha_expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    captcha_attempts: Mapped[int] = mapped_column(Integer, default=0)
+    captcha_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    code_hash: Mapped[str | None] = mapped_column(String(64))
+    code_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    code_attempts: Mapped[int] = mapped_column(Integer, default=0)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    ticket_hash: Mapped[str | None] = mapped_column(String(64), unique=True)
+    ticket_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class AuthRateBucket(Base):
+    __tablename__ = 'auth_rate_buckets'
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    window_start: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    count: Mapped[int] = mapped_column(Integer, default=0)
 
 
 class Device(Base):
@@ -49,6 +77,14 @@ class RefreshToken(Base):
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
+class DeviceEnrollmentCode(Base):
+    __tablename__ = 'device_enrollment_codes'
+    code_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey('users.id'))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
 class SyncRecord(Base):
     __tablename__ = 'sync_records'
     user_id: Mapped[str] = mapped_column(ForeignKey('users.id'), primary_key=True)
@@ -59,6 +95,7 @@ class SyncRecord(Base):
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     server_updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     last_device_id: Mapped[str] = mapped_column(ForeignKey('devices.id'))
+    field_clocks: Mapped[dict] = mapped_column(json_type, default=dict, server_default='{}')
 
 
 class SyncChange(Base):
@@ -74,6 +111,7 @@ class SyncChange(Base):
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     server_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     device_id: Mapped[str] = mapped_column(ForeignKey('devices.id'))
+    field_clocks: Mapped[dict] = mapped_column(json_type, default=dict, server_default='{}')
 
 
 class ProcessedMutation(Base):

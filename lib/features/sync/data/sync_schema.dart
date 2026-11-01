@@ -154,7 +154,8 @@ Future<void> createSyncSchema(AppDatabase db) async {
           INSERT INTO sync_outbox(mutation_id,entity_type,record_key,base_version,changed_fields,payload,operation,created_at)
           VALUES($uuid,'$table',${key(prefix)},
             COALESCE((SELECT sync_version FROM sync_metadata WHERE entity_type='$table' AND record_key=${key(prefix)}),0),
-            $changes,${payload(prefix)},$op,CAST(strftime('%s','now') AS INTEGER));
+            $changes,${payload(prefix)},$op,
+            CAST(strftime('%s','now') AS INTEGER)*1000+CAST(substr(strftime('%f','now'),4,3) AS INTEGER));
           INSERT INTO sync_metadata(entity_type,record_key,local_updated_at,deleted_at,payload)
           VALUES('$table',${key(prefix)},CAST(strftime('%s','now') AS INTEGER),$deleted,${payload(prefix)})
           ON CONFLICT(entity_type,record_key) DO UPDATE SET

@@ -1,0 +1,22 @@
+# Use behind the existing website's HTTPS proxy; does not bind ports 80/443.
+services:
+  postgres:
+    extends:
+      file: docker-compose.yml
+      service: postgres
+  api:
+    extends:
+      file: docker-compose.yml
+      service: api
+    ports:
+      - '127.0.0.1:18766:8000'
+    environment:
+      CLOUD_FILE_TRANSFER_ENABLED: 'false'
+      ALLOW_PASSWORD_AUTH: 'true'
+      DEVICE_ENROLLMENT_ENABLED: 'true'
+      SMTP_CONFIG_FILE: /run/fly/private/smtp.json
+    volumes:
+      - ./private:/run/fly/private:ro
+volumes:
+  pgdata:
+  blobs:

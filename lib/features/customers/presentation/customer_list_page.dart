@@ -1182,6 +1182,8 @@ class _CustomerRow extends StatelessWidget {
                       PriorityLevel.medium => context.crmCopy('中'),
                       PriorityLevel.low => context.crmCopy('一般'),
                     },
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 10.5,
                       height: 1.1,

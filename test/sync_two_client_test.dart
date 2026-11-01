@@ -33,9 +33,9 @@ void main() {
       try {
         await a.ensureBuiltInData();
         await b.ensureBuiltInData();
-        final email = 'test-${const Uuid().v4()}@example.com';
+        const email = 'two-device@example.com';
         await authA.authenticate(
-          register: true,
+          register: false,
           email: email,
           password: 'two-client-password',
           confirm: 'two-client-password',
@@ -115,7 +115,7 @@ void main() {
         await sync(engineA);
         await sync(engineB);
         await sync(engineA);
-        expect(engineA.conflictCount, greaterThan(0));
+        expect(engineA.conflictCount, 0);
         final tom = await DriftCustomerRepository(b)
             .createCustomer(name: 'Tom');
         await sync(engineB);

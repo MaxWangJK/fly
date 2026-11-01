@@ -5,7 +5,7 @@ import '../config/feature_flags.dart';
 import '../features/sync/presentation/sync_runtime.dart';
 import '../shared/licensing/local_license_gate.dart';
 
-import '../features/reviews/presentation/daily_review_page.dart';
+import '../features/reviews/presentation/review_home_page.dart';
 
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -208,7 +208,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/tasks/review',
-            builder: (context, state) => const DailyReviewPage(),
+            builder: (context, state) => const ReviewHomePage(),
           ),
           GoRoute(
             path: '/tasks/focus',

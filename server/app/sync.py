@@ -4,12 +4,14 @@ from uuid import UUID, uuid5
 from fastapi import HTTPException
 from sqlalchemy import select
 from .models import ProcessedMutation, SyncChange, SyncConflict, SyncRecord, now, uid
+from .merge_policy import merge_fields, disambiguate_unique_fields
 
 
 def record_json(record):
     return {'entityType': record.entity_type, 'recordId': record.record_id,
             'version': record.version, 'data': record.data,
-            'deletedAt': record.deleted_at.isoformat() if record.deleted_at else None}
+            'deletedAt': record.deleted_at.isoformat() if record.deleted_at else None,
+            'fieldClocks': record.field_clocks or {}}
 
 
 def conflict_copy(db, device, entity, candidate):
@@ -76,7 +78,7 @@ def accept(db, device, mutation):
             record_id=str(mutation.record_id), fields=sorted(overlap) or ['__lifecycle__'],
             local_candidate=mutation.payload, server_candidate=dict(record.data),
             kind='delete_update' if delete_conflict else 'binary' if binary_conflict else 'same_field',
-            device_id=device.id)
+            device_id=device.id, resolved_at=now())
         db.add(conflict)
         if binary_conflict:
             conflict_copy(db, device, mutation.entity_type, {**record.data, **mutation.payload})
@@ -91,14 +93,20 @@ def accept(db, device, mutation):
                    record.deleted_at and mutation.operation != 'delete' and
                    not (mutation.operation == 'restore' and mutation.base_version == current))
     if not blocked and not binary_conflict:
-        data = dict(record.data)
+        clocks = dict(record.field_clocks or {})
+        data = merge_fields(record.data, mutation.payload, mutation.changed_fields, changed,
+            clocks, {k: list(v) for k, v in mutation.field_clocks.items()}, mutation_id, int(now().timestamp() * 1000))
+        if mutation.entity_type in ('orders', 'tags', 'file_tags'):
+            others = db.scalars(select(SyncRecord).where(SyncRecord.user_id == user_id,
+                                SyncRecord.entity_type == mutation.entity_type)).all()
+            disambiguate_unique_fields(mutation.entity_type, str(mutation.record_id), data,
+                                       (r.data for r in others))
         if mutation.operation == 'delete' and record.version == 0:
             data.update(mutation.payload)  # Preserve keys for a record deleted before its first upload.
-        for field in mutation.changed_fields:
-            data[field] = mutation.payload[field]
         if 'deleted_at' in data:
             data['deleted_at'] = int(now().timestamp()) if mutation.operation == 'delete' else None
         record.data = data
+        record.field_clocks = clocks
         record.deleted_at = now() if mutation.operation == 'delete' else None
         record.version += 1
         record.last_device_id = device.id
@@ -106,10 +114,10 @@ def accept(db, device, mutation):
         change = SyncChange(user_id=user_id, entity_type=record.entity_type,
             record_id=record.record_id, version=record.version, operation=mutation.operation,
             changed_fields=mutation.changed_fields, data=dict(record.data),
-            deleted_at=record.deleted_at, device_id=device.id)
+            deleted_at=record.deleted_at, device_id=device.id, field_clocks=clocks)
         db.add(change)
         db.flush()
-    result = {'mutationId': mutation_id, 'status': 'conflict' if conflict else 'accepted',
+    result = {'mutationId': mutation_id, 'status': 'accepted', 'autoMerged': conflict is not None,
               'record': record_json(record), 'conflictId': conflict.id if conflict else None}
     db.add(ProcessedMutation(user_id=user_id, mutation_id=mutation_id,
                             request_hash=request_hash, result=result))

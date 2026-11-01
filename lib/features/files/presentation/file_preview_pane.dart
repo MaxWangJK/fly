@@ -77,7 +77,7 @@ class FilePreviewPane extends StatelessWidget {
             future: File(path).exists(),
             builder: (context, snapshot) => snapshot.data == false
                 ? Text(
-                    l.isZh ? '文件内容尚未下载。请检查同步状态；官方平台普通账号仅同步文件信息，可通过电脑扫码传文件。' : 'File not downloaded. Check sync status. Official accounts without file access can transfer files through desktop pairing.',
+                    l.isZh ? '文件内容尚未下载。云同步只传文件信息，请通过电脑扫码进行本地文件同步。' : 'File not downloaded. Cloud sync transfers file information only. Pair with your desktop to transfer file contents locally.',
                   )
                 : const SizedBox.shrink(),
           ),

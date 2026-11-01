@@ -181,10 +181,12 @@ class _SyncStatusDetailsState extends ConsumerState<SyncStatusDetails>
         if (!permitted)
           Text(
             text(
-              '当前连接只同步数据，文件同步受服务器或账户限制。',
-              'File sync is restricted by this server or account. Data sync remains available.',
+              '云同步仅传输数据，以下文件数量为本机待通过本地同步传输的内容。',
+              'Cloud sync transfers records only. File counts below need local sync for content.',
             ),
-            style: TextStyle(color: Theme.of(context).colorScheme.error),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         if (engine?.running == true && transfer != null) ...[
           const SizedBox(height: 8),

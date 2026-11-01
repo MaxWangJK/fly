@@ -1,30 +1,34 @@
 # Fly 2.0 Sync Backend
 
-后端目录：`E:\workSpace\fly\server`。Ubuntu 建议放在 `/opt/fly/server`。
+2026-11-01 当前版本：邮箱注册和密码登录已加入，支持后台图形验证、六位邮箱码、确认密码，以及临时空间绑定邮箱保留数据。当前迁移 `0003`，密码登录默认开启，云端仍不传图片/文件内容。真实发件参数仅存被忽略的 `private/smtp.json`，运行时只读挂载，见 [邮箱配置与验收](../docs/release/email_cloud_auth_20261101.md)。已有官网请使用 [共存部署](deploy/cloud_sync_20261101.md)，后面的旧“设备码阶段/邮箱关闭”说明以本段及新文档为准。
+
+后端目录：`E:\workSpace\fly\server`。已有官网的 Ubuntu 部署使用 `/opt/fly-sync/server`，详见上方共存部署；云端调度与 API 请求形状见 [协议说明](../docs/architecture/cloud_sync_runtime_20261101.md)。
 
 Python 3.12 容器、FastAPI、SQLAlchemy 2、PostgreSQL 16、Alembic；Redis 不参与核心协议。Starlette 最低版本为 1.7，以采用可校验 IPv6 Host 的解析器。
 SQLite 仅用于隔离测试，不替代生产 PostgreSQL。
 
 ## 协议与存储
 
-- `/api/auth/register|login|refresh|logout`：邮箱 trim/lowercase、Argon2id、20 分钟 JWT、30 天设备独立 refresh token。数据库仅保存 refresh token 的 SHA-256；令牌轮换，设备撤销立即拒绝后续请求。
+- `POST /api/sync/enroll-device`：管理员为同一用户空间的每台设备签发一次性码，默认 15 分钟有效，数据库仅存码哈希，一次消费并按 IP 限流；公开接口不能自报用户 ID。
+- `/api/auth/register|login|link-email`：后台图形与六位邮箱码验证后注册，邮箱密码登录；已有临时空间可绑定邮箱保留用户 ID。`/api/auth/refresh|logout`：20 分钟 JWT、30 天设备独立刷新令牌，哈希存储、轮换和撤销。
 - `/api/account/me`、`/api/devices`、`/api/devices/{id}/revoke`：全部按认证用户隔离。
 - `POST /api/sync/push`：最多 200 条。`mutationId` 幂等，重复 ID 的不同内容返回 409。整个批次提交或回滚。
 - `GET /api/sync/pull?after=0&limit=100`：变更日志游标，最多 200 条、约 4 MiB/页。每条记录最多 1 MiB。
 - `/api/sync/bootstrap`：采用同样的持久变更日志分页，客户端折叠记录历史。当前实现没有快照压缩，首次同步会读取历史变更。
-- `/api/sync/conflicts`、`POST /api/sync/conflicts/{id}/resolve`：保存候选数据，选择另一版本需先发送基于当前版本的 mutation，然后标记处理完成。
+- `/api/sync/conflicts` 与旧 resolve 路由保留兼容；当前重叠候选自动归档为已处理，客户端不要求人工选择。
+- 以下文件接口是兼容/隔离测试能力，当前云部署默认全部返回 403；没有特殊邮箱例外。
 - `/api/files/upload/init`、`PUT /api/files/upload/{id}/chunk?offset=...`、`POST /api/files/upload/{id}/complete`：4 MiB 分片、7 天可恢复会话、SHA-256、单文件 2 GiB 上限。用户内去重，临时文件 `.part` 校验后原子重命名。
 - `/api/files/{fileId}/download`：通过受保护的文件元数据获取 blob，文件名不参与服务器路径构建。
-- `/api/ws`：接受后第一帧传 JWT，随后只发 `sync_available/latest_cursor`。不在 URL 中传 token。每 2 秒检查持久日志，断线后仍以 HTTP 游标拉取为准。
-- `/api/health`：数据库连接检查，只返回状态及 API 版本。
+- `/api/ws`：接受后第一帧传 JWT，随后发 `sync_available/latest_cursor` 及空闲心跳。不在 URL 中传 token。每 2 秒检查持久日志，断线后仍以 HTTP 游标拉取为准。
+- `/api/health`：数据库连接检查，返回状态、API 版本、服务端时间与自动合并/设备接入/文件内容能力。
 
 服务端使用 users 行锁串行化同一用户的 push，包含首次记录创建。全局 seq 的用户子序列按提交顺序可见，避免并发事务的游标跳过。记录版本独立于客户端本地业务 version 和设备时钟。
-不同业务字段自动合并；`updated_at` 和本地 `version` 不参与冲突判断。同字段以成功提交顺序产生当前值，并保存两份候选。删除优先；恢复必须显式使用当前墓碑版本。附件二进制并发保留原 canonical 并创建冲突文件副本；笔记块并发保留另一块副本。
+不同业务字段自动合并；`updated_at` 和本地 `version` 不参与冲突判断。同字段按因果版本、字段毫秒修改时间与稳定变更 ID 自动取舍，限制过大的未来时钟，并保留已归档候选；旧编辑不会仅因晚到覆盖新值。独立订单号/唯一标签重名自动附短编号，保留各自 ID 和关联。删除优先；恢复必须显式使用当前墓碑版本。附件二进制并发保留原 canonical 并创建冲突文件副本；笔记块并发保留另一块副本。
 
-表：users、devices、refresh_tokens、sync_records、sync_changes、processed_mutations、sync_conflicts、file_blobs、file_upload_sessions。JSON 在 PostgreSQL 使用 JSONB。
+表：users、devices、refresh_tokens、device_enrollment_codes、email_auth_challenges、auth_rate_buckets、sync_records、sync_changes、processed_mutations、sync_conflicts、file_blobs、file_upload_sessions。JSON 在 PostgreSQL 使用 JSONB。
 `app/schema_v1.py` 是迁移 0001 的冻结定义；以后变更新增 Alembic revision，不修改冻结定义。
 
-## Ubuntu 22.04 / 24.04 部署
+## 历史：独立占用网站端口的 Ubuntu 部署（已有官网请用上方新流程）
 
 先安装 Docker Engine 与 Compose 插件，参考 [Docker Ubuntu 安装文档](https://docs.docker.com/engine/install/ubuntu/)。DNS 将 `world-workshop.cn` 的 A 记录指向服务器，开放 TCP 80/443。数据库和 API 不发布到公网。
 
@@ -132,55 +136,6 @@ docker compose up -d api nginx
 
 ## 本地开发与测试
 
-### 2.0.1 文件同步权限
+### 2.0.1 文件策略（历史，已被当前规则替代）
 
-官方 `world-workshop.cn/api` 部署在 `.env` 中设置 `FILE_SYNC_ALLOWED_EMAILS=max@ceiling-arts.com`，更新服务端后所有上传初始化、分片、完成和下载接口均检查已登录账号邮箱。仅更新客户端不能代替服务端校验。
-
-自建服务器将 `FILE_SYNC_ALLOWED_EMAILS=` 留空，允许已登录用户同步自己的实体文件，仍执行用户隔离和校验。`.env.example` 按官方平台预填白名单；自建部署须清空这一项。旧 `.env` 不会被更新代码自动覆盖，部署时按对应类型设置后重建 API 服务。
-
-```bash
-cd /opt/fly/server
-python3.12 -m venv .venv
-. .venv/bin/activate
-pip install -r requirements.txt
-export APP_ENV=development
-export JWT_PRIVATE_SECRET=$(openssl rand -hex 32)
-export DATABASE_URL='postgresql+psycopg://fly:YOUR_PASSWORD@127.0.0.1/fly'
-export STORAGE_ROOT="$PWD/storage"
-alembic upgrade head
-uvicorn app.asgi:app --host 127.0.0.1 --port 8000
-pytest -q
-```
-
-自动测试覆盖账户归一化、令牌轮换/撤销、用户隔离、幂等、字段合并、候选冲突、删除/恢复、原子批次、游标分页、上传恢复/去重/校验、路径注入及请求大小/认证限流。测试使用临时 SQLite 和临时存储，无生产网络调用。
-
-Flutter 两客户端端到端测试使用独立临时服务（测试后按 Ctrl+C 停止）。在后端目录启动：
-
-```bash
-.venv/bin/python -m tests.run_test_server
-```
-
-另开终端，在 Flutter 仓库根目录运行：
-
-```bash
-FLY_SYNC_TEST_URL=http://127.0.0.1:18765/api flutter test test/sync_two_client_test.dart
-```
-
-Windows PowerShell 使用以下命令，分别在两个终端执行：
-
-```powershell
-# 终端 1
-cd E:\workSpace\fly\server
-& '.venv\Scripts\python.exe' -m tests.run_test_server
-```
-
-```powershell
-# 终端 2
-cd E:\workSpace\fly
-$env:FLY_SYNC_TEST_URL='http://127.0.0.1:18765/api'
-flutter test test/sync_two_client_test.dart
-```
-
-该临时入口仅绑定 loopback，不用于生产部署。未设置测试地址时，此测试显式跳过。
-
-本阶段没有邮箱验证、忘记密码重置、账户删除 UI、计费系统或大型管理员页面。`/account/me` 显式返回能力标志；不会通过邮箱直接重置密码。
+当前 2.0.7 的云配置固定 `CLOUD_FILE_TRANSFER_ENABLED=false`，对所有邮箱、所有用户都禁止实体文件接口。原白名单配置仅用于旧协议兼容测试，不再是当前云产品能力。设备码、三设备测试和现有官网接入见 [部署说明](deploy/cloud_sync_20261101.md)。

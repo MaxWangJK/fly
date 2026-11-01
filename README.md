@@ -1,6 +1,14 @@
 # Fly
 
-2.0 接续开发或迁移，请先读 [项目交接入口](FLY_PROJECT_HANDOFF.md) 和 [完整需求](docs/handoff/FLY_REQUIREMENTS.md)。当前源码 2.0.6+42：客户文件可新增文件和子目录、目录网格自适应、手机移除账户设置、复盘填写后收起为卡片，保留此前安卓全屏和电脑扫码功能。功能已保存于 `codex/fly-2-sync` 的 `311c7b3` 检查点；Windows / Android 当前包均为 build 42。[本轮记录](docs/release/fly_2_0_6_build42.md)、[APK 台账](docs/handoff/APK_RELEASES.md)。下面保留原 1.0 说明。
+2026-11-01 本轮交付：[2.0.7 build43 记录](docs/release/fly_2_0_7_build43.md)、[云同步调度与 API](docs/architecture/cloud_sync_runtime_20261101.md)、[已有 PHP 官网的详细 Ubuntu 部署](server/deploy/cloud_sync_20261101.md)。采用启动/修改立即同步、WebSocket 提醒和每五分钟补查；系统后台推送留作下一阶段。下文此前“未打包”描述为开发阶段记录，实际交付结果以本轮报告和包台账为准。
+
+云同步新增 [邮箱注册与密码登录](docs/release/email_cloud_auth_20261101.md)：后台图形校验、六位邮箱码、确认密码；原临时空间可绑定邮箱继续使用。云端仍不传图片和文件内容，未重新打包或部署。
+
+新增 [基础/航向双复盘方案](docs/product/review_compass_20261101.md)：保留原有复盘与卡片，航向方案当前可浏览并免费体验，支持小实验转任务和七日校准；未接入支付。源码未重新打包。
+
+当前开发源码为 **2.0.7+43 / SQLite schema 20**：默认本地同步，可选云端数据同步，支持工作电脑、手机、家庭电脑自动合并、一次性设备接入码和本地下载续传。当前修改尚未提交/打包/部署，已有安装包仍为 build 42。见 [本轮开发记录](docs/release/sync_multi_device_20261101.md) 与 [已有官网的 Ubuntu 接入](server/deploy/cloud_sync_20261101.md)。
+
+2.0 接续开发或迁移，请先读 [项目交接入口](FLY_PROJECT_HANDOFF.md) 和 [完整需求](docs/handoff/FLY_REQUIREMENTS.md)。上一已打包版本为 2.0.6+42：客户文件可新增文件和子目录、目录网格自适应、手机移除账户设置、复盘填写后收起为卡片，保留此前安卓全屏和电脑扫码功能。这些历史功能已保存于 `codex/fly-2-sync` 的 `311c7b3` 检查点；Windows / Android 当前包均为 build 42。[历史打包记录](docs/release/fly_2_0_6_build42.md)、[APK 台账](docs/handoff/APK_RELEASES.md)。下面保留原 1.0 说明。
 
 Fly 是面向外贸个人工作的 Windows x64、本地优先桌面工作区，基于 Flutter、Riverpod、Drift 和 SQLite。当前 1.0 范围涵盖 Dashboard、客户、订单、任务、日历、四象限、今日复盘、文件、笔记、3D 装柜、全局搜索和备份。完整边界见 [产品范围](docs/product/v1_scope.md)，发布状态见 [1.0 发布计划](docs/release/fly_1_0_release_plan.md)。
 

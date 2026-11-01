@@ -38,6 +38,7 @@ migrate_working_dir/
 /coverage/
 /private_symbols/
 /license_tools/private/
+/server/private/
 /android/key.properties
 *.keystore
 *.jks
@@ -48,6 +49,8 @@ migrate_working_dir/
 /web/var/
 /web/.env
 /web.zip
+/web/public/downloads/*
+!/web/public/downloads/.keep
 
 # Symbolication related
 app.*.symbols

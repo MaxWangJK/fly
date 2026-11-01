@@ -25,6 +25,42 @@ class Credentials(DeviceInput):
         return value.strip().lower()
 
 
+class DeviceEnrollmentInput(DeviceInput):
+    code: str = Field(min_length=32, max_length=100)
+
+
+class CaptchaInput(StrictModel):
+    email: EmailStr
+    purpose: Literal['register', 'bind'] = 'register'
+
+    @field_validator('email', mode='before')
+    @classmethod
+    def normalize(cls, value):
+        return value.strip().lower()
+
+
+class SendCodeInput(StrictModel):
+    challenge_id: UUID = Field(alias='challengeId')
+    captcha: str = Field(min_length=4, max_length=4, pattern=r'^[A-Za-z0-9]{4}$')
+
+
+class VerifyEmailInput(StrictModel):
+    challenge_id: UUID = Field(alias='challengeId')
+    code: str = Field(pattern=r'^[0-9]{6}$')
+
+
+class RegisterCredentials(Credentials):
+    password: str = Field(min_length=10, max_length=128)
+    confirm_password: str = Field(alias='confirmPassword', min_length=10, max_length=128)
+    verification_ticket: str = Field(alias='verificationTicket', min_length=32, max_length=100)
+
+    @model_validator(mode='after')
+    def same_password(self):
+        if self.password != self.confirm_password:
+            raise ValueError('Passwords do not match')
+        return self
+
+
 class RefreshInput(StrictModel):
     refresh_token: str = Field(alias='refreshToken', min_length=32, max_length=200)
 
@@ -37,6 +73,7 @@ class Mutation(StrictModel):
     changed_fields: list[str] = Field(alias='changedFields', max_length=200)
     payload: dict = Field(default_factory=dict)
     operation: Literal['upsert', 'delete', 'restore'] = 'upsert'
+    field_clocks: dict[str, tuple[int, str]] = Field(default_factory=dict, alias='fieldClocks', max_length=200)
 
     @model_validator(mode='after')
     def fields_match(self):
