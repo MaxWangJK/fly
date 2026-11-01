@@ -17,3 +17,7 @@
 ## 开发与使用入口
 
 [云同步调度与 API](../architecture/cloud_sync_runtime_20261101.md)、[详细 Ubuntu 步骤](../../server/deploy/cloud_sync_20261101.md)、[完整 Nginx](../../server/deploy/world-workshop.nginx.conf)、[邮箱流程](email_cloud_auth_20261101.md)、[复盘](../product/review_compass_20261101.md)、[APK 台账](../handoff/APK_RELEASES.md)。
+
+## 本机代理配置验证
+
+官方便携 Nginx 1.30.6 对配置完成语法和 8 项 HTTP/TLS/WebSocket 检查：保留官网入口，两个 PHP API 的 POST/正文/原 URI 仍正确，HTTP 跳转、同步前缀、WebSocket 升级与首帧、原隐藏文件及 PHP 规则通过。只替换了回环端口、测试路径、临时证书与 PHP/API 替身，测试后已关闭进程；不代表 Ubuntu 或真实官网业务已验收。

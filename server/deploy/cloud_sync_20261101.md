@@ -223,4 +223,4 @@ test -s /tmp/fly-backup-contents.txt
 | 401 或登录后无法同步 | 原 JWT 密钥是否被换、会话过期/被撤销、是否登录了其他账号 |
 | 更新后似乎没有旧数据 | Compose 项目名、`.env` 与原卷是否一致，先查原卷，不初始化替代数据库 |
 
-同步调度、API 字段与后台推送计划见 [协议说明](../../docs/architecture/cloud_sync_runtime_20261101.md)。当前开发机没有 Docker/Nginx 或 Ubuntu 真机，因此目标机上的 `docker compose config`、`nginx -t`、真实邮件及公网多设备验收仍由部署时执行。
+同步调度、API 字段与后台推送计划见 [协议说明](../../docs/architecture/cloud_sync_runtime_20261101.md)。本机用官方便携 Nginx 1.30.6，对完整配置仅替换测试证书、路径和回环端口后，语法与 8 项路由/TLS/WebSocket 检查通过，包含原 PHP 接口 POST 方法、正文、URI 保留。PHP/API 均为隔离替身，没有执行真实官网业务。目标 Ubuntu 的 Docker/PostgreSQL、原 PHP、`docker compose config`、`nginx -t`、真实邮件及公网多设备验收仍在部署时执行。
