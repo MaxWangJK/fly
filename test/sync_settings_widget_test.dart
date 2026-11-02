@@ -14,7 +14,7 @@ import 'package:fly/l10n/fly_localizations.dart';
 void main() {
   for (final width in [1000.0, 390.0]) {
     testWidgets(
-      'Me keeps email registration and optional device enrollment at width $width',
+      'Me uses email accounts without device enrollment at width $width',
       (tester) async {
         tester.view.physicalSize = Size(width, 900);
         tester.view.devicePixelRatio = 1;
@@ -65,23 +65,12 @@ void main() {
           await settle();
           expect(find.byKey(const ValueKey('cloud-email')), findsOneWidget);
           expect(find.textContaining('world-workshop.cn'), findsNothing);
-          final option = find.byKey(const ValueKey('cloud-device-code-option'));
-          await tester.ensureVisible(option);
-          await settle();
-          await tester.tap(option);
-          await settle();
-          final input = find.byKey(const ValueKey('sync-device-code'));
-          expect(input, findsOneWidget);
-          await tester.ensureVisible(input);
-          await tester.enterText(input, 'short');
-          FocusManager.instance.primaryFocus?.unfocus();
-          await settle();
-          await tester.ensureVisible(find.text('连接'));
-          await settle();
-          await tester.tap(find.text('连接'));
-          await settle();
-          expect(c.error, '请填写后台签发的一次性设备接入码');
-          expect(find.text('请填写后台签发的一次性设备接入码'), findsOneWidget);
+          expect(
+            find.byKey(const ValueKey('cloud-device-code-option')),
+            findsNothing,
+          );
+          expect(find.byKey(const ValueKey('sync-device-code')), findsNothing);
+          expect(find.textContaining('设备接入码'), findsNothing);
           expect(c.auth.userId, isNull);
           expect(tester.takeException(), isNull);
         } finally {

@@ -188,37 +188,34 @@ class _SyncStatusDetailsState extends ConsumerState<SyncStatusDetails>
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
-        if (engine?.running == true && transfer != null) ...[
+        if (engine?.running == true &&
+            transfer != null &&
+            (transfer.phase == 'uploading' ||
+                transfer.phase == 'downloading')) ...[
           const SizedBox(height: 8),
-          Text(
-            '${text('文件检查', 'File checks')}: ${transfer.completed}/${transfer.total}',
-          ),
           if (transfer.currentFile != null)
             Text(
               transfer.currentFile!,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
-          if (transfer.phase == 'uploading' ||
-              transfer.phase == 'downloading') ...[
-            Text(
-              transfer.phase == 'uploading'
-                  ? text('正在上传', 'Uploading')
-                  : text('正在下载', 'Downloading'),
-            ),
-            LinearProgressIndicator(
-              key: const ValueKey('sync-file-progress'),
-              value: transfer.bytesTotal == 0
-                  ? null
-                  : (transfer.bytesTransferred / transfer.bytesTotal).clamp(
-                      0.0,
-                      1.0,
-                    ),
-            ),
-            Text(
-              '${fileSizeLabel(transfer.bytesTransferred)} / ${fileSizeLabel(transfer.bytesTotal)}',
-            ),
-          ],
+          Text(
+            transfer.phase == 'uploading'
+                ? text('正在上传', 'Uploading')
+                : text('正在下载', 'Downloading'),
+          ),
+          LinearProgressIndicator(
+            key: const ValueKey('sync-file-progress'),
+            value: transfer.bytesTotal == 0
+                ? null
+                : (transfer.bytesTransferred / transfer.bytesTotal).clamp(
+                    0.0,
+                    1.0,
+                  ),
+          ),
+          Text(
+            '${fileSizeLabel(transfer.bytesTransferred)} / ${fileSizeLabel(transfer.bytesTotal)}',
+          ),
         ],
         const SizedBox(height: 12),
         Text(

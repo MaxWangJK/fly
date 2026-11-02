@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../features/account/presentation/local_profile_avatar.dart';
 import '../../l10n/fly_localizations.dart';
 import '../../shared/design_system/design_tokens.dart';
 import '../../shared/design_system/fly_color_scheme.dart';
@@ -54,7 +55,7 @@ class PrimaryNavigationRail extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(vertical: FlySpacing.sm),
           child: Column(
             children: [
-              const _ProfileAvatar(),
+              const LocalProfileAvatar(),
               const SizedBox(height: FlySpacing.sm),
               IconButton(
                 key: const ValueKey('primary-global-search'),
@@ -251,30 +252,6 @@ class _NavigationRailItemState extends State<NavigationRailItem> {
       ),
     );
   }
-}
-
-class _ProfileAvatar extends StatelessWidget {
-  const _ProfileAvatar();
-
-  @override
-  Widget build(BuildContext context) => Tooltip(
-    message: 'Fly',
-    child: Container(
-      key: const ValueKey('primary-profile-avatar'),
-      width: 34,
-      height: 34,
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(FlyRadius.md),
-        border: Border.all(color: Theme.of(context).dividerColor),
-      ),
-      child: Icon(
-        Icons.person_outline_rounded,
-        size: FlyMetrics.iconLg,
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
-      ),
-    ),
-  );
 }
 
 class _SettingsMenu extends StatelessWidget {

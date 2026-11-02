@@ -49,9 +49,7 @@ class MySettingsPanel extends ConsumerStatefulWidget {
 }
 
 class _MySettingsPanelState extends ConsumerState<MySettingsPanel> {
-  final name = TextEditingController(),
-      server = TextEditingController(),
-      code = TextEditingController();
+  final name = TextEditingController(), server = TextEditingController();
   Uint8List? avatar;
   bool loaded = false, serverLoaded = false, busy = false;
   String? error;
@@ -60,7 +58,6 @@ class _MySettingsPanelState extends ConsumerState<MySettingsPanel> {
   void dispose() {
     name.dispose();
     server.dispose();
-    code.dispose();
     super.dispose();
   }
 
@@ -331,29 +328,6 @@ class _MySettingsPanelState extends ConsumerState<MySettingsPanel> {
                 );
               }
             },
-          ),
-          ExpansionTile(
-            key: const ValueKey('cloud-device-code-option'),
-            title: Text(t('设备接入码（测试入口）', 'Device code (testing)')),
-            children: [
-              TextField(
-                key: const ValueKey('sync-device-code'),
-                controller: code,
-                decoration: InputDecoration(
-                  labelText: t('一次性接入码', 'One-use device code'),
-                ),
-              ),
-              TextButton(
-                onPressed: c.busy
-                    ? null
-                    : () async {
-                        if (await prepare()) {
-                          await c.enrollCloudDevice(code.text);
-                        }
-                      },
-                child: Text(t('连接', 'Connect')),
-              ),
-            ],
           ),
         ] else ...[
           Text(

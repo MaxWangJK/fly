@@ -6,6 +6,7 @@ import '../../../l10n/fly_localizations.dart';
 import '../../account/presentation/my_settings_panel.dart';
 import '../domain/sync_protocol.dart';
 import 'lan_pairing_scanner.dart';
+import 'lan_pairing_guide.dart';
 import 'sync_controller.dart';
 import 'sync_status_details.dart';
 
@@ -122,8 +123,8 @@ class _SyncSettingsPanelState extends ConsumerState<SyncSettingsPanel> {
                   'Use one personal space on your work computer, phone and home computer. Offline changes merge when connected.',
                 )
               : tr(
-                  '本地同步默认开启，用手机扫描电脑二维码即可。数据和文件直接传输。',
-                  'Local sync is enabled by default. Scan the desktop QR code to transfer records and files.',
+                  '本地同步默认开启。请使用手机 Fly 内置扫一扫连接电脑，数据和文件直接传输。',
+                  'Local sync is enabled by default. Use the scanner inside Fly on your phone to connect and transfer records and files.',
                 ),
         ),
         if (c.busy) const LinearProgressIndicator(),
@@ -296,6 +297,8 @@ class _SyncSettingsPanelState extends ConsumerState<SyncSettingsPanel> {
         'Connect both devices to the same network. Data and files sync both ways without a cloud account.',
       ),
     ),
+    const SizedBox(height: 16),
+    const LanPairingGuide(),
     if (!c.isMobile) ...[
       SwitchListTile(
         contentPadding: EdgeInsets.zero,
@@ -322,8 +325,8 @@ class _SyncSettingsPanelState extends ConsumerState<SyncSettingsPanel> {
         ),
         Text(
           tr(
-            '手机扫描此二维码即可连接（5 分钟有效）。',
-            'Scan this QR code on your phone to connect (valid for 5 minutes).',
+            '请用手机 Fly 中的“扫描电脑二维码”扫描（5 分钟有效）。',
+            'Scan with “Scan desktop QR code” inside Fly on your phone (valid for 5 minutes).',
           ),
           textAlign: TextAlign.center,
         ),

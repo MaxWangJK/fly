@@ -129,6 +129,32 @@ void main() {
           .5,
         );
         expect(find.textContaining('2026-10-14 12:30:00'), findsOneWidget);
+        expect(find.textContaining('文件检查'), findsNothing);
+        // Checks may still run internally, but never display filenames or
+        // progress until bytes are actually transferred.
+        files.phase = 'checking';
+        controller.notifyListeners();
+        await tester.pump();
+        expect(find.text('missing.jpg'), findsNothing);
+        expect(find.byKey(const ValueKey('sync-file-progress')), findsNothing);
+        expect(
+          find.byKey(const ValueKey('sync-pending-downloads')),
+          findsOneWidget,
+        );
+        for (final phase in ['uploading', 'downloading']) {
+          files.phase = phase;
+          controller.notifyListeners();
+          await tester.pump();
+          expect(find.text('missing.jpg'), findsOneWidget);
+          expect(
+            find.byKey(const ValueKey('sync-file-progress')),
+            findsOneWidget,
+          );
+        }
+        files.phase = 'idle';
+        controller.notifyListeners();
+        await tester.pump();
+        expect(find.byKey(const ValueKey('sync-file-progress')), findsNothing);
         expect(tester.takeException(), isNull);
       } finally {
         engine.running = false;

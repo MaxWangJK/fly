@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/account/presentation/local_profile_avatar.dart';
 import '../../features/sync/presentation/mobile_sync_button.dart';
 import '../../features/customers/presentation/customer_detail_panel.dart';
 import '../../features/customers/presentation/customer_extension_panel.dart';
@@ -124,6 +125,7 @@ class AppShell extends ConsumerWidget {
         appBar: isPhoneLayout(context)
             ? null
             : AppBar(
+                leading: const Center(child: LocalProfileAvatar()),
                 title: const Text('Fly'),
                 actions: [
                   IconButton(
@@ -140,9 +142,15 @@ class AppShell extends ConsumerWidget {
             ? SafeArea(
                 child: Column(
                   children: [
-                    const Align(
-                      alignment: Alignment.centerRight,
-                      child: MobileSyncButton(),
+                    const Row(
+                      children: [
+                        Padding(
+                          padding: EdgeInsets.only(left: 12),
+                          child: LocalProfileAvatar(hideWhenEmpty: true),
+                        ),
+                        Spacer(),
+                        MobileSyncButton(),
+                      ],
                     ),
                     Expanded(child: child),
                   ],
