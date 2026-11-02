@@ -4,6 +4,7 @@ import 'fly_localizations.dart';
 
 // Only fixed UI copy belongs here; never translate user-defined entity names.
 const crmEnglish = <String, String>{
+  '待付款': 'Awaiting payment',
   '最近跟进': 'Last follow-up',
   '下一步 / 优先级': 'Next action / Priority',
   '今天最值得关注的五件事': 'Five priorities for today',

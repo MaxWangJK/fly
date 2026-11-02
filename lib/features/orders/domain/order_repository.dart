@@ -24,6 +24,7 @@ abstract interface class OrderRepository {
   Future<SalesOrder> createOrder({
     required String customerId,
     String? orderNumber,
+    String? statusId,
   });
   Future<void> saveOrder(SalesOrder order);
   Future<void> setFinancialCurrency(String orderId, String currency);

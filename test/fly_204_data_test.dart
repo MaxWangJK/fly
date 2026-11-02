@@ -143,6 +143,8 @@ void main() {
     final phone = FileBrowserPreferencesStore(db, phone: true),
         desktop = FileBrowserPreferencesStore(db, phone: false);
     expect((await phone.load()).view, 'small');
+    expect((await desktop.load()).view, 'small');
+    await desktop.save(const FileBrowserPreferences(view: 'list'));
     expect((await desktop.load()).view, 'list');
     await Future.wait([
       phone.save(const FileBrowserPreferences(view: 'small')),

@@ -96,9 +96,7 @@ class FileBrowserPreferencesStore {
             view,
           )
           ? view as String
-          : phone
-          ? 'small'
-          : 'list',
+          : 'small',
       sort:
           FileSort.values.where((s) => s.name == data['sort']).firstOrNull ??
           FileSort.modified,

@@ -495,7 +495,7 @@ void main() {
       );
       expect(
         (await DriftOrderRepository(migrated).watchStatuses().first).length,
-        11,
+        6,
       );
     } finally {
       await legacy?.close();

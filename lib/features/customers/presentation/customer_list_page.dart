@@ -19,6 +19,7 @@ import '../../../shared/export/fly_excel_export_action.dart';
 import '../../../shared/domain/priority.dart';
 import '../../orders/domain/order.dart';
 import '../../orders/presentation/order_providers.dart';
+import '../../orders/presentation/order_create_dialog.dart';
 import '../domain/customer.dart';
 import '../import/customer_import_dialog.dart';
 import 'customer_providers.dart';
@@ -181,12 +182,53 @@ class _CustomerListPageState extends ConsumerState<CustomerListPage> {
     int orderCount,
     Offset position,
   ) async {
-    final selected = await showFlyDeleteContextMenu(
-      context,
-      position,
-      label: context.crmCopy('删除客户'),
+    ref.read(selectedCustomerIdProvider.notifier).state = customer.id;
+    final action = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        position.dx,
+        position.dy,
+        position.dx,
+        position.dy,
+      ),
+      items: [
+        PopupMenuItem(
+          value: 'order',
+          key: const ValueKey('customer-context-new-order'),
+          child: Row(
+            children: [
+              const Icon(Icons.receipt_long_outlined, size: 18),
+              const SizedBox(width: 8),
+              Text(context.crmCopy('新建订单')),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'delete',
+          child: Text(
+            context.crmCopy('删除客户'),
+            style: const TextStyle(color: FlyColors.danger),
+          ),
+        ),
+      ],
     );
-    if (!selected || !mounted) return;
+    if (!mounted || action == null) return;
+    if (action == 'order') {
+      final order = await showDialog<SalesOrder>(
+        context: context,
+        builder: (_) => OrderCreateDialog(
+          customerId: customer.id,
+          customerName: customer.name,
+        ),
+      );
+      if (order == null || !mounted) return;
+      ref.read(orderCustomerFilterProvider.notifier).state = customer.id;
+      ref.read(orderSearchProvider.notifier).state = '';
+      ref.read(selectedOrderIdProvider.notifier).state = order.id;
+      ref.read(orderExtensionProvider.notifier).state = OrderExtensionType.none;
+      context.go('/orders/all');
+      return;
+    }
     final confirmed = await confirmFlyDestructiveAction(
       context,
       title: context.l10n.isZh

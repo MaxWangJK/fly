@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'tables.dart';
 import '../../features/sync/data/sync_schema.dart';
 import '../../features/customers/domain/customer_lifecycle.dart';
+import '../../features/orders/domain/order_lifecycle.dart';
 
 part 'app_database.g.dart';
 
@@ -783,19 +784,9 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> _ensureOrderDefaults(DateTime now) async {
-    const statuses = [
-      ('order-inquiry', '询价', 0xFF6B7A90),
-      ('order-confirming', '待确认', 0xFFC6903E),
-      ('order-placed', '已下单', 0xFF5E7BB8),
-      ('order-awaiting-deposit', '待收定金', 0xFFD1904A),
-      ('order-production', '生产中', 0xFF4D6BD8),
-      ('order-awaiting-balance', '待收尾款', 0xFF9A72B5),
-      ('order-balance-received', '已收尾款', 0xFF7C6AA6),
-      ('order-awaiting-shipment', '待发货', 0xFF3C8D87),
-      ('order-shipped', '已发货', 0xFF4A889E),
-      ('order-completed', '已完成', 0xFF5F8D78),
-      ('order-cancelled', '已取消', 0xFF9A6A6A),
-    ];
+    final statuses = OrderLifecycle.stages
+        .map((s) => (s.$1, s.$2, s.$4))
+        .toList();
     for (var index = 0; index < statuses.length; index++) {
       final value = statuses[index];
       await into(orderStatuses).insert(

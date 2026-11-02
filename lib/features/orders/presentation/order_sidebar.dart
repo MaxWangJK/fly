@@ -8,6 +8,8 @@ import 'package:go_router/go_router.dart';
 import '../../../shared/design_system/design_tokens.dart';
 import '../../../shared/design_system/fly_color_scheme.dart';
 import '../domain/order.dart';
+import '../domain/order_lifecycle.dart';
+import '../../../l10n/fly_localizations.dart';
 import 'order_providers.dart';
 
 class OrderSidebar extends ConsumerWidget {
@@ -367,155 +369,30 @@ class _OrderTagManagerDialog extends ConsumerWidget {
 
 class _OrderStatusDialog extends ConsumerWidget {
   const _OrderStatusDialog();
-
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final statuses =
-        ref.watch(allOrderStatusesProvider).valueOrNull ?? const [];
-    return AlertDialog(
-      title: Text(context.crmCopy('订单状态')),
-      content: SizedBox(
-        width: 410,
-        height: 430,
-        child: Column(
-          children: [
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: () async {
-                  final name = await _orderStatusName(
-                    context,
-                    context.crmCopy('新增订单状态'),
-                  );
-                  if (name != null) {
-                    await ref
-                        .read(orderRepositoryProvider)
-                        .createStatus(
-                          name,
-                          colorValue:
-                              _orderStatusColors[statuses.length %
-                                  _orderStatusColors.length],
-                        );
-                  }
-                },
-                icon: const Icon(Icons.add, size: 16),
-                label: Text(context.crmCopy('新增')),
-              ),
+  Widget build(BuildContext context, WidgetRef ref) => AlertDialog(
+    title: Text(context.crmCopy('订单状态')),
+    content: SizedBox(
+      width: 410,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final stage in OrderLifecycle.stages)
+            ListTile(
+              dense: true,
+              leading: Icon(Icons.circle, size: 12, color: Color(stage.$4)),
+              title: Text(context.l10n.isZh ? stage.$2 : stage.$3),
             ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: statuses.length,
-                itemBuilder: (context, index) {
-                  final status = statuses[index];
-                  return ListTile(
-                    dense: true,
-                    enabled: status.isActive,
-                    leading: PopupMenuButton<int>(
-                      tooltip: context.crmCopy('颜色'),
-                      onSelected: (color) => ref
-                          .read(orderRepositoryProvider)
-                          .setStatusColor(status.id, color),
-                      itemBuilder: (context) => [
-                        for (final color in _orderStatusColors)
-                          PopupMenuItem(
-                            value: color,
-                            child: Icon(
-                              Icons.circle,
-                              color: Color(color),
-                              size: 18,
-                            ),
-                          ),
-                      ],
-                      child: Icon(
-                        Icons.circle,
-                        color: Color(status.colorValue),
-                        size: 14,
-                      ),
-                    ),
-                    title: Text(status.name),
-                    trailing: PopupMenuButton<String>(
-                      onSelected: (value) async {
-                        if (value == 'rename') {
-                          final name = await _orderStatusName(
-                            context,
-                            context.crmCopy('重命名订单状态'),
-                            status.name,
-                          );
-                          if (name != null) {
-                            await ref
-                                .read(orderRepositoryProvider)
-                                .renameStatus(status.id, name);
-                          }
-                        }
-                        if (value == 'toggle') {
-                          await ref
-                              .read(orderRepositoryProvider)
-                              .setStatusActive(
-                                status.id,
-                                active: !status.isActive,
-                              );
-                        }
-                        if (value == 'up' && index > 0) {
-                          final reordered = [...statuses];
-                          final item = reordered.removeAt(index);
-                          reordered.insert(index - 1, item);
-                          await ref
-                              .read(orderRepositoryProvider)
-                              .reorderStatuses(
-                                reordered.map((item) => item.id).toList(),
-                              );
-                        }
-                        if (value == 'down' && index < statuses.length - 1) {
-                          final reordered = [...statuses];
-                          final item = reordered.removeAt(index);
-                          reordered.insert(index + 1, item);
-                          await ref
-                              .read(orderRepositoryProvider)
-                              .reorderStatuses(
-                                reordered.map((item) => item.id).toList(),
-                              );
-                        }
-                      },
-                      itemBuilder: (context) => [
-                        PopupMenuItem(
-                          value: 'rename',
-                          child: Text(context.crmCopy('重命名')),
-                        ),
-                        PopupMenuItem(
-                          value: 'up',
-                          enabled: index > 0,
-                          child: Text(context.crmCopy('上移')),
-                        ),
-                        PopupMenuItem(
-                          value: 'down',
-                          enabled: index < statuses.length - 1,
-                          child: Text(context.crmCopy('下移')),
-                        ),
-                        PopupMenuItem(
-                          value: 'toggle',
-                          child: Text(
-                            status.isActive
-                                ? context.crmCopy('停用')
-                                : context.crmCopy('启用'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
+        ],
       ),
-      actions: [
-        FilledButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(context.crmCopy('完成')),
-        ),
-      ],
-    );
-  }
+    ),
+    actions: [
+      FilledButton(
+        onPressed: () => Navigator.pop(context),
+        child: Text(context.crmCopy('完成')),
+      ),
+    ],
+  );
 }
 
 Future<String?> _orderStatusName(
@@ -549,12 +426,3 @@ Future<String?> _orderStatusName(
   final value = result?.trim();
   return value == null || value.isEmpty ? null : value;
 }
-
-const _orderStatusColors = <int>[
-  0xFFC6903E,
-  0xFF5E7BB8,
-  0xFF8A6DA3,
-  0xFF5F9296,
-  0xFF5F8D78,
-  0xFFC86168,
-];

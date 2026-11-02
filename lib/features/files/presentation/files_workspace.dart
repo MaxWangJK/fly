@@ -55,7 +55,7 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
   String? folderId, selectedId, cutId;
   String search = '';
   bool includeChildren = false, importing = false;
-  FileViewMode viewMode = FileViewMode.list;
+  FileViewMode viewMode = FileViewMode.small;
   bool _viewInitialized = false;
   bool imagesFirst = true;
   bool _preferencesLoaded = false, _selecting = false, _batchBusy = false;
@@ -2042,6 +2042,12 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
   }
 
   Widget _desktopListing(List<FileBrowserEntry> entries) {
+    final grid = SliverGridDelegateWithMaxCrossAxisExtent(
+      maxCrossAxisExtent: viewMode == FileViewMode.small ? 140 : 200,
+      mainAxisExtent: viewMode == FileViewMode.small ? 145 : 190,
+      crossAxisSpacing: 12,
+      mainAxisSpacing: 12,
+    );
     final directories = _desktopDirectories(
       ref.watch(fileFoldersProvider).valueOrNull ?? [],
     );
@@ -2050,11 +2056,38 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
       onSecondaryTapDown: (d) => _desktopFolderMenu(folder, d.globalPosition),
       child: Material(
         color: context.flyColors.surface,
-        child: ListTile(
-          leading: const Icon(Icons.folder_rounded),
-          title: Text(folder.name),
-          onTap: () => select(FileCollection.folder, folder.id),
-        ),
+        child: viewMode == FileViewMode.list
+            ? ListTile(
+                key: ValueKey('desktop-folder-list-${folder.id}'),
+                leading: const Icon(Icons.folder_rounded),
+                title: Text(folder.name),
+                onTap: () => select(FileCollection.folder, folder.id),
+              )
+            : InkWell(
+                key: ValueKey('desktop-folder-icon-${folder.id}'),
+                borderRadius: BorderRadius.circular(8),
+                onTap: () => select(FileCollection.folder, folder.id),
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.folder_rounded,
+                        size: viewMode == FileViewMode.small ? 56 : 72,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        folder.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
       ),
     );
     return CustomScrollView(
@@ -2062,10 +2095,16 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
       slivers: [
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-          sliver: SliverList.builder(
-            itemCount: directories.length,
-            itemBuilder: (_, i) => directory(directories[i]),
-          ),
+          sliver: viewMode == FileViewMode.list
+              ? SliverList.builder(
+                  itemCount: directories.length,
+                  itemBuilder: (_, i) => directory(directories[i]),
+                )
+              : SliverGrid.builder(
+                  gridDelegate: grid,
+                  itemCount: directories.length,
+                  itemBuilder: (_, i) => directory(directories[i]),
+                ),
         ),
         if (viewMode == FileViewMode.list)
           SliverPadding(
@@ -2082,12 +2121,7 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
           SliverPadding(
             padding: const EdgeInsets.all(12),
             sliver: SliverGrid.builder(
-              gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: viewMode == FileViewMode.small ? 140 : 200,
-                mainAxisExtent: viewMode == FileViewMode.small ? 145 : 190,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-              ),
+              gridDelegate: grid,
               itemCount: entries.length,
               itemBuilder: (_, i) => tile(entries[i]),
             ),

@@ -77,6 +77,8 @@ void main() {
           WorkspaceFolderKind.files,
         );
         parent = await folders.create('产品资料');
+        await folders.create('Door');
+        await folders.create('Panel');
         final child = await folders.create('室内产品', parentId: parent);
         final repo = ManagedFileRepository(db);
         for (final item in [
@@ -141,10 +143,16 @@ void main() {
         tester
             .widget<FileEntryContent>(find.byType(FileEntryContent).first)
             .mode,
-        FileViewMode.list,
+        FileViewMode.small,
       );
       await tester.tap(find.text('我的文件').first);
       await settle(tester);
+      expect(
+        find.byKey(ValueKey('desktop-folder-icon-$parent')),
+        findsOneWidget,
+      );
+      expect(find.byKey(ValueKey('desktop-folder-list-$parent')), findsNothing);
+      await capture(tester, 'folders');
       await tester.tap(find.byKey(ValueKey('desktop-file-folder-$parent')));
       await settle(tester);
       expect(find.text('产品价格表.pdf'), findsOneWidget);
@@ -227,6 +235,7 @@ void main() {
             .height,
         38,
       );
+      expect(find.text('室内产品'), findsOneWidget);
       for (final text in tester.widgetList<Text>(
         find.descendant(
           of: find.byType(FileEntryContent),

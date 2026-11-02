@@ -8,6 +8,7 @@ import '../../../shared/search/fuzzy_match.dart';
 import '../../customers/domain/customer.dart';
 import '../domain/order.dart';
 import '../domain/order_repository.dart';
+import '../domain/order_lifecycle.dart';
 
 class DriftOrderRepository implements OrderRepository {
   DriftOrderRepository(this._db);
@@ -108,7 +109,7 @@ class DriftOrderRepository implements OrderRepository {
       orderNumber: 'SO-${date.year}-002',
     );
     ahmedOrder = ahmedOrder.copyWith(
-      statusId: status('待收尾款'),
+      statusId: status('待付款'),
       importance: false,
       urgency: true,
       priority: PriorityLevel.medium,
@@ -207,7 +208,7 @@ class DriftOrderRepository implements OrderRepository {
     final davidOrder = await createDemoOrder(
       customerName: 'David Turner',
       suffix: 3,
-      statusName: '询价',
+      statusName: '待付款',
       daysAgo: 3,
       deliveryIn: 40,
       currency: 'RMB',
@@ -258,7 +259,7 @@ class DriftOrderRepository implements OrderRepository {
     final linhOrder = await createDemoOrder(
       customerName: 'Linh Nguyen',
       suffix: 6,
-      statusName: '待确认',
+      statusName: '待付款',
       daysAgo: 1,
       deliveryIn: 28,
       currency: 'USD',
@@ -423,8 +424,23 @@ class DriftOrderRepository implements OrderRepository {
         return includeInactive ? active : active & row.isActive.equals(true);
       })
       ..orderBy([(row) => OrderingTerm.asc(row.sortOrder)]);
-    return query.watch().map(
-      (rows) => rows
+    return query.watch().map((rows) {
+      if (!includeInactive) {
+        final stored = {for (final row in rows) row.id: row};
+        return [
+          for (var i = 0; i < OrderLifecycle.stages.length; i++)
+            OrderStatusConfig(
+              id: OrderLifecycle.stages[i].$1,
+              name: OrderLifecycle.stages[i].$2,
+              colorValue:
+                  stored[OrderLifecycle.stages[i].$1]?.colorValue ??
+                  OrderLifecycle.stages[i].$4,
+              isActive: true,
+              sortOrder: i,
+            ),
+        ];
+      }
+      return rows
           .map(
             (row) => OrderStatusConfig(
               id: row.id,
@@ -434,8 +450,8 @@ class DriftOrderRepository implements OrderRepository {
               sortOrder: row.sortOrder,
             ),
           )
-          .toList(),
-    );
+          .toList();
+    });
   }
 
   @override
@@ -615,7 +631,8 @@ class DriftOrderRepository implements OrderRepository {
   Future<SalesOrder> createOrder({
     required String customerId,
     String? orderNumber,
-  }) async {
+    String? statusId,
+  }) => _db.transaction(() async {
     final customer =
         await (_db.select(_db.customers)..where(
               (row) => row.id.equals(customerId) & row.deletedAt.isNull(),
@@ -627,13 +644,21 @@ class DriftOrderRepository implements OrderRepository {
     final now = DateTime.now();
     final suffix = now.microsecondsSinceEpoch.toString();
     final generated = 'SO-${now.year}-${suffix.substring(suffix.length - 6)}';
+    final number = orderNumber?.trim().isNotEmpty == true
+        ? orderNumber!.trim()
+        : generated;
+    if (number.length > 120) throw ArgumentError('订单号不能超过120个字符');
+    final duplicate =
+        await (_db.select(_db.orders)
+              ..where((r) => r.orderNumber.lower().equals(number.toLowerCase()))
+              ..limit(1))
+            .getSingleOrNull();
+    if (duplicate != null) throw StateError('订单号已存在，请使用其他PI发票号');
     final order = SalesOrder(
       id: _uuid.v7(),
-      orderNumber: orderNumber?.trim().isNotEmpty == true
-          ? orderNumber!.trim()
-          : generated,
+      orderNumber: number,
       customerId: customerId,
-      statusId: 'order-inquiry',
+      statusId: OrderLifecycle.normalize(statusId),
       priority: PriorityLevel.low,
       importance: false,
       urgency: false,
@@ -656,7 +681,7 @@ class DriftOrderRepository implements OrderRepository {
     );
     await _db.into(_db.orders).insert(_toCompanion(order));
     return order;
-  }
+  });
 
   @override
   Future<void> saveOrder(SalesOrder order) async {
@@ -1368,7 +1393,7 @@ class DriftOrderRepository implements OrderRepository {
     id: row.id,
     orderNumber: row.orderNumber,
     customerId: row.customerId,
-    statusId: row.statusId,
+    statusId: OrderLifecycle.normalize(row.statusId),
     priority: PriorityLevel.values.firstWhere(
       (value) => value.name == row.priority,
       orElse: () => PriorityLevel.low,
@@ -1399,7 +1424,7 @@ class DriftOrderRepository implements OrderRepository {
     id: Value(value.id),
     orderNumber: Value(value.orderNumber),
     customerId: Value(value.customerId),
-    statusId: Value(value.statusId),
+    statusId: Value(OrderLifecycle.normalize(value.statusId)),
     priority: Value(value.priority.name),
     importance: Value(value.importance),
     urgency: Value(value.urgency),
