@@ -49,3 +49,8 @@
 ## build44 当前界面（2026-11-01）
 
 [手机新客户](customer-create-build44-phone.png)、[桌面新客户](customer-create-build44-desktop.png)、[深色窄屏我的](my-build44-dark-narrow.png)、[简化云同步页](sync-build44-phone.png)、[桌面平面文件夹](files-flat-build44-desktop.png)、[保留基础复盘](review-basic-build44-desktop.png)、[手机客户单表头](customer-rows-build44-phone.png)。均使用隔离数据、真实 Flutter 渲染并已目视核对；深色窄屏为360×780、1.3倍文字。账号生命周期截图随本版一起交付，原生系统选图、扫码和分享仍待真机验收。
+
+
+## build45（2026-11-02）
+
+[PI新建订单](order-create-build45-desktop.png)、[深色大字订单弹框](order-create-build45-dark-large.png)、[小图标文件夹](files-folders-build45-desktop.png)。真实Flutter渲染并目视检查，1200×850浅色和840×850深色/1.3倍文字，文件夹1400×900，均为隔离业务数据。

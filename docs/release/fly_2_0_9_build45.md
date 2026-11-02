@@ -9,4 +9,25 @@
 
 保留build44的客户新建、个人资料、基础复盘、互斥同步与账户功能；云端不上传图片/实体文件。测试包继续关闭本地授权拦截，复用原书籍配置和原安卓正式/测试签名。Windows安装器未作发行代码签名；扫码、选图、分享及Apple平台仍待真实设备验收。
 
-构建源码、回归、推送、下载链接和文件校验值于交付时补入本文与迁移台账。
+
+
+
+## 验证与Git
+
+源码`6fdd581802239e9a87eaf50669f43afdeb1f3cf6`及交付文档均已推送origin的`codex/fly-2-sync`，本报告包含于最终交付文档提交，用git log -1核对。远端此前停留c40935b，本次正常快进包含此前未推送的build43/44及账号、原生部署等已提交工作；不修改1.0 master，不强制覆盖远端。
+
+- 本轮相关回归 **80项全部通过**：PI创建、取消、默认/指定状态、重复号码、删除客户校验、旧状态及旧库数据保留、财务、备份、列表、文件夹和单个/批量移动等。新订单4项还单独重跑完成可读字体截图，静态检查无问题。
+- 初次测试两项失败来自测试平台状态清理遗漏，已修复并重跑。没有将旧build44的421项综合证据、后台61项作为本轮新测试；后台源码未改，本次无需更新服务端。
+- Windows release、安装器和便携ZIP、Android release构建完成。版本2.0.9/45、包名com.flyproduct.fly、min24/target36、三个ABI、非调试属性、16KB对齐、两种原签名及非签名内容一致通过核验。原书籍配置、SQLite相对加载及必需运行库已检查。
+- 公开源码和消费包不含私有配置文件、真实发件授权码或内部发码器。扫码、相机、外部打开、系统分享仍需真机；没有执行Apple构建或生产部署。
+
+## 下载与校验
+
+| 文件 | 字节数 | SHA-256 |
+| --- | --- | --- |
+| [Fly-Setup-2.0.9-build45-testing.exe](../../dist/Fly-Setup-2.0.9-build45-testing.exe) | 13,465,587 | `C11992B11E78D87C2F78BDBF3371D48D3539DB13C3AFDD510961CFCA7629AA78` |
+| [Fly-2.0.9-build45-windows-test-20261102.zip](../../dist/Fly-2.0.9-build45-windows-test-20261102.zip) | 16,086,197 | `A51573A973680D1A27933BD5D9B043882E5B4BE33326B8DF87EA8E453B856266` |
+| [Fly-2.0.9-build45-android-release-signed-20261102.apk](../../dist/Fly-2.0.9-build45-android-release-signed-20261102.apk) | 94,748,532 | `EB65B878F6B0AD25DCD15235779044BDF659F5F9F48C99934A11758C74C648CF` |
+| [Fly-2.0.9-build45-android-test-20261102.apk](../../dist/Fly-2.0.9-build45-android-test-20261102.apk) | 94,748,904 | `190A772BB64B64F5F1EF1BCE054CEB7EDEB5E3150657DC6E9650680A7322B035` |
+
+[APK公开材料](../handoff/apk/20261102-build45/README.md)、[迁移台账](../handoff/APK_RELEASES.md)。包本体不进入Git，私钥和业务数据另行安全迁移。
