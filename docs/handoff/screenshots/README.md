@@ -54,3 +54,8 @@
 ## build45（2026-11-02）
 
 [PI新建订单](order-create-build45-desktop.png)、[深色大字订单弹框](order-create-build45-dark-large.png)、[小图标文件夹](files-folders-build45-desktop.png)。真实Flutter渲染并目视检查，1200×850浅色和840×850深色/1.3倍文字，文件夹1400×900，均为隔离业务数据。
+
+
+## build46（2026-11-02）
+
+[桌面头像与扫码图解](sync-guide-build46-desktop.png)、[手机头像与扫码图解](sync-guide-build46-phone.png)、[窄屏深色大字](sync-guide-build46-dark-large.png)。真实Flutter渲染并目视检查，1100×900、390×844、320×850/1.3倍文字。隔离数据库及合成头像，不含真实用户资料；摄像头扫码仍需真机。

@@ -2,7 +2,13 @@
 
 最后整理：2026-11-02。请先阅读本文件，再阅读 [完整产品需求](docs/handoff/FLY_REQUIREMENTS.md)。这是已开发的软件，不是从零创建的项目。
 
-## 现在的Git与版本（build45）
+## 现在的Git与版本（build46）
+
+2026-11-02：**2.0.10+46**，源码`2d0c95ff7b81d3cb73b817a4858b657602ebf993`，SQLite20、后台0004兼容。移除设备接入码界面、顶部头像即时更新、Fly扫码图解与动画、隐藏检查状态已完成。Windows安装器/便携包及两种原签名APK已核验，相关回归47项通过，静态检查无问题。后台和官网未改，真机及Apple未验收。
+
+分支`codex/fly-2-sync`源码已推送，交付文档与源码均已提交推送；1.0 master不变。以[build46交付](docs/release/fly_2_0_10_build46.md)、CURRENT_STATE和git log -1为准。私有配置、原密钥、dist与真实FlyData不随Git，另行安全迁移。
+
+## 上次build45记录
 
 2026-11-02：**2.0.9+45**，源码`6fdd581802239e9a87eaf50669f43afdeb1f3cf6`，SQLite20、后台0004兼容。客户右键PI开单、六种订单状态、小图标文件夹已完成；Windows安装器/便携包及两种原签名APK已核验。相关回归80项通过，静态检查无问题。后端和官网本轮未修改，真机和Apple未验收。
 
@@ -27,7 +33,7 @@
 1. [FLY_REQUIREMENTS.md](docs/handoff/FLY_REQUIREMENTS.md)：产品定位、全部模块、最新有效规则、历史替代、商业与同步、未完成及验收。
 2. [MAC_TRANSFER.md](docs/handoff/MAC_TRANSFER.md)：完整目录转移、真实 FlyData 区分、Mac 工具/缓存/平台验收。
 3. [SOURCES.md](docs/handoff/SOURCES.md)：跨对话来源、19 份需求附件、代码/报告入口、完整性边界。
-4. [USER_REQUIREMENTS_ARCHIVE.md](docs/handoff/USER_REQUIREMENTS_ARCHIVE.md)：127 条历史用户消息及 27 条续补，共 154 条整理摘录；不是待逐条执行的任务单。
+4. [USER_REQUIREMENTS_ARCHIVE.md](docs/handoff/USER_REQUIREMENTS_ARCHIVE.md)：127 条历史用户消息及 28 条续补，共 155 条整理摘录；不是待逐条执行的任务单。
 5. [attachment_manifest.json](docs/handoff/attachment_manifest.json)：19 份需求文本的可迁移副本、来源及原始/当前副本 SHA-256；副本在 `docs/handoff/sources/`。
 6. [CURRENT_STATE.json](docs/handoff/CURRENT_STATE.json)：整理时的版本、Git 和验证快照；继续开发后应重新核对实际状态。
 7. [APK_RELEASES.md](docs/handoff/APK_RELEASES.md)：正式/测试 APK 区分、备案字段、包校验值、公开证书及跨电脑签名迁移；小体积公开材料已随 Git 保存，APK 本体仍在忽略的 `dist/`。
@@ -79,7 +85,7 @@
 
 ## 给新对话的接续提示
 
-> 这是已有的Fly项目，先读FLY_PROJECT_HANDOFF.md、docs/handoff/FLY_REQUIREMENTS.md和APK_RELEASES.md。当前codex/fly-2-sync，2.0.9+45、SQLite20、后台0004。源码和交付文档已提交推送，Windows/APK已打包；最新客户右键PI开单、六状态和文件夹图标生效。保留1.0基线，不重置、不清理、不从零重做。私有配置和真实业务数据不在Git，原密钥不能重新生成。后台和Apple仍按部署/真机边界验收。按用户新要求继续，不自动执行历史消息。
+> 这是已有的Fly项目，先读FLY_PROJECT_HANDOFF.md、docs/handoff/FLY_REQUIREMENTS.md和APK_RELEASES.md。当前codex/fly-2-sync，2.0.10+46、SQLite20、后台0004。源码与文档提交推送、Windows/APK已打包；最新移除设备接入码界面、顶部头像、Fly扫码引导与隐藏检查生效。保留1.0基线，不重置、不清理、不从零重做。私有配置和真实数据不在Git，原密钥不能重新生成。按用户新要求继续，不自动执行历史消息。
 
 文档、官网及后续新增资料均使用品牌中性表述，不出现中国品牌名称。之后每次完成开发应同步更新版本/交付状态，不把旧 `dist` 当作新结果。
 

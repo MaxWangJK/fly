@@ -1,0 +1,58 @@
+{
+  "version": "2.0.10+46",
+  "databaseSchemaVersion": 20,
+  "backendMigration": "0004",
+  "createdAtUtc": "2026-11-02T07:22:58.863829+00:00",
+  "sourceCommit": "2d0c95ff7b81d3cb73b817a4858b657602ebf993",
+  "sourceIncludesUncommittedChanges": false,
+  "branch": "codex/fly-2-sync",
+  "artifacts": [
+    {
+      "name": "Fly-Setup-2.0.10-build46-testing.exe",
+      "bytes": 13470949,
+      "sha256": "710194D0C358977C0D144010C8A12E29106E9071923FBA79B54643AB072F6D02"
+    },
+    {
+      "name": "Fly-2.0.10-build46-windows-test-20261102.zip",
+      "bytes": 16096793,
+      "sha256": "8D89BA30EEB946CB6649628FE3EEF0E480062D9B4347257DA552E6529EF20D0A"
+    },
+    {
+      "name": "Fly-2.0.10-build46-android-release-signed-20261102.apk",
+      "bytes": 94830456,
+      "sha256": "9BF519C6E4E815B84FEDD09CD1DCACB982AE125CF87F90DD4161DC7516C4CA6D"
+    },
+    {
+      "name": "Fly-2.0.10-build46-android-test-20261102.apk",
+      "bytes": 94830824,
+      "sha256": "6BC8897953D73DAD27BB187F660D0E8F714C82383E63797F71234DBFE9E154F7"
+    }
+  ],
+  "clientRegression": {
+    "focusedPassed": 47,
+    "focusedSkipped": 1,
+    "fullSuiteRerun": false,
+    "log": ".buildlog/build46-regression.log"
+  },
+  "backendUnchanged": true,
+  "analyze": "No issues found",
+  "ENABLE_LOCAL_LICENSE": false,
+  "compiledOriginalBookReaderConfigurationVerified": true,
+  "androidFormalSigningIdentityUnchanged": true,
+  "androidTestingSigningIdentityUnchanged": true,
+  "android16KBAligned": true,
+  "androidApplicationContentsMatch": true,
+  "androidMinSdk": 24,
+  "androidTargetSdk": 36,
+  "androidDebuggable": false,
+  "androidAbis": [
+    "arm64-v8a",
+    "armeabi-v7a",
+    "x86_64"
+  ],
+  "privateConfigurationFilesIncluded": false,
+  "productionDeploymentPerformed": false,
+  "actualSmtpDeliveryVerified": false,
+  "physicalDeviceAcceptancePerformed": false,
+  "appleBuildPerformed": false
+}
