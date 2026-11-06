@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../../../l10n/fly_localizations.dart';
 import '../../../../../shared/design_system/fly_color_scheme.dart';
 import '../../domain/models/container_loading_models.dart';
+import '../../domain/models/section_models.dart';
 import 'container_scene_controller.dart';
 
 /// Front view of actual scene groups. Both editors mutate the same controller;
@@ -14,11 +15,15 @@ class SectionPlacementEditor extends StatefulWidget {
     required this.controller,
     required this.sectionId,
     required this.names,
+    this.spaces = const [],
+    this.assignedSpaceIds = const [],
     super.key,
   });
   final ContainerSceneController controller;
   final String sectionId;
   final Map<String, String> names;
+  final List<LoadingSpace> spaces;
+  final List<String> assignedSpaceIds;
 
   @override
   State<SectionPlacementEditor> createState() => _SectionPlacementEditorState();
@@ -115,6 +120,8 @@ class _SectionPlacementEditorState extends State<SectionPlacementEditor> {
               transform,
               widget.names,
               context.flyColors,
+              widget.spaces,
+              widget.assignedSpaceIds,
             ),
           ),
         );
@@ -164,17 +171,25 @@ class _SectionPainter extends CustomPainter {
     this.transform,
     this.names,
     this.colors,
+    this.spaces,
+    this.assignedSpaceIds,
   );
   final ContainerSceneController scene;
   final List<CargoGroupModel> groups;
   final _SectionTransform transform;
   final Map<String, String> names;
   final FlyColorScheme colors;
+  final List<LoadingSpace> spaces;
+  final List<String> assignedSpaceIds;
   void label(Canvas canvas, String text, Offset point, double width) {
     final painter = TextPainter(
       text: TextSpan(
         text: text,
-        style: TextStyle(fontSize: 10, color: colors.textPrimary),
+        style: TextStyle(
+          fontFamily: 'Microsoft YaHei UI',
+          fontSize: 10,
+          color: colors.textPrimary,
+        ),
       ),
       textDirection: TextDirection.ltr,
       maxLines: 2,
@@ -193,6 +208,38 @@ class _SectionPainter extends CustomPainter {
       scene.container.heightMm * t.scale,
     );
     canvas.drawRect(outline, Paint()..color = colors.canvas);
+    final offered = LoadingSpace.suggested(spaces, assignedSpaceIds);
+    for (final space in spaces) {
+      final b = space.bounds;
+      final rect = Rect.fromLTWH(
+        t.origin.dx + b.y * t.scale,
+        t.origin.dy - b.maxZ * t.scale,
+        b.dimensions.widthMm * t.scale,
+        b.dimensions.heightMm * t.scale,
+      );
+      canvas.drawRect(
+        rect,
+        Paint()
+          ..color = colors.accent.withValues(
+            alpha: space.isUsefulForLoading ? .10 : .03,
+          ),
+      );
+      canvas.drawRect(
+        rect,
+        Paint()
+          ..color = colors.textSecondary.withValues(alpha: .4)
+          ..style = PaintingStyle.stroke,
+      );
+      final shown = offered.where((s) => s.id == space.id).firstOrNull;
+      if (shown != null && rect.width >= 42 && rect.height >= 24) {
+        label(
+          canvas,
+          '${shown.name.split(' · ').first} · ${b.dimensions.widthMm} × ${b.dimensions.heightMm} mm',
+          rect.topLeft + const Offset(3, 3),
+          rect.width - 6,
+        );
+      }
+    }
     for (final g in groups) {
       final rect = t.rect(g);
       final overflow = !g.bounds.inside(scene.container);

@@ -287,6 +287,53 @@ class SectionPackingEngine {
     ).spaces;
   }
 
+  /// Empty boxes from the current scene, without re-running the packing search.
+  /// Include intersecting cargo from adjacent sections; staged cargo is ignored.
+  List<LoadingSpace> spacesForPlacement({
+    required ContainerSection section,
+    required Dimensions3 container,
+    required List<CargoGroupModel> groups,
+  }) {
+    final bounds = Aabb3(
+      x: section.startXmm,
+      y: 0,
+      z: 0,
+      dimensions: Dimensions3(
+        section.lengthMm,
+        container.widthMm,
+        container.heightMm,
+      ),
+    );
+    final occupied =
+        groups
+            .where((g) => g.sectionId != null && g.bounds.overlaps(bounds))
+            .toList()
+          ..sort((a, b) {
+            for (final pair in [
+              (a.positionZmm, b.positionZmm),
+              (a.positionYmm, b.positionYmm),
+              (a.positionXmm, b.positionXmm),
+            ]) {
+              final order = pair.$1.compareTo(pair.$2);
+              if (order != 0) return order;
+            }
+            return a.id.compareTo(b.id);
+          });
+    if (occupied.isEmpty) return [];
+    final free = _remainingSpaces(
+      LoadingSpace(id: '${section.id}:placed', name: '', bounds: bounds),
+      occupied,
+    );
+    return [
+      for (final (i, s) in free.indexed)
+        LoadingSpace(
+          id: s.id,
+          name: '${(i + 1).toString().padLeft(2, '0')} · ${s.name}',
+          bounds: s.bounds,
+        ),
+    ];
+  }
+
   /// Disjoint residual boxes, unlike the overlapping maximal boxes used by
   /// the packing search. IDs include geometry so moving an ancestor never
   /// silently relocates cargo assigned to one of its old residual spaces.

@@ -157,13 +157,22 @@ class LoadingEditorController extends ChangeNotifier {
     notifyListeners();
   }
 
-  List<LoadingSpace> spacesFor(String sectionId) =>
-      const SectionPackingEngine().spacesFor(
-        section: sections.firstWhere((s) => s.id == sectionId),
-        container: preset.dimensions,
-        entries: entries.where((e) => e.sectionId == sectionId).toList(),
-        remainingPayloadGrams: maxPayloadGrams,
-      );
+  bool usesPlacedSpaces(String sectionId) =>
+      manuallyAdjustedSections.contains(sectionId) ||
+      !entries.any((e) => e.sectionId == sectionId && e.isBase);
+
+  List<LoadingSpace> spacesFor(String sectionId) => usesPlacedSpaces(sectionId)
+      ? const SectionPackingEngine().spacesForPlacement(
+          section: sections.firstWhere((s) => s.id == sectionId),
+          container: preset.dimensions,
+          groups: scene.groups,
+        )
+      : const SectionPackingEngine().spacesFor(
+          section: sections.firstWhere((s) => s.id == sectionId),
+          container: preset.dimensions,
+          entries: entries.where((e) => e.sectionId == sectionId).toList(),
+          remainingPayloadGrams: maxPayloadGrams,
+        );
 
   Dimensions3 sizeFor(SectionCargoEntry entry) {
     if (entry.spaceId != null) {
@@ -231,14 +240,27 @@ class LoadingEditorController extends ChangeNotifier {
     bool stage = false,
   }) {
     // Add only the new block, preserving all existing manual placements.
-    if (stage || manuallyAdjustedSections.contains(sectionId)) {
+    if (stage ||
+        manuallyAdjustedSections.contains(sectionId) ||
+        (spaceId != null && usesPlacedSpaces(sectionId))) {
+      final target = spaceId == null
+          ? null
+          : spacesFor(sectionId).where((s) => s.id == spaceId).firstOrNull;
+      if (spaceId != null && (target == null || !target.isUsefulForLoading)) {
+        throw StateError('原空间已变化，请重新选择空间');
+      }
       final entry = SectionCargoEntry(
         id: uuid.v4(),
         sectionId: sectionId,
         cargo: cargo,
         quantity: 1,
         allowStack: true,
+        spaceId: spaceId,
       );
+      if (target != null &&
+          !_fits(cargo.dimensions, target.bounds.dimensions)) {
+        throw StateError('货物尺寸超过所选空间，请选择其他货物或调整摆放');
+      }
       entries = [...entries, entry];
       _distinguishColors();
       final staged = scene.groups.where((g) => g.sectionId == null).toList();
@@ -260,9 +282,12 @@ class LoadingEditorController extends ChangeNotifier {
         boundingDimensions: cargo.dimensions,
         positionXmm: stage
             ? x
-            : sections.firstWhere((s) => s.id == sectionId).startXmm,
-        positionYmm: stage ? -cargo.dimensions.widthMm - 300 : 0,
-        positionZmm: 0,
+            : target?.bounds.x ??
+                  sections.firstWhere((s) => s.id == sectionId).startXmm,
+        positionYmm: stage
+            ? -cargo.dimensions.widthMm - 300
+            : target?.bounds.y ?? 0,
+        positionZmm: target?.bounds.z ?? 0,
         rotationX: 0,
         rotationY: 0,
         rotationZ: 0,
@@ -307,6 +332,19 @@ class LoadingEditorController extends ChangeNotifier {
     _repack(sectionId);
     return entry.id;
   }
+
+  bool _fits(Dimensions3 cargo, Dimensions3 space) =>
+      cargo.lengthMm <= space.lengthMm &&
+      cargo.widthMm <= space.widthMm &&
+      cargo.heightMm <= space.heightMm;
+
+  bool canAddToSpace(
+    String sectionId,
+    CargoPackageModel cargo,
+    LoadingSpace space,
+  ) =>
+      !usesPlacedSpaces(sectionId) ||
+      _fits(cargo.dimensions, space.bounds.dimensions);
 
   void updateEntry(SectionCargoEntry entry) {
     final previous = entries.firstWhere((e) => e.id == entry.id);
@@ -548,6 +586,50 @@ class LoadingEditorController extends ChangeNotifier {
             manuallyAdjustedSections.add(group.sectionId!);
           }
           if (source != null) manuallyAdjustedSections.add(source.sectionId);
+        }
+      }
+      // Valid manual moves/resizes need not carry a conflict warning. Recognize
+      // their persisted geometry as well, so reopening never restores stale
+      // automatic space suggestions over the actual cargo.
+      for (final section in sections) {
+        if (legacyPallets.contains(section.id) ||
+            manuallyAdjustedSections.contains(section.id)) {
+          continue;
+        }
+        final actual = scene.groups
+            .where((g) => g.sectionId == section.id)
+            .toList();
+        final otherWeight = scene.groups
+            .where((g) => g.sectionId != null && g.sectionId != section.id)
+            .fold<int>(
+              0,
+              (n, g) =>
+                  n +
+                  g.quantity *
+                      (entries
+                              .where((e) => e.id == g.entryId)
+                              .firstOrNull
+                              ?.cargo
+                              .weightGrams ??
+                          0),
+            );
+        final automatic = const SectionPackingEngine()
+            .pack(
+              section: section,
+              container: preset.dimensions,
+              entries: entries.where((e) => e.sectionId == section.id).toList(),
+              remainingPayloadGrams: (maxPayloadGrams - otherWeight).clamp(
+                0,
+                maxPayloadGrams,
+              ),
+            )
+            .groups;
+        List<String> layout(List<CargoGroupModel> groups) => [
+          for (final g in groups)
+            '${g.entryId}:${g.cargoPackageId}:${_placementKey(g)}',
+        ]..sort();
+        if (!listEquals(layout(actual), layout(automatic))) {
+          manuallyAdjustedSections.add(section.id);
         }
       }
       dirty = false;

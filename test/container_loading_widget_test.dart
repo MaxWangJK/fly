@@ -65,7 +65,10 @@ void main() {
         find.byKey(ValueKey('quantity-${editor.entries.single.id}')),
         findsOneWidget,
       );
-      expect(find.text('分节剖面 · 面向货柜内部'), findsOneWidget);
+      expect(
+        find.byKey(ValueKey('remaining-spaces-${editor.sections.first.id}')),
+        findsOneWidget,
+      );
       final space = editor
           .spacesFor(editor.sections.first.id)
           .singleWhere((s) => s.bounds.z > 0);

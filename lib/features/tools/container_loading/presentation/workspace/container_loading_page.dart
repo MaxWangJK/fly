@@ -15,7 +15,6 @@ import '../../../../../shared/design_system/fly_color_scheme.dart';
 import '../../../../../l10n/fly_localizations.dart';
 import '../../domain/models/container_loading_models.dart';
 import '../../domain/models/section_models.dart';
-import '../../domain/packing/section_packing_engine.dart';
 import '../container_loading_providers.dart';
 import '../loading_editor_controller.dart';
 import '../scene/container_scene_controller.dart';
@@ -587,6 +586,11 @@ class _ContainerLoadingPageState extends ConsumerState<ContainerLoadingPage> {
                   controller: e.scene,
                   sectionId: section.id,
                   names: {for (final item in cargo) item.id: item.name},
+                  spaces: e.spacesFor(section.id),
+                  assignedSpaceIds: entries
+                      .map((e) => e.spaceId)
+                      .whereType<String>()
+                      .toList(),
                 ),
               ),
             for (final entry in entries.where(
@@ -620,7 +624,9 @@ class _ContainerLoadingPageState extends ConsumerState<ContainerLoadingPage> {
                   onResize: (rows, layers) =>
                       e.scene.resizeGroup(group.id, rows: rows, layers: layers),
                 ),
-            ] else if (entries.any((v) => v.isBase || v.spaceId != null))
+            ],
+            if (groups.isNotEmpty ||
+                entries.any((v) => v.isBase || v.spaceId != null))
               _spaces(e, section, cargo),
             PopupMenuButton<String>(
               tooltip: context.toolsCopy('选择货物'),
@@ -765,29 +771,36 @@ class _ContainerLoadingPageState extends ConsumerState<ContainerLoadingPage> {
           .map((v) => v.spaceId)
           .whereType<String>(),
     );
-    final base = const SectionPackingEngine().pack(
-      section: section,
-      container: e.preset.dimensions,
-      entries: e.entries.where((v) => v.sectionId == section.id).toList(),
-      remainingPayloadGrams: e.maxPayloadGrams,
-    );
+    final actual = e.usesPlacedSpaces(section.id);
+    final crossSectionVisible =
+        (_crossSectionOpen ||
+            e.sectionArrivalRevision != _dismissedArrivalRevision) &&
+        e.selectedSectionId == section.id &&
+        e.scene.groups.any((g) => g.sectionId == section.id);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 10),
-        Text(
-          context.toolsCopy('分节剖面 · 面向货柜内部'),
-          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
-        ),
-        SizedBox(
-          height: 150,
-          child: CustomPaint(
-            painter: _SpaceSectionPainter(
-              e.preset.dimensions,
-              spaces,
-              base.groups,
+        if (!crossSectionVisible)
+          Text(
+            context.toolsCopy('分节剖面 · 面向货柜内部'),
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+          ),
+        if (!crossSectionVisible)
+          SizedBox(
+            height: 150,
+            child: CustomPaint(
+              painter: _SpaceSectionPainter(
+                e.preset.dimensions,
+                spaces,
+                e.scene.groups.where((g) => g.sectionId == section.id).toList(),
+              ),
             ),
           ),
+        Text(
+          context.l10n.isZh ? '剩余空间' : 'Remaining space',
+          key: ValueKey('remaining-spaces-${section.id}'),
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
         ),
         if (spaces.any((s) => s.needsOverhang))
           Text(
@@ -798,6 +811,13 @@ class _ContainerLoadingPageState extends ConsumerState<ContainerLoadingPage> {
           context.toolsCopy('尺寸为长 × 宽 × 高；宽或高不足50cm的空闲余隙不再提示装货。'),
           style: TextStyle(fontSize: 10),
         ),
+        for (final gap in allSpaces.where(
+          (s) => !s.isUsefulForLoading && !spaces.any((v) => v.id == s.id),
+        ))
+          Text(
+            '${context.l10n.isZh ? '余隙（不推荐装货）' : 'Gap (not offered for loading)'}：${gap.bounds.dimensions.widthMm} × ${gap.bounds.dimensions.heightMm} mm',
+            style: const TextStyle(fontSize: 10),
+          ),
         for (final space in spaces)
           Container(
             key: ValueKey('loading-space-${space.id}'),
@@ -830,7 +850,7 @@ class _ContainerLoadingPageState extends ConsumerState<ContainerLoadingPage> {
                     style: const TextStyle(fontSize: 10, color: Colors.grey),
                   ),
                 for (final entry in e.entries.where(
-                  (v) => v.spaceId == space.id,
+                  (v) => !actual && v.spaceId == space.id,
                 ))
                   _EntryEditor(
                     key: ValueKey(entry.id),
@@ -851,20 +871,32 @@ class _ContainerLoadingPageState extends ConsumerState<ContainerLoadingPage> {
                     tooltip: (context.l10n.isZh
                         ? '为${space.name}选择货物'
                         : 'Select cargo for ${context.toolsSpaceName(space.name)}'),
-                    onSelected: (id) => setState(
-                      () => focusEntryId = e.addCargo(
-                        section.id,
-                        cargo.firstWhere((c) => c.id == id),
-                        spaceId: space.id,
-                      ),
-                    ),
+                    onSelected: (id) {
+                      try {
+                        setState(
+                          () => focusEntryId = e.addCargo(
+                            section.id,
+                            cargo.firstWhere((c) => c.id == id),
+                            spaceId: space.id,
+                          ),
+                        );
+                      } on StateError catch (error) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(context.flyError(error))),
+                        );
+                      }
+                    },
                     itemBuilder: (_) => [
                       for (final c in cargo.where(
                         (c) =>
                             c.type != CargoPackageType.pallet &&
                             c.type != CargoPackageType.crate,
                       ))
-                        PopupMenuItem(value: c.id, child: Text(c.name)),
+                        PopupMenuItem(
+                          value: c.id,
+                          enabled: e.canAddToSpace(section.id, c, space),
+                          child: Text(c.name),
+                        ),
                     ],
                     child: Padding(
                       padding: EdgeInsets.symmetric(vertical: 8),
@@ -879,6 +911,7 @@ class _ContainerLoadingPageState extends ConsumerState<ContainerLoadingPage> {
           ),
         for (final entry in e.entries.where(
           (v) =>
+              !actual &&
               v.sectionId == section.id &&
               v.spaceId != null &&
               !spaces.any((s) => s.id == v.spaceId),
