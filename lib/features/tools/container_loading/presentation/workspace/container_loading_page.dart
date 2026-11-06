@@ -123,10 +123,7 @@ class _ContainerLoadingPageState extends ConsumerState<ContainerLoadingPage> {
     CargoPackageModel cargo,
     LoadingSpace space,
   ) =>
-      space.isUsefulForLoading &&
-      cargo.type != CargoPackageType.pallet &&
-      cargo.type != CargoPackageType.crate &&
-      editor.canAddToSpace(sectionId, cargo, space);
+      space.isUsefulForLoading && editor.canAddToSpace(sectionId, cargo, space);
 
   List<PopupMenuEntry<String>> _spaceCargoItems(
     LoadingEditorController editor,
@@ -134,10 +131,7 @@ class _ContainerLoadingPageState extends ConsumerState<ContainerLoadingPage> {
     List<CargoPackageModel> cargo,
     LoadingSpace space,
   ) => [
-    for (final c in cargo.where(
-      (c) =>
-          c.type != CargoPackageType.pallet && c.type != CargoPackageType.crate,
-    ))
+    for (final c in cargo)
       PopupMenuItem(
         value: c.id,
         enabled: editor.canAddToSpace(sectionId, c, space),

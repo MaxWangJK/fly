@@ -17,6 +17,75 @@ const grille = CargoPackageModel(
 );
 
 void main() {
+  for (final type in [CargoPackageType.pallet, CargoPackageType.crate]) {
+    test(
+      'additional $type uses selected area rather than becoming a new floor base',
+      () async {
+        final db = AppDatabase(NativeDatabase.memory());
+        final editor = LoadingEditorController(
+          DriftContainerLoadingRepository(db),
+        );
+        try {
+          await db.ensureBuiltInData();
+          final section = editor.sections.first.id;
+          // Keep the first pallet automatic to cover the legacy base-packing path.
+          final base = CargoPackageModel(
+            id: 'base',
+            name: 'Base',
+            type: CargoPackageType.pallet,
+            dimensions: const Dimensions3(2800, 1800, 1200),
+            weightGrams: 1,
+            colorValue: 0xFF79A88C,
+          );
+          editor.addCargo(section, base);
+          final original = editor.scene.groups.single;
+          expect(editor.usesPlacedSpaces(section), isFalse);
+          final top = editor
+              .spacesFor(section)
+              .firstWhere((s) => s.bounds.z > 0);
+          final extra = CargoPackageModel(
+            id: 'extra',
+            name: 'Extra',
+            type: type,
+            dimensions: const Dimensions3(1000, 600, 500),
+            weightGrams: 1,
+            colorValue: 0xFFD3A06D,
+          );
+          expect(editor.canAddToSpace(section, extra, top), isTrue);
+          editor.addCargo(section, extra, spaceId: top.id);
+          expect(editor.manuallyAdjustedSections, contains(section));
+          final added = editor.scene.groups.last;
+          expect(
+            (added.positionXmm, added.positionYmm, added.positionZmm),
+            (top.bounds.x, top.bounds.y, top.bounds.z),
+          );
+          expect(added.bounds.overlaps(original.bounds), isFalse);
+          final kept = editor.scene.groups.first;
+          expect(
+            (
+              kept.positionXmm,
+              kept.positionYmm,
+              kept.positionZmm,
+              kept.boundingDimensions,
+            ),
+            (
+              original.positionXmm,
+              original.positionYmm,
+              original.positionZmm,
+              original.boundingDimensions,
+            ),
+          );
+          expect(
+            editor.scene.loadedGroups.any(editor.scene.hasPlacementConflict),
+            isFalse,
+          );
+        } finally {
+          editor.dispose();
+          await db.close();
+        }
+      },
+    );
+  }
   test('160 PVC plus 60 WPC must enter the overhead area without floor overlap; reopen retains both', () async {
     final db = AppDatabase(NativeDatabase.memory());
     final repo = DriftContainerLoadingRepository(db);

@@ -293,7 +293,10 @@ class LoadingEditorController extends ChangeNotifier {
     // Add only the new block, preserving all existing manual placements.
     if (stage ||
         manuallyAdjustedSections.contains(sectionId) ||
-        (spaceId != null && usesPlacedSpaces(sectionId))) {
+        (spaceId != null &&
+            (usesPlacedSpaces(sectionId) ||
+                cargo.type == CargoPackageType.pallet ||
+                cargo.type == CargoPackageType.crate))) {
       final target = spaceId == null
           ? null
           : spacesFor(sectionId).where((s) => s.id == spaceId).firstOrNull;
@@ -306,6 +309,7 @@ class LoadingEditorController extends ChangeNotifier {
         cargo: cargo,
         quantity: 1,
         allowStack: true,
+        manualPlacement: true,
         spaceId: spaceId,
       );
       if (target != null &&
@@ -394,7 +398,9 @@ class LoadingEditorController extends ChangeNotifier {
     CargoPackageModel cargo,
     LoadingSpace space,
   ) =>
-      !usesPlacedSpaces(sectionId) ||
+      (!usesPlacedSpaces(sectionId) &&
+          cargo.type != CargoPackageType.pallet &&
+          cargo.type != CargoPackageType.crate) ||
       _fits(cargo.dimensions, space.bounds.dimensions);
 
   void updateEntry(SectionCargoEntry entry) {
