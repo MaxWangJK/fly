@@ -89,6 +89,18 @@ class _ContainerLoadingPageState extends ConsumerState<ContainerLoadingPage> {
     }
   }
 
+  void _removeManualCargo(
+    LoadingEditorController editor,
+    CargoGroupModel group,
+  ) {
+    editor.removeCargoGroup(group.id);
+    _message(
+      context.l10n.isZh
+          ? '已移除这组货物，可点撤销恢复。'
+          : 'Cargo group removed. Use Undo to restore it.',
+    );
+  }
+
   Future<void> _save() async {
     final editor = ref.read(loadingEditorProvider);
     final name = await loadingNameDialog(
@@ -489,11 +501,13 @@ class _ContainerLoadingPageState extends ConsumerState<ContainerLoadingPage> {
     List<CargoPackageModel> cargo,
   ) {
     final entries = e.entries.where((v) => v.sectionId == section.id).toList();
-    final groups = e.scene.groups
+    final groups = e.scene.loadedGroups
         .where((g) => g.sectionId == section.id)
         .toList();
     final count = groups.fold(0, (a, g) => a + g.quantity);
-    final manualGroups = groups;
+    final manualGroups = e.scene.groups
+        .where((g) => g.sectionId == section.id)
+        .toList();
     final requested = e.manuallyAdjustedSections.contains(section.id)
         ? manualGroups.fold<int>(0, (sum, g) => sum + g.quantity)
         : entries.fold(0, (a, c) => a + c.quantity);
@@ -623,6 +637,7 @@ class _ContainerLoadingPageState extends ConsumerState<ContainerLoadingPage> {
                   onSelect: () => e.scene.select(group.id),
                   onResize: (rows, layers) =>
                       e.scene.resizeGroup(group.id, rows: rows, layers: layers),
+                  onRemove: () => _removeManualCargo(e, group),
                 ),
             ],
             if (groups.isNotEmpty ||
@@ -706,6 +721,7 @@ class _ContainerLoadingPageState extends ConsumerState<ContainerLoadingPage> {
               onSelect: () => e.scene.select(group.id),
               onResize: (rows, layers) =>
                   e.scene.resizeGroup(group.id, rows: rows, layers: layers),
+              onRemove: () => _removeManualCargo(e, group),
             ),
         ],
         const SizedBox(height: 8),
@@ -776,7 +792,7 @@ class _ContainerLoadingPageState extends ConsumerState<ContainerLoadingPage> {
         (_crossSectionOpen ||
             e.sectionArrivalRevision != _dismissedArrivalRevision) &&
         e.selectedSectionId == section.id &&
-        e.scene.groups.any((g) => g.sectionId == section.id);
+        e.scene.loadedGroups.any((g) => g.sectionId == section.id);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -793,7 +809,9 @@ class _ContainerLoadingPageState extends ConsumerState<ContainerLoadingPage> {
               painter: _SpaceSectionPainter(
                 e.preset.dimensions,
                 spaces,
-                e.scene.groups.where((g) => g.sectionId == section.id).toList(),
+                e.scene.loadedGroups
+                    .where((g) => g.sectionId == section.id)
+                    .toList(),
               ),
             ),
           ),
@@ -1025,7 +1043,7 @@ class _ContainerLoadingPageState extends ConsumerState<ContainerLoadingPage> {
     ],
   );
   Widget _selection(LoadingEditorController e, Map<String, String> names) {
-    final g = e.scene.groups
+    final g = e.scene.loadedGroups
         .where((g) => g.id == e.scene.selectedGroupId)
         .firstOrNull;
     if (g == null) return const SizedBox.shrink();
@@ -1250,37 +1268,47 @@ class _ManualCargoEditor extends StatefulWidget {
     required this.onSelect,
     required this.onResize,
     required this.hasConflict,
+    required this.onRemove,
   });
   final CargoGroupModel group;
   final String name;
   final VoidCallback onSelect;
   final bool Function(int rows, int layers) onResize;
   final bool hasConflict;
+  final VoidCallback onRemove;
   @override
   State<_ManualCargoEditor> createState() => _ManualCargoEditorState();
 }
 
 class _ManualCargoEditorState extends State<_ManualCargoEditor> {
-  late final rows = TextEditingController(text: '${widget.group.rows}');
-  late final layers = TextEditingController(text: '${widget.group.layers}');
+  late final rows = TextEditingController(
+    text: widget.group.quantity == 0 ? '' : '${widget.group.rows}',
+  );
+  late final layers = TextEditingController(
+    text: widget.group.quantity == 0 ? '' : '${widget.group.layers}',
+  );
   bool rejected = false;
   @override
   void didUpdateWidget(covariant _ManualCargoEditor oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.group.rows != widget.group.rows) {
+    if (widget.group.quantity > 0 &&
+        (oldWidget.group.rows != widget.group.rows ||
+            int.tryParse(rows.text) != widget.group.rows)) {
       rows.text = '${widget.group.rows}';
     }
-    if (oldWidget.group.layers != widget.group.layers) {
+    if (widget.group.quantity > 0 &&
+        (oldWidget.group.layers != widget.group.layers ||
+            int.tryParse(layers.text) != widget.group.layers)) {
       layers.text = '${widget.group.layers}';
     }
   }
 
   void resize() {
-    final r = int.tryParse(rows.text);
-    final l = int.tryParse(layers.text);
-    final accepted =
-        r != null && l != null && r > 0 && l > 0 && widget.onResize(r, l);
-    setState(() => rejected = !accepted);
+    final r = int.tryParse(rows.text) ?? 0;
+    final l = int.tryParse(layers.text) ?? 0;
+    final invalid = r > 10000 || l > 10000;
+    final accepted = widget.onResize(invalid ? 0 : r, invalid ? 0 : l);
+    setState(() => rejected = invalid || !accepted);
   }
 
   @override
@@ -1327,6 +1355,7 @@ class _ManualCargoEditorState extends State<_ManualCargoEditor> {
             children: [
               Expanded(
                 child: TextField(
+                  key: ValueKey('manual-rows-${g.id}'),
                   controller: rows,
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -1343,6 +1372,7 @@ class _ManualCargoEditorState extends State<_ManualCargoEditor> {
               ),
               Expanded(
                 child: TextField(
+                  key: ValueKey('manual-layers-${g.id}'),
                   controller: layers,
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -1362,9 +1392,29 @@ class _ManualCargoEditorState extends State<_ManualCargoEditor> {
                 : 'Total ${g.quantity} units · ${g.columns} lengthwise',
             style: const TextStyle(fontSize: 12),
           ),
-          Text(
-            '${g.boundingDimensions.lengthMm} × ${g.boundingDimensions.widthMm} × ${g.boundingDimensions.heightMm} mm',
-            style: Theme.of(context).textTheme.bodySmall,
+          if (g.quantity > 0)
+            Text(
+              '${g.boundingDimensions.lengthMm} × ${g.boundingDimensions.widthMm} × ${g.boundingDimensions.heightMm} mm',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          if (g.quantity == 0 && !rejected)
+            Text(
+              zh
+                  ? '未填写完整或数量为0，当前按0件计算。'
+                  : 'Incomplete or zero input. Currently counted as 0 units.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              key: ValueKey('remove-manual-${g.id}'),
+              style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.error,
+              ),
+              onPressed: widget.onRemove,
+              icon: const Icon(Icons.delete_outline, size: 17),
+              label: Text(zh ? '移除货物' : 'Remove cargo'),
+            ),
           ),
           if (widget.hasConflict)
             Text(
@@ -1376,9 +1426,7 @@ class _ManualCargoEditorState extends State<_ManualCargoEditor> {
             ),
           if (rejected)
             Text(
-              zh
-                  ? '请输入 1–10000 的正整数。'
-                  : 'Enter a whole number from 1 to 10000.',
+              zh ? '请输入 0–10000 的整数。' : 'Enter a whole number from 0 to 10000.',
               style: TextStyle(
                 fontSize: 11,
                 color: Theme.of(context).colorScheme.error,
@@ -1413,10 +1461,16 @@ class _EntryEditor extends StatefulWidget {
 class _EntryEditorState extends State<_EntryEditor> {
   late final quantity = TextEditingController(text: '${widget.entry.quantity}');
   late final perRow = TextEditingController(
-    text: widget.entry.perRow?.toString() ?? '',
+    text:
+        (widget.entry.perRow ??
+                (widget.entry.quantity == 0 ? 0 : widget.recommended.$1))
+            .toString(),
   );
   late final rowCount = TextEditingController(
-    text: widget.entry.rowCount?.toString() ?? '',
+    text:
+        (widget.entry.rowCount ??
+                (widget.entry.quantity == 0 ? 0 : widget.recommended.$2))
+            .toString(),
   );
   final focus = FocusNode();
   bool expanded = false;
@@ -1496,21 +1550,13 @@ class _EntryEditorState extends State<_EntryEditor> {
                       ),
                     ),
                     onChanged: (v) {
-                      final n = int.tryParse(v);
+                      final n = int.tryParse(v.isEmpty ? '0' : v);
                       if (n != null && n >= 0) {
                         widget.onChanged(e.copyWith(quantity: n));
                       }
                     },
                   ),
                 ),
-              SizedBox(
-                width: 27,
-                child: IconButton(
-                  padding: EdgeInsets.zero,
-                  onPressed: widget.onDelete,
-                  icon: const Icon(Icons.close, size: 15),
-                ),
-              ),
             ],
           ),
           const SizedBox(height: 4),
@@ -1571,6 +1617,18 @@ class _EntryEditorState extends State<_EntryEditor> {
               ),
             ),
           ],
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              key: ValueKey('remove-entry-${e.id}'),
+              onPressed: widget.onDelete,
+              style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.error,
+              ),
+              icon: const Icon(Icons.delete_outline, size: 17),
+              label: Text(context.l10n.isZh ? '移除货物' : 'Remove cargo'),
+            ),
+          ),
           Row(
             children: [
               Expanded(
@@ -1681,8 +1739,8 @@ class _EntryEditorState extends State<_EntryEditor> {
   );
 
   void _gridChanged() {
-    final a = int.tryParse(perRow.text) ?? widget.recommended.$1;
-    final b = int.tryParse(rowCount.text) ?? widget.recommended.$2;
+    final a = int.tryParse(perRow.text) ?? 0;
+    final b = int.tryParse(rowCount.text) ?? 0;
     widget.onChanged(
       widget.entry.copyWith(
         perRow: a,

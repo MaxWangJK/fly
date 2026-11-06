@@ -71,7 +71,7 @@ class _ContainerSceneViewState extends State<ContainerSceneView> {
                   }
                   controller.beginMove(id);
                   _draggingGroup = id;
-                  _dragOrigin = controller.groups.firstWhere(
+                  _dragOrigin = controller.loadedGroups.firstWhere(
                     (group) => group.id == id,
                   );
                   _dragDelta = Offset.zero;
@@ -115,7 +115,7 @@ class _ContainerSceneViewState extends State<ContainerSceneView> {
                   var allow = false;
                   if (controller.pendingOverflow &&
                       controller.invalidGroupId == null) {
-                    final bounds = controller.groups
+                    final bounds = controller.loadedGroups
                         .firstWhere((g) => g.id == controller.selectedGroupId)
                         .bounds;
                     final size = controller.container;
@@ -163,7 +163,7 @@ class _ContainerSceneViewState extends State<ContainerSceneView> {
                       painter: ContainerScenePainter(
                         isZh: context.l10n.isZh,
                         container: controller.container,
-                        groups: controller.groups,
+                        groups: controller.loadedGroups,
                         cargoNames: widget.cargoNames,
                         selectedGroupId: controller.selectedGroupId,
                         invalidGroupId: controller.invalidGroupId,
@@ -199,7 +199,7 @@ class _ContainerSceneViewState extends State<ContainerSceneView> {
       zoom: widget.controller.zoom,
       pan: Offset(widget.controller.panX, widget.controller.panY),
     );
-    final ordered = [...widget.controller.groups]
+    final ordered = [...widget.controller.loadedGroups]
       ..sort(
         (a, b) => projection
             .boxDepth(b.bounds)

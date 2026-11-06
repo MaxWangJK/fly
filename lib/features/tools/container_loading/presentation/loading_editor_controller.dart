@@ -83,6 +83,8 @@ class LoadingEditorController extends ChangeNotifier {
     }
     final next = {for (final g in scene.groups) g.id: g};
     if (!_updating) {
+      final changedEntries = <String>{};
+      final touchedEntries = <String>{};
       for (final id in {..._previousGroups.keys, ...next.keys}) {
         final before = _previousGroups[id];
         final after = next[id];
@@ -92,14 +94,58 @@ class LoadingEditorController extends ChangeNotifier {
         }
         dirty = true;
         for (final g in [before, after].nonNulls) {
+          if (g.entryId != null) {
+            touchedEntries.add(g.entryId!);
+            if (before?.quantity != after?.quantity ||
+                before?.rows != after?.rows ||
+                before?.layers != after?.layers ||
+                before?.columns != after?.columns) {
+              changedEntries.add(g.entryId!);
+            }
+          }
           if (g.sectionId != null) manuallyAdjustedSections.add(g.sectionId!);
           final source = entries.where((e) => e.id == g.entryId).firstOrNull;
           if (source != null) manuallyAdjustedSections.add(source.sectionId);
         }
       }
+      entries = [
+        for (final e in entries)
+          if (touchedEntries.contains(e.id))
+            e.copyWith(manualPlacement: true)
+          else
+            e,
+      ];
+      _syncManualQuantities(changedEntries);
     }
     _previousGroups = next;
     notifyListeners();
+  }
+
+  void _syncManualQuantities(Set<String> ids) {
+    entries = [
+      for (final e in entries)
+        if (ids.contains(e.id))
+          (() {
+            final groups = scene.groups
+                .where((g) => g.entryId == e.id)
+                .toList();
+            return e.copyWith(
+              quantity: groups.fold<int>(0, (n, g) => n + g.quantity),
+              perRow: groups.length == 1 ? groups.single.rows : e.perRow,
+              rowCount: groups.length == 1 ? groups.single.layers : e.rowCount,
+              manualPlacement: true,
+              manualQuantityOverride: false,
+            );
+          })()
+        else
+          e,
+    ];
+  }
+
+  void removeCargoGroup(String id) {
+    if (!scene.groups.any((g) => g.id == id)) return;
+    scene.select(id);
+    scene.deleteSelected();
   }
 
   String? _placementKey(CargoGroupModel? g) => g == null
@@ -542,6 +588,10 @@ class LoadingEditorController extends ChangeNotifier {
     );
     _setGroups([...other, ...result.groups]);
     manuallyAdjustedSections.remove(sectionId);
+    entries = [
+      for (final e in entries)
+        if (e.sectionId == sectionId) e.copyWith(manualPlacement: false) else e,
+    ];
     needsPacking.remove(sectionId);
     selectedSectionId = sectionId;
     scene.focusSection(sectionId);
@@ -575,6 +625,9 @@ class LoadingEditorController extends ChangeNotifier {
       maxPayloadGrams = saved.plan.maxPayloadGrams;
       needsPacking.clear();
       manuallyAdjustedSections.clear();
+      manuallyAdjustedSections.addAll(
+        entries.where((e) => e.manualPlacement).map((e) => e.sectionId),
+      );
       selectedSectionId = null;
       _setGroups(saved.groups);
       for (final group in saved.groups) {
@@ -637,6 +690,16 @@ class LoadingEditorController extends ChangeNotifier {
         }
       }
       dirty = false;
+      _syncManualQuantities(
+        entries
+            .where(
+              (e) =>
+                  !e.manualQuantityOverride &&
+                  manuallyAdjustedSections.contains(e.sectionId),
+            )
+            .map((e) => e.id)
+            .toSet(),
+      );
       for (final id in legacyPallets) {
         _repack(id);
       }

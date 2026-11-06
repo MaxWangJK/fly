@@ -70,7 +70,7 @@ class _SectionPlacementEditorState extends State<SectionPlacementEditor> {
     builder: (context, _) => LayoutBuilder(
       builder: (context, constraints) {
         final scene = widget.controller;
-        final groups = scene.groups
+        final groups = scene.loadedGroups
             .where((g) => g.sectionId == widget.sectionId)
             .toList();
         final size = Size(constraints.maxWidth, constraints.maxHeight);

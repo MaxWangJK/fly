@@ -91,6 +91,7 @@ class SectionCargoEntry {
     this.allowStack = true,
     this.horizontalPlacement = HorizontalPlacement.automatic,
     this.manualQuantityOverride = false,
+    this.manualPlacement = false,
     this.colorOverride,
     this.perRow,
     this.rowCount,
@@ -108,6 +109,7 @@ class SectionCargoEntry {
   final bool allowStack;
   final HorizontalPlacement horizontalPlacement;
   final bool manualQuantityOverride;
+  final bool manualPlacement;
   final int? colorOverride;
   final int? perRow;
   final int? rowCount;
@@ -125,6 +127,7 @@ class SectionCargoEntry {
     bool? allowStack,
     HorizontalPlacement? horizontalPlacement,
     bool? manualQuantityOverride,
+    bool? manualPlacement,
     int? colorOverride,
     int? perRow,
     int? rowCount,
@@ -141,6 +144,7 @@ class SectionCargoEntry {
     horizontalPlacement: horizontalPlacement ?? this.horizontalPlacement,
     manualQuantityOverride:
         manualQuantityOverride ?? this.manualQuantityOverride,
+    manualPlacement: manualPlacement ?? this.manualPlacement,
     colorOverride: colorOverride ?? this.colorOverride,
     perRow: perRow ?? this.perRow,
     rowCount: rowCount ?? this.rowCount,

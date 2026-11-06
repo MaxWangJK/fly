@@ -11,6 +11,10 @@ enum ContainerCameraView { perspective, top, side, front }
 abstract class ContainerSceneController extends ChangeNotifier {
   Dimensions3 get container;
   List<CargoGroupModel> get groups;
+
+  /// Zero-quantity drafts remain editable and undoable, but occupy no space.
+  List<CargoGroupModel> get loadedGroups =>
+      groups.where((g) => g.quantity > 0).toList(growable: false);
   String? get selectedGroupId;
   String? get invalidGroupId;
   double get yaw;
@@ -99,6 +103,7 @@ class NativeContainerSceneController extends ContainerSceneController {
   }
 
   bool _valid(CargoGroupModel group, Aabb3 bounds, {bool manual = false}) {
+    if (group.quantity == 0) return true;
     if (bounds.z < 0) return false;
     if (!manual && !bounds.inside(_container)) return false;
     final section = _sections.where((s) => s.id == group.sectionId).firstOrNull;
@@ -109,13 +114,13 @@ class NativeContainerSceneController extends ContainerSceneController {
     }
     if (CargoPlacement.collides(
       bounds,
-      _groups.where((g) => g.id != group.id).map((g) => g.bounds),
+      loadedGroups.where((g) => g.id != group.id).map((g) => g.bounds),
     )) {
       return false;
     }
     // Non-stackable cargo reserves its vertical column; touching its top is
     // not sufficient permission to place another group above it.
-    for (final other in _groups.where((g) => g.id != group.id)) {
+    for (final other in loadedGroups.where((g) => g.id != group.id)) {
       final horizontal =
           bounds.x < other.bounds.maxX &&
           bounds.maxX > other.positionXmm &&
@@ -269,13 +274,13 @@ class NativeContainerSceneController extends ContainerSceneController {
     candidate = CargoPlacement.snapToSurfaces(
       candidate,
       _container,
-      _groups
+      loadedGroups
           .where((group) => group.id != value.id)
           .map((group) => group.bounds),
     );
     final collision = CargoPlacement.collides(
       candidate,
-      _groups
+      loadedGroups
           .where((group) => group.id != value.id)
           .map((group) => group.bounds),
     );
@@ -333,7 +338,7 @@ class NativeContainerSceneController extends ContainerSceneController {
     }
     final right = _container.widthMm - d.widthMm;
     final desiredY = group.positionYmm.clamp(0, right);
-    final others = _groups.where((g) => g.id != group.id).toList();
+    final others = loadedGroups.where((g) => g.id != group.id).toList();
     final xs = <int>{
       group.positionXmm.clamp(target.startXmm, target.endXmm - d.lengthMm),
       target.startXmm,
@@ -450,7 +455,7 @@ class NativeContainerSceneController extends ContainerSceneController {
         : CargoPlacement.constrain(rawBounds, _container);
     final collision = CargoPlacement.collides(
       bounds,
-      _groups
+      loadedGroups
           .where((group) => group.id != value.id)
           .map((group) => group.bounds),
     );
@@ -550,7 +555,9 @@ class NativeContainerSceneController extends ContainerSceneController {
     if (original == null || index < 0) return;
     final collision = CargoPlacement.collides(
       original.bounds,
-      _groups.where((group) => group.id != id).map((group) => group.bounds),
+      loadedGroups
+          .where((group) => group.id != id)
+          .map((group) => group.bounds),
     );
     if (collision ||
         !_valid(
@@ -590,14 +597,25 @@ class NativeContainerSceneController extends ContainerSceneController {
     final index = _groups.indexWhere((g) => g.id == id);
     if (index < 0 ||
         isMoving ||
-        rows < 1 ||
-        layers < 1 ||
+        rows < 0 ||
+        layers < 0 ||
         rows > 10000 ||
         layers > 10000) {
       return false;
     }
     final old = _groups[index];
     if (old.rows < 1 || old.layers < 1) return false;
+    if (rows == 0 || layers == 0) {
+      if (old.quantity == 0) return true;
+      final before = [..._groups];
+      // Preserve the last valid unit dimensions for refilling this draft.
+      // Dimensions3 must stay positive; this box is excluded from the scene.
+      _groups[index] = old.copyWith(quantity: 0, needsReview: false);
+      if (_selectedGroupId == id) _selectedGroupId = null;
+      _invalidGroupId = null;
+      _record(before);
+      return true;
+    }
     final dimensions = Dimensions3(
       old.boundingDimensions.lengthMm,
       (old.boundingDimensions.widthMm * rows / old.rows).round(),
@@ -642,7 +660,10 @@ class NativeContainerSceneController extends ContainerSceneController {
         manual: updated.sectionId == null,
       ),
     );
-    if (old.rows == rows && old.layers == layers && old.emptySlots == 0) {
+    if (old.rows == rows &&
+        old.layers == layers &&
+        old.emptySlots == 0 &&
+        old.quantity == updated.quantity) {
       return true;
     }
     final before = [..._groups];

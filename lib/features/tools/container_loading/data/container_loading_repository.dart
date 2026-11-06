@@ -424,6 +424,7 @@ class DriftContainerLoadingRepository implements ContainerLoadingRepository {
                   ...jsonDecode(encodeCargo(e.cargo)) as Map<String, dynamic>,
                   'layoutV3': {
                     'stackPolicyV4': true,
+                    'manualPlacement': e.manualPlacement,
                     'perRow': e.perRow,
                     'rowCount': e.rowCount,
                     'spaceId': e.spaceId,
@@ -502,6 +503,11 @@ class DriftContainerLoadingRepository implements ContainerLoadingRepository {
               r.horizontalPlacement,
             ),
             manualQuantityOverride: r.manualQuantityOverride,
+            manualPlacement:
+                ((jsonDecode(r.cargoSnapshot)
+                        as Map<String, dynamic>)['layoutV3']
+                    as Map<String, dynamic>?)?['manualPlacement'] ==
+                true,
             colorOverride: r.colorOverride,
             perRow:
                 ((jsonDecode(r.cargoSnapshot)

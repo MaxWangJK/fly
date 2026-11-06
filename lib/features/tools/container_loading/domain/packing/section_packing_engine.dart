@@ -309,7 +309,12 @@ class SectionPackingEngine {
     );
     final occupied =
         groups
-            .where((g) => g.sectionId != null && g.bounds.overlaps(bounds))
+            .where(
+              (g) =>
+                  g.quantity > 0 &&
+                  g.sectionId != null &&
+                  g.bounds.overlaps(bounds),
+            )
             .toList()
           ..sort((a, b) {
             for (final pair in [
