@@ -294,12 +294,15 @@ class SectionPackingEngine {
     required Dimensions3 container,
     required List<CargoGroupModel> groups,
   }) {
+    final start = math.max(0, section.startXmm);
+    final end = math.min(container.lengthMm, section.endXmm);
+    if (end <= start) return [];
     final bounds = Aabb3(
-      x: section.startXmm,
+      x: start,
       y: 0,
       z: 0,
       dimensions: Dimensions3(
-        section.lengthMm,
+        end - start,
         container.widthMm,
         container.heightMm,
       ),

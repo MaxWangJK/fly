@@ -69,6 +69,70 @@ List<LoadingSpace> spaces(List<CargoGroupModel> groups) =>
     );
 
 void main() {
+  test('old sections extending past an edited container only expose space inside the current box', () {
+    const shorter = Dimensions3(4000, 2200, 2690);
+    final free = const SectionPackingEngine().spacesForPlacement(
+      section: section,
+      container: shorter,
+      groups: [block()],
+    );
+    expect(free, isNotEmpty);
+    expect(free.every((s) => s.bounds.inside(shorter)), isTrue);
+    const outside = ContainerSection(
+      id: 'outside',
+      planId: 'plan',
+      index: 3,
+      name: '',
+      startXmm: 8700,
+      lengthMm: 2900,
+    );
+    expect(
+      const SectionPackingEngine().spacesForPlacement(
+        section: outside,
+        container: shorter,
+        groups: [block()],
+      ),
+      isEmpty,
+    );
+  });
+  test('saved geometry still opens when the preset is shorter than the original sections', () async {
+    final db = AppDatabase(NativeDatabase.memory());
+    final editor = LoadingEditorController(DriftContainerLoadingRepository(db));
+    try {
+      await db.ensureBuiltInData();
+      final repo = DriftContainerLoadingRepository(db);
+      await repo.saveCargo(pvc);
+      editor.addCargo(editor.sections.first.id, pvc);
+      await editor.save('Before preset change');
+      final old = editor.preset;
+      final shorter = ContainerPresetModel(
+        id: old.id,
+        name: old.name,
+        dimensions: const Dimensions3(5800, 2200, 2690),
+        maxPayloadGrams: old.maxPayloadGrams,
+        colorValue: old.colorValue,
+        isBuiltIn: old.isBuiltIn,
+      );
+      await editor.open(editor.plan!.id, [shorter]);
+      expect(editor.validation, isNotNull);
+      expect(editor.scene.groups, isNotEmpty);
+      expect(
+        editor.manuallyAdjustedSections,
+        containsAll(editor.sections.map((s) => s.id)),
+      );
+      for (final s in editor.sections) {
+        expect(
+          editor
+              .spacesFor(s.id)
+              .every((v) => v.bounds.inside(shorter.dimensions)),
+          isTrue,
+        );
+      }
+    } finally {
+      editor.dispose();
+      await db.close();
+    }
+  });
   test(
     'PVC 8x10 exposes1690mm overhead and keeps200mm gap out of loading cards',
     () {

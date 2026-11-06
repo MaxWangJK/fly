@@ -592,6 +592,10 @@ class LoadingEditorController extends ChangeNotifier {
       // their persisted geometry as well, so reopening never restores stale
       // automatic space suggestions over the actual cargo.
       for (final section in sections) {
+        if (validation != null) {
+          manuallyAdjustedSections.add(section.id);
+          continue;
+        }
         if (legacyPallets.contains(section.id) ||
             manuallyAdjustedSections.contains(section.id)) {
           continue;
