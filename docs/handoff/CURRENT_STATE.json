@@ -1,12 +1,12 @@
 {
-  "capturedAtUtc": "2026-11-06T10:54:20.630576+00:00",
+  "capturedAtUtc": "2026-11-06T11:24:00.774190+00:00",
   "documentationOnly": false,
   "branch": "codex/fly-2-sync",
-  "releaseCommitSource": "Windows build47 source adb813b675c1c819c6fce0ef2103fa22157d1abd; Android remains build46",
+  "releaseCommitSource": "Windows build48 source f4a39890a4de5ae3826b3343999898b55caa46aa; Android remains build46",
   "developmentBaseCommit": "8a5cbc58994ef817b5898aaaf979ff676363091a",
   "master": "94efdc2d9ac34feb2f3d1b635302278b4671a414",
   "gitDirectoryIsLocalFolder": true,
-  "appVersion": "2.0.11+47",
+  "appVersion": "2.0.12+48",
   "databaseSchemaVersion": 20,
   "originalSdk": {
     "frameworkVersion": "3.47.7",
@@ -23,38 +23,38 @@
     "flutterVersion": "3.47.7"
   },
   "buildStatus": "Windows installer and portable verified; Android unchanged at build46",
-  "releaseReport": "../release/container_spaces_20261106.md",
+  "releaseReport": "../release/cargo_quantity_20261106.md",
   "currentFeaturesIncludeUncommittedFiles": false,
-  "latestPublishedTestBundle": "Windows2.0.11+47(2026-11-06); Android2.0.10+46 remains latest",
-  "verifiedClientTests": 59,
-  "clientTestsEvidence": "59 focused container cases passed;2 visual cases rerun after font adjustment; full app suite not rerun",
+  "latestPublishedTestBundle": "Windows2.0.12+48(2026-11-06); Android2.0.10+46 remains latest",
+  "verifiedClientTests": 65,
+  "clientTestsEvidence": "64 scoped regression cases passed, plus1 new three-group reproduction;65 distinct passing cases; full app suite not rerun",
   "verifiedServerTests": 61,
   "websiteCoreAndHttpTests": "passed",
-  "analyze": "No issues found in application lib/test; independent book directory has existing findings",
+  "analyze": "No issues found in application lib/test; independent book directory not modified",
   "appleBuildAndDeviceAcceptance": "not performed",
   "latestSourceNotRepackaged": false,
   "noDeploymentPerformed": true,
   "remotePushPerformed": true,
-  "historicalUserMessagesArchived": 156,
+  "historicalUserMessagesArchived": 157,
   "textAttachmentsCopied": 19,
   "inlinePromptCopies": 2,
   "historicalTextNormalization": "Brand-neutral portable copies; SHA-256 entries refer to current bytes, with original digest retained separately.",
   "brandNeutralDocumentsAndWebsite": true,
-  "screenshotsCopied": 57,
+  "screenshotsCopied": 61,
   "developmentSkillsCopied": 4,
   "workingTreeStatusSource": "git status --short",
   "localReleaseCommitCompleted": true,
   "expectedWorkingTreeAfterReleaseCommit": "Only pre-existing unrelated web/src/site.php and fly-foreign-trade-book/ changes remain",
   "artifacts": [
     {
-      "name": "Fly-Setup-2.0.11-build47-testing.exe",
-      "bytes": 13477802,
-      "sha256": "0ADDA5B53CBE46A71B4A94CDBA671F1DE690B14DD34E61C157B02CABBED19B48"
+      "name": "Fly-Setup-2.0.12-build48-testing.exe",
+      "bytes": 13480348,
+      "sha256": "72019400CFA2B2EFB8DB2547341537F3468C9C0ADF9852FD007537FF4702C449"
     },
     {
-      "name": "Fly-2.0.11-build47-windows-test-20261106.zip",
-      "bytes": 16105618,
-      "sha256": "65B10501ACCBB21CF2061EF00B474BAAE921494820A372352277CCF76D7C4C61"
+      "name": "Fly-2.0.12-build48-windows-test-20261106.zip",
+      "bytes": 16108187,
+      "sha256": "0EADC6459701D16D0DDAFED1713CE007896E34819454928B86C0A64467C0D43E"
     },
     {
       "name": "Fly-2.0.10-build46-android-release-signed-20261102.apk",
@@ -102,7 +102,7 @@
   "bookChapters": 16,
   "bookReaderDesktopOnly": true,
   "bookReadingStateCloudSync": false,
-  "additionalCurrentUserRequests": 29,
+  "additionalCurrentUserRequests": 30,
   "formalAndroidSigning": {
     "date": "2026-10-16",
     "appVersion": "2.0.10+46",
@@ -142,9 +142,9 @@
     "filingPublicKeyAndSHA1Available": false,
     "appleBuildAndDeviceAcceptance": "not performed"
   },
-  "latestSourceNotRepackagedExplanation": "Windows current source packaged; Android intentionally stays at build46, tools hidden on phones",
+  "latestSourceNotRepackagedExplanation": "Windows current source packaged; Android stays at build46 with hidden phone tools",
   "localReleaseCommitHash": "6fdd581802239e9a87eaf50669f43afdeb1f3cf6",
-  "workingTreeStatusAtCapture": "Scoped container fix and delivery metadata committed; original website/book work excluded",
+  "workingTreeStatusAtCapture": "Scoped input/removal fix and delivery metadata committed; original website/book work excluded",
   "portableInternalIssuer": {
     "version": "1.0.0",
     "date": "2026-10-17",
@@ -181,7 +181,7 @@
   },
   "latestAndroidTestingUpgradePackage": "Fly-2.0.10-build46-android-test-20261102.apk",
   "temporaryBackendStopped": true,
-  "latestWindowsPackageVersion": "2.0.11+47",
+  "latestWindowsPackageVersion": "2.0.12+48",
   "windowsRebuiltThisTurn": true,
   "mobileUiLatestVerification": {
     "date": "2026-10-17",
@@ -467,7 +467,7 @@
   ],
   "unrelatedWorkingTreePathsRetained": [],
   "websiteHasIndependentUncommittedChanges": false,
-  "sourceCommitScope": "Container feature, its tests and requirements only; existing website/book work excluded",
+  "sourceCommitScope": "Container input/removal feature, tests and requirements only; existing website/book work excluded",
   "reviewProgramIncludedInBuild43": true,
   "emailAuthIncludedInBuild43": true,
   "packagedBuild43Verification": {
@@ -548,10 +548,14 @@
     ]
   },
   "clientRegression": {
-    "focusedContainerPassed": 59,
-    "visualRerunPassed": 2,
+    "distinctPassingCases": 65,
+    "scopedRegressionPassed": 64,
+    "additionalThreeGroupPassed": 1,
     "fullSuiteRerun": false,
-    "log": ".buildlog/container-space-final-tests.log"
+    "logs": [
+      ".buildlog/cargo-input-regression.log",
+      ".buildlog/cargo-input-three-groups.log"
+    ]
   },
   "previouslyIndependentWebsiteChangesCommitted": true,
   "passwordResetIncludedInBuild44": true,
@@ -601,7 +605,7 @@
   },
   "backendTestsRerunThisRelease": false,
   "backendUnchangedSinceBuild44": true,
-  "remoteVerifiedSourceCommit": "adb813b675c1c819c6fce0ef2103fa22157d1abd",
+  "remoteVerifiedSourceCommit": "f4a39890a4de5ae3826b3343999898b55caa46aa",
   "remotePushBranch": "codex/fly-2-sync",
   "build45Features": [
     "customer context PI order dialog",
@@ -622,5 +626,12 @@
     "Consistent section diagram and space cards",
     "Place new cargo in selected residual box without repacking",
     "Restore manual mode from saved geometry"
-  ]
+  ],
+  "build48Features": [
+    "Empty/zero input removes scene occupancy while keeping editable draft",
+    "Visible per-group removal with manual Undo",
+    "Counts and snapshots follow quantity edits and removal",
+    "Manual intent retained in compatible layoutV3 metadata"
+  ],
+  "publicWindowsMetadataPath": "windows/20261106-build48/"
 }

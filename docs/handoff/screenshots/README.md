@@ -65,3 +65,9 @@
 
 真实Flutter渲染、内存测试数据、1200×1000。浅色1倍与深色1.3倍文字：
 [80件上方空间](container-spaces-20261106-80-overhead-light.png)、[80件深色](container-spaces-20261106-80-overhead-dark.png)、[60件上方和侧方](container-spaces-20261106-60-two-spaces-light.png)、[60件深色](container-spaces-20261106-60-two-spaces-dark.png)。宽200mm仅余隙说明，宽700mm是装货空间；未使用真实用户方案。
+
+
+## build48（2026-11-06）数量清空与移除
+
+真实Flutter渲染，1200×1000，浅色1倍和深色1.3倍文字，均使用内存数据：
+[清空第二组](cargo-input-build48-cleared-light.png)、[深色清空](cargo-input-build48-cleared-dark.png)、[移除后](cargo-input-build48-removed-light.png)、[深色移除](cargo-input-build48-removed-dark.png)。第一组80件保持，清空组为0且不占用，移除后该输入组消失，移除按钮在每组下方。

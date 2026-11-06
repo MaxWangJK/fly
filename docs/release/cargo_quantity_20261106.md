@@ -14,4 +14,12 @@
 
 相关范围回归64项通过，另追加截图对应80+16+4三组场景1项，合计65个不同用例有通过记录；未重跑整个客户端。真实UI覆盖浅色、深色、1.3倍文字，内存数据库及合成货物。应用lib/test静态检查单独核验。
 
-构建源码、Windows安装器/便携包、截图和哈希在交付时补入。Android本轮不重建，最新仍为2.0.10+46，手机隐藏工具入口。
+构建源码`f4a39890a4de5ae3826b3343999898b55caa46aa`；修复与交付文档已提交推送2.0分支，最终提交用git log -1核对。保留原网页与独立书稿工作区修改。Android本轮不重建，最新仍为2.0.10+46，手机隐藏工具入口。
+
+
+| 文件 | 字节数 | SHA-256 |
+| --- | --- | --- |
+| [Fly-Setup-2.0.12-build48-testing.exe](../../dist/Fly-Setup-2.0.12-build48-testing.exe) | 13480348 | `72019400CFA2B2EFB8DB2547341537F3468C9C0ADF9852FD007537FF4702C449` |
+| [Fly-2.0.12-build48-windows-test-20261106.zip](../../dist/Fly-2.0.12-build48-windows-test-20261106.zip) | 16108187 | `0EADC6459701D16D0DDAFED1713CE007896E34819454928B86C0A64467C0D43E` |
+
+[公开清单](../handoff/windows/20261106-build48/manifest-Fly-2.0.12-build48-windows.json)、[清空效果](../handoff/screenshots/cargo-input-build48-cleared-light.png)、[移除效果](../handoff/screenshots/cargo-input-build48-removed-dark.png)。Windows release、安装器和便携ZIP核验通过；SQLite相对加载、原书籍配置保持，安装器未作发行代码签名；未构建Android/Apple或部署后台。

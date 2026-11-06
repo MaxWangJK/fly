@@ -1,6 +1,11 @@
 # Fly 安装包、安卓备案与迁移台账
 
-## 最新Windows build47（2026-11-06）
+## 最新Windows build48（2026-11-06）
+
+Windows2.0.12+48修复清空数量、0件计算与每组移除，[下载与校验](../release/cargo_quantity_20261106.md)。Android没有重建，最新仍2.0.10+46及原两种签名；备案字段不因Windows版本改变。
+
+
+## 历史Windows build47（2026-11-06）
 
 Windows2.0.11+47修复装柜剩余空间，[下载与校验](../release/container_spaces_20261106.md)。Android本轮没有重建，最新仍为下面的2.0.10+46及原两种签名，备案字段没有因Windows版本变化而改动。
 
