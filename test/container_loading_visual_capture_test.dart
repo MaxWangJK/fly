@@ -125,7 +125,11 @@ void main() {
           horizontalPlacement: HorizontalPlacement.center,
         ),
       );
-      editor.addCargo(editor.sections.first.id, shortWpc);
+      editor.addCargo(
+        editor.sections.first.id,
+        shortWpc,
+        spaceId: editor.spacesFor(editor.sections.first.id).first.id,
+      );
       editor.updateEntry(editor.entries.last.copyWith(quantity: 150));
       editor.pack(editor.sections.first.id);
       await shot('pallet_center_stack_mixed');

@@ -147,7 +147,7 @@ void main() {
       final offered = LoadingSpace.suggested(result, []);
       expect(offered.single.bounds.z, 1000);
       expect(offered.single.bounds.x, 2900);
-      expect(offered.single.name, startsWith('01 ·'));
+      expect(offered.single.name, 'A区');
       expect(
         result.fold<int>(0, (n, s) => n + s.bounds.dimensions.volumeMm3) +
             block().boundingDimensions.volumeMm3,

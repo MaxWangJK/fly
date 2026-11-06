@@ -285,6 +285,11 @@ class LoadingEditorController extends ChangeNotifier {
     String? spaceId,
     bool stage = false,
   }) {
+    if (!stage &&
+        spaceId == null &&
+        scene.loadedGroups.any((g) => g.sectionId == sectionId)) {
+      throw StateError('本节已有货物，请从剩余区域选择位置添加');
+    }
     // Add only the new block, preserving all existing manual placements.
     if (stage ||
         manuallyAdjustedSections.contains(sectionId) ||

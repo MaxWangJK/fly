@@ -101,6 +101,72 @@ class _ContainerLoadingPageState extends ConsumerState<ContainerLoadingPage> {
     );
   }
 
+  void _addInSpace(
+    LoadingEditorController editor,
+    String sectionId,
+    CargoPackageModel cargo,
+    LoadingSpace space,
+  ) {
+    try {
+      setState(
+        () =>
+            focusEntryId = editor.addCargo(sectionId, cargo, spaceId: space.id),
+      );
+    } on StateError catch (error) {
+      _message(context.flyError(error));
+    }
+  }
+
+  bool _canDropInSpace(
+    LoadingEditorController editor,
+    String sectionId,
+    CargoPackageModel cargo,
+    LoadingSpace space,
+  ) =>
+      space.isUsefulForLoading &&
+      cargo.type != CargoPackageType.pallet &&
+      cargo.type != CargoPackageType.crate &&
+      editor.canAddToSpace(sectionId, cargo, space);
+
+  List<PopupMenuEntry<String>> _spaceCargoItems(
+    LoadingEditorController editor,
+    String sectionId,
+    List<CargoPackageModel> cargo,
+    LoadingSpace space,
+  ) => [
+    for (final c in cargo.where(
+      (c) =>
+          c.type != CargoPackageType.pallet && c.type != CargoPackageType.crate,
+    ))
+      PopupMenuItem(
+        value: c.id,
+        enabled: editor.canAddToSpace(sectionId, c, space),
+        child: Text(c.name),
+      ),
+  ];
+
+  Future<void> _showSpaceCargoMenu(
+    LoadingEditorController editor,
+    String sectionId,
+    List<CargoPackageModel> cargo,
+    LoadingSpace space,
+    Offset globalPosition,
+  ) async {
+    final overlay =
+        Overlay.of(context).context.findRenderObject()! as RenderBox;
+    final point = overlay.globalToLocal(globalPosition);
+    final id = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromRect(
+        Rect.fromLTWH(point.dx, point.dy, 0, 0),
+        Offset.zero & overlay.size,
+      ),
+      items: _spaceCargoItems(editor, sectionId, cargo, space),
+    );
+    if (!mounted || id == null) return;
+    _addInSpace(editor, sectionId, cargo.firstWhere((c) => c.id == id), space);
+  }
+
   Future<void> _save() async {
     final editor = ref.read(loadingEditorProvider);
     final name = await loadingNameDialog(
@@ -538,6 +604,7 @@ class _ContainerLoadingPageState extends ConsumerState<ContainerLoadingPage> {
     );
     return DragTarget<CargoPackageModel>(
       key: ValueKey('section-drop-${section.index}'),
+      onWillAcceptWithDetails: (_) => groups.isEmpty,
       onAcceptWithDetails: (d) =>
           setState(() => focusEntryId = e.addCargo(section.id, d.data)),
       builder: (context, candidates, rejected) => Container(
@@ -605,6 +672,8 @@ class _ContainerLoadingPageState extends ConsumerState<ContainerLoadingPage> {
                       .map((e) => e.spaceId)
                       .whereType<String>()
                       .toList(),
+                  onSpaceTap: (space, point) =>
+                      _showSpaceCargoMenu(e, section.id, cargo, space, point),
                 ),
               ),
             for (final entry in entries.where(
@@ -643,32 +712,33 @@ class _ContainerLoadingPageState extends ConsumerState<ContainerLoadingPage> {
             if (groups.isNotEmpty ||
                 entries.any((v) => v.isBase || v.spaceId != null))
               _spaces(e, section, cargo),
-            PopupMenuButton<String>(
-              tooltip: context.toolsCopy('选择货物'),
-              onSelected: (id) => setState(
-                () => focusEntryId = e.addCargo(
-                  section.id,
-                  cargo.firstWhere((c) => c.id == id),
+            if (groups.isEmpty)
+              PopupMenuButton<String>(
+                tooltip: context.toolsCopy('选择货物'),
+                onSelected: (id) => setState(
+                  () => focusEntryId = e.addCargo(
+                    section.id,
+                    cargo.firstWhere((c) => c.id == id),
+                  ),
                 ),
-              ),
-              itemBuilder: (_) => [
-                for (final c in cargo)
-                  PopupMenuItem(value: c.id, child: Text(c.name)),
-              ],
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Text(
-                  candidates.isNotEmpty
-                      ? context.toolsCopy('松开以添加货物')
-                      : context.toolsCopy('+ 选择货物 / 拖放到本节'),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(context).colorScheme.primary,
+                itemBuilder: (_) => [
+                  for (final c in cargo)
+                    PopupMenuItem(value: c.id, child: Text(c.name)),
+                ],
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    candidates.isNotEmpty
+                        ? context.toolsCopy('松开以添加货物')
+                        : context.toolsCopy('+ 选择货物 / 拖放到本节'),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                   ),
                 ),
               ),
-            ),
             if (entries.isNotEmpty)
               Text(
                 (context.l10n.isZh
@@ -812,6 +882,7 @@ class _ContainerLoadingPageState extends ConsumerState<ContainerLoadingPage> {
                 e.scene.loadedGroups
                     .where((g) => g.sectionId == section.id)
                     .toList(),
+                context.l10n.isZh,
               ),
             ),
           ),
@@ -837,94 +908,99 @@ class _ContainerLoadingPageState extends ConsumerState<ContainerLoadingPage> {
             style: const TextStyle(fontSize: 10),
           ),
         for (final space in spaces)
-          Container(
-            key: ValueKey('loading-space-${space.id}'),
-            margin: const EdgeInsets.only(top: 8),
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              border: Border.all(color: const Color(0xFF9BAFB6)),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                InkWell(
-                  onTap: () => e.focusSection(section.id),
-                  child: Text(
-                    context.toolsSpaceName(space.name),
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+          DragTarget<CargoPackageModel>(
+            key: ValueKey('space-drop-${space.id}'),
+            onWillAcceptWithDetails: (details) =>
+                _canDropInSpace(e, section.id, details.data, space),
+            onAcceptWithDetails: (details) =>
+                _addInSpace(e, section.id, details.data, space),
+            builder: (context, candidates, rejected) => Container(
+              key: ValueKey('loading-space-${space.id}'),
+              margin: const EdgeInsets.only(top: 8),
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: candidates.isNotEmpty
+                    ? context.flyColors.selected
+                    : null,
+                border: Border.all(
+                  color: candidates.isNotEmpty
+                      ? context.flyColors.accent
+                      : const Color(0xFF9BAFB6),
                 ),
-                Text(
-                  '${space.bounds.dimensions.lengthMm} × ${space.bounds.dimensions.widthMm} × ${space.bounds.dimensions.heightMm} mm',
-                  style: const TextStyle(fontSize: 11),
-                ),
-                if (space.parentId != null)
-                  Text(
-                    '${context.l10n.isZh ? '来自' : 'From'} ${context.toolsSpaceName(spaces.firstWhere((s) => s.id == space.parentId).name)}',
-                    style: const TextStyle(fontSize: 10, color: Colors.grey),
-                  ),
-                for (final entry in e.entries.where(
-                  (v) => !actual && v.spaceId == space.id,
-                ))
-                  _EntryEditor(
-                    key: ValueKey(entry.id),
-                    entry: entry,
-                    recommended: e.gridFor(entry),
-                    onChanged: e.updateEntry,
-                    onDelete: () => e.removeEntry(entry.id),
-                    autoFocus: entry.id == focusEntryId,
-                    capacity: e.gridFor(entry).$1 * e.gridFor(entry).$2,
-                  ),
-                if (!space.isUsefulForLoading)
-                  Text(
-                    context.toolsCopy('小空间：保留已有分配，不再建议追加货物'),
-                    style: TextStyle(fontSize: 10, color: Colors.grey),
-                  ),
-                if (space.isUsefulForLoading)
-                  PopupMenuButton<String>(
-                    tooltip: (context.l10n.isZh
-                        ? '为${space.name}选择货物'
-                        : 'Select cargo for ${context.toolsSpaceName(space.name)}'),
-                    onSelected: (id) {
-                      try {
-                        setState(
-                          () => focusEntryId = e.addCargo(
-                            section.id,
-                            cargo.firstWhere((c) => c.id == id),
-                            spaceId: space.id,
-                          ),
-                        );
-                      } on StateError catch (error) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(context.flyError(error))),
-                        );
-                      }
-                    },
-                    itemBuilder: (_) => [
-                      for (final c in cargo.where(
-                        (c) =>
-                            c.type != CargoPackageType.pallet &&
-                            c.type != CargoPackageType.crate,
-                      ))
-                        PopupMenuItem(
-                          value: c.id,
-                          enabled: e.canAddToSpace(section.id, c, space),
-                          child: Text(c.name),
-                        ),
-                    ],
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8),
-                      child: Text(
-                        context.toolsCopy('+ 选择本空间货物'),
-                        style: TextStyle(fontSize: 11),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  InkWell(
+                    onTap: () => e.focusSection(section.id),
+                    child: Text(
+                      context.toolsSpaceName(space.name),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
-              ],
+                  Text(
+                    '${space.bounds.dimensions.lengthMm} × ${space.bounds.dimensions.widthMm} × ${space.bounds.dimensions.heightMm} mm',
+                    style: const TextStyle(fontSize: 11),
+                  ),
+                  if (space.parentId != null)
+                    Text(
+                      '${context.l10n.isZh ? '来自' : 'From'} ${context.toolsSpaceName(spaces.firstWhere((s) => s.id == space.parentId).name)}',
+                      style: const TextStyle(fontSize: 10, color: Colors.grey),
+                    ),
+                  for (final entry in e.entries.where(
+                    (v) => !actual && v.spaceId == space.id,
+                  ))
+                    _EntryEditor(
+                      key: ValueKey(entry.id),
+                      entry: entry,
+                      recommended: e.gridFor(entry),
+                      onChanged: e.updateEntry,
+                      onDelete: () => e.removeEntry(entry.id),
+                      autoFocus: entry.id == focusEntryId,
+                      capacity: e.gridFor(entry).$1 * e.gridFor(entry).$2,
+                    ),
+                  if (!space.isUsefulForLoading)
+                    Text(
+                      context.toolsCopy('小空间：保留已有分配，不再建议追加货物'),
+                      style: TextStyle(fontSize: 10, color: Colors.grey),
+                    ),
+                  if (space.isUsefulForLoading)
+                    PopupMenuButton<String>(
+                      tooltip: (context.l10n.isZh
+                          ? '为${space.name}选择货物'
+                          : 'Select cargo for ${context.toolsSpaceName(space.name)}'),
+                      onSelected: (id) => _addInSpace(
+                        e,
+                        section.id,
+                        cargo.firstWhere((c) => c.id == id),
+                        space,
+                      ),
+                      itemBuilder: (_) =>
+                          _spaceCargoItems(e, section.id, cargo, space),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        child: Text(
+                          context.l10n.isZh
+                              ? '+ 向${space.name}添加货物 / 拖放至此'
+                              : '+ Add cargo to ${context.toolsSpaceName(space.name)} / drop here',
+                          style: TextStyle(fontSize: 11),
+                        ),
+                      ),
+                    ),
+                  if (rejected.isNotEmpty)
+                    Text(
+                      context.l10n.isZh ? '货物不适合此区域，请选择其他区域。' : 'Cargo does not fit this area. Choose another area.',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: context.flyColors.danger,
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         for (final entry in e.entries.where(
@@ -1186,7 +1262,8 @@ class _ContainerLoadingPageState extends ConsumerState<ContainerLoadingPage> {
 }
 
 class _SpaceSectionPainter extends CustomPainter {
-  _SpaceSectionPainter(this.container, this.spaces, this.bases);
+  _SpaceSectionPainter(this.container, this.spaces, this.bases, this.isZh);
+  final bool isZh;
   final Dimensions3 container;
   final List<LoadingSpace> spaces;
   final List<CargoGroupModel> bases;
@@ -1229,7 +1306,10 @@ class _SpaceSectionPainter extends CustomPainter {
           ..style = PaintingStyle.stroke,
       );
       if (r.width >= 16 && r.height >= 12) {
-        label(spaces[i].name.split(' · ').first, r);
+        label(
+          isZh ? spaces[i].name : 'Area ${spaces[i].name.replaceAll('区', '')}',
+          r,
+        );
       }
     }
     for (final g in bases) {

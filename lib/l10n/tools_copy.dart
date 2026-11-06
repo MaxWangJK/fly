@@ -140,6 +140,8 @@ extension ToolsCopyContext on BuildContext {
   // Presentation only: packing logic and persisted identifiers retain their names.
   String toolsSpaceName(String value) {
     if (l10n.isZh) return value;
+    final area = RegExp(r'^([A-Z]+)区$').firstMatch(value);
+    if (area != null) return 'Area ${area.group(1)}';
     const names = {
       '左侧空间': 'Left space',
       '右侧空间': 'Right space',

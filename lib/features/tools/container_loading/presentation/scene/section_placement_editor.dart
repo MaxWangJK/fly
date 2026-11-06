@@ -17,6 +17,7 @@ class SectionPlacementEditor extends StatefulWidget {
     required this.names,
     this.spaces = const [],
     this.assignedSpaceIds = const [],
+    this.onSpaceTap,
     super.key,
   });
   final ContainerSceneController controller;
@@ -24,6 +25,7 @@ class SectionPlacementEditor extends StatefulWidget {
   final Map<String, String> names;
   final List<LoadingSpace> spaces;
   final List<String> assignedSpaceIds;
+  final void Function(LoadingSpace space, Offset globalPosition)? onSpaceTap;
 
   @override
   State<SectionPlacementEditor> createState() => _SectionPlacementEditorState();
@@ -33,6 +35,69 @@ class _SectionPlacementEditorState extends State<SectionPlacementEditor> {
   CargoGroupModel? _drag;
   Offset _delta = Offset.zero;
   _SectionTransform? _dragTransform;
+
+  Future<void> _showCargoMenu(
+    CargoGroupModel group,
+    Offset globalPosition,
+  ) async {
+    final scene = widget.controller;
+    scene.select(group.id);
+    final overlay =
+        Overlay.of(context).context.findRenderObject()! as RenderBox;
+    final point = overlay.globalToLocal(globalPosition);
+    final action = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromRect(
+        Rect.fromLTWH(point.dx, point.dy, 0, 0),
+        Offset.zero & overlay.size,
+      ),
+      items: [
+        for (final axis in ['X', 'Y', 'Z'])
+          PopupMenuItem(
+            value: axis,
+            child: Text(
+              context.l10n.isZh ? '绕 $axis 旋转 90°' : 'Rotate $axis by 90°',
+            ),
+          ),
+        const PopupMenuDivider(),
+        PopupMenuItem(
+          value: 'delete',
+          child: Text(context.l10n.isZh ? '移除货物' : 'Remove cargo'),
+        ),
+      ],
+    );
+    if (!mounted ||
+        action == null ||
+        !scene.loadedGroups.any((g) => g.id == group.id)) {
+      return;
+    }
+    // Act on the cargo that opened the menu, never a later selection.
+    scene.select(group.id);
+    switch (action) {
+      case 'X':
+        scene.rotateSelectedX();
+      case 'Y':
+        scene.rotateSelectedY();
+      case 'Z':
+        scene.rotateSelectedZ();
+      case 'delete':
+        scene.deleteSelected();
+    }
+    final message = action == 'delete'
+        ? (context.l10n.isZh
+              ? '已移除这组货物，可点撤销恢复。'
+              : 'Cargo group removed. Use Undo to restore it.')
+        : scene.invalidGroupId == group.id
+        ? (context.l10n.isZh
+              ? '旋转后会重叠、越界或不符合堆叠条件，请先调整位置。'
+              : 'Rotation would overlap, exceed bounds or violate stacking rules. Adjust the position first.')
+        : null;
+    if (message != null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(message)));
+    }
+  }
 
   Future<void> _finish() async {
     final controller = widget.controller;
@@ -85,7 +150,26 @@ class _SectionPlacementEditorState extends State<SectionPlacementEditor> {
 
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTapUp: (event) => scene.select(hit(event.localPosition)?.id),
+          onTapUp: (event) {
+            final group = hit(event.localPosition);
+            scene.select(group?.id);
+            if (group != null) return;
+            final space =
+                LoadingSpace.suggested(widget.spaces, widget.assignedSpaceIds)
+                    .where(
+                      (s) =>
+                          s.isUsefulForLoading &&
+                          transform.spaceRect(s).contains(event.localPosition),
+                    )
+                    .lastOrNull;
+            if (space != null) {
+              widget.onSpaceTap?.call(space, event.globalPosition);
+            }
+          },
+          onSecondaryTapUp: (event) {
+            final group = hit(event.localPosition);
+            if (group != null) _showCargoMenu(group, event.globalPosition);
+          },
           onPanStart: (event) {
             _drag = hit(event.localPosition);
             if (_drag == null) return;
@@ -122,6 +206,7 @@ class _SectionPlacementEditorState extends State<SectionPlacementEditor> {
               context.flyColors,
               widget.spaces,
               widget.assignedSpaceIds,
+              context.l10n.isZh,
             ),
           ),
         );
@@ -162,6 +247,12 @@ class _SectionTransform {
     g.boundingDimensions.widthMm * scale,
     g.boundingDimensions.heightMm * scale,
   );
+  Rect spaceRect(LoadingSpace space) => Rect.fromLTWH(
+    origin.dx + space.bounds.y * scale,
+    origin.dy - space.bounds.maxZ * scale,
+    space.bounds.dimensions.widthMm * scale,
+    space.bounds.dimensions.heightMm * scale,
+  );
 }
 
 class _SectionPainter extends CustomPainter {
@@ -173,6 +264,7 @@ class _SectionPainter extends CustomPainter {
     this.colors,
     this.spaces,
     this.assignedSpaceIds,
+    this.isZh,
   );
   final ContainerSceneController scene;
   final List<CargoGroupModel> groups;
@@ -181,6 +273,7 @@ class _SectionPainter extends CustomPainter {
   final FlyColorScheme colors;
   final List<LoadingSpace> spaces;
   final List<String> assignedSpaceIds;
+  final bool isZh;
   void label(Canvas canvas, String text, Offset point, double width) {
     final painter = TextPainter(
       text: TextSpan(
@@ -234,7 +327,7 @@ class _SectionPainter extends CustomPainter {
       if (shown != null && rect.width >= 42 && rect.height >= 24) {
         label(
           canvas,
-          '${shown.name.split(' · ').first} · ${b.dimensions.widthMm} × ${b.dimensions.heightMm} mm',
+          '${isZh ? shown.name : 'Area ${shown.name.replaceAll('区', '')}'} · ${b.dimensions.widthMm} × ${b.dimensions.heightMm} mm',
           rect.topLeft + const Offset(3, 3),
           rect.width - 6,
         );

@@ -6,6 +6,7 @@ import 'fly_localizations.dart';
 // Translate only known application messages. Preserve unknown platform diagnostics
 // and parameter values (especially file paths); never translate persisted content.
 const _messages = <String, String>{
+  "本节已有货物，请从剩余区域选择位置添加": "This section already contains cargo. Add cargo through a remaining area.",
   "Fly 数据目录尚未初始化": "Fly data directory is not initialized.",
   "数据目录尚未初始化": "Data directory is not initialized.",
   "备份期间库文件发生变化，请重试": "Library files changed during backup. Please retry.",

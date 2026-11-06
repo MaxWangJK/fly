@@ -12,6 +12,7 @@ import 'package:fly/core/database/app_database.dart';
 import 'package:fly/features/tasks/presentation/task_providers.dart';
 import 'package:fly/features/tools/container_loading/presentation/container_loading_providers.dart';
 import 'package:fly/features/tools/container_loading/presentation/scene/section_placement_editor.dart';
+import 'package:fly/features/tools/container_loading/domain/models/section_models.dart';
 import 'package:fly/features/tools/container_loading/presentation/workspace/container_loading_page.dart';
 import 'package:fly/l10n/fly_localizations.dart';
 import 'package:fly/shared/design_system/app_theme.dart';
@@ -155,7 +156,11 @@ void main() {
           final currentTop = editor
               .spacesFor(id)
               .singleWhere((s) => s.bounds.z == 1000);
-          final chooser = find.byTooltip('为${currentTop.name}选择货物');
+          final shownTop = LoadingSpace.suggested(
+            editor.spacesFor(id),
+            [],
+          ).singleWhere((s) => s.id == currentTop.id);
+          final chooser = find.byTooltip('为${shownTop.name}选择货物');
           await tester.ensureVisible(chooser);
           await settle();
           await tester.tap(chooser);

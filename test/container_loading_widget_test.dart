@@ -11,6 +11,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'container_actual_spaces_test.dart' as actual;
+
 Future<(AppDatabase, ProviderContainer, LoadingEditorController)> setup(
   WidgetTester tester,
 ) async {
@@ -40,6 +42,51 @@ Future<void> finish(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets(
+    'occupied section refuses generic drop while area card accepts cargo at its coordinates',
+    (tester) async {
+      final (_, _, editor) = await setup(tester);
+      final section = editor.sections.first.id;
+      editor.addCargo(section, actual.pvc);
+      editor.scene.resizeGroup(
+        editor.scene.groups.single.id,
+        rows: 8,
+        layers: 20,
+      );
+      await tester.pumpAndSettle();
+      final source = find.byKey(const ValueKey('cargo-drag-cargo-wpc-grille'));
+      final sectionFinder = find.byKey(const ValueKey('section-drop-0'));
+      await tester.dragFrom(
+        tester.getCenter(source),
+        tester.getTopLeft(sectionFinder) +
+            const Offset(40, 15) -
+            tester.getCenter(source),
+      );
+      await tester.pumpAndSettle();
+      expect(editor.scene.loadedGroups, hasLength(1));
+      final top = editor
+          .spacesFor(section)
+          .singleWhere((s) => s.bounds.z == 2000);
+      final area = find.byKey(ValueKey('space-drop-${top.id}'));
+      await tester.ensureVisible(area);
+      await tester.pumpAndSettle();
+      await tester.dragFrom(
+        tester.getCenter(source),
+        tester.getCenter(area) - tester.getCenter(source),
+      );
+      await tester.pumpAndSettle();
+      expect(editor.scene.loadedGroups, hasLength(2));
+      expect(editor.scene.groups.last.positionZmm, 2000);
+      expect(
+        editor.scene.groups.last.bounds.overlaps(
+          editor.scene.groups.first.bounds,
+        ),
+        isFalse,
+      );
+      expect(tester.takeException(), isNull);
+      await finish(tester);
+    },
+  );
   testWidgets(
     'V3 pallet keeps direct quantity while three spaces offer row inputs',
     (tester) async {
@@ -72,7 +119,11 @@ void main() {
       final space = editor
           .spacesFor(editor.sections.first.id)
           .singleWhere((s) => s.bounds.z > 0);
-      final chooser = find.byTooltip('为${space.name}选择货物');
+      final shownSpace = LoadingSpace.suggested(
+        editor.spacesFor(editor.sections.first.id),
+        [],
+      ).singleWhere((s) => s.id == space.id);
+      final chooser = find.byTooltip('为${shownSpace.name}选择货物');
       await tester.ensureVisible(chooser);
       await tester.tap(chooser);
       await tester.pumpAndSettle();

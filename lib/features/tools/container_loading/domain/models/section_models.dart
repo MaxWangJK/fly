@@ -193,6 +193,20 @@ class LoadingSpace {
   final String? parentId;
   final Aabb3 bounds;
   final int? supportedLengthMm;
+
+  /// Labels follow the current visible areas; stable geometry IDs keep saved
+  /// allocations independent of labels, including more than 26 areas.
+  static String areaName(int index) {
+    var n = index + 1;
+    var letters = '';
+    while (n > 0) {
+      n--;
+      letters = String.fromCharCode(65 + n % 26) + letters;
+      n ~/= 26;
+    }
+    return '$letters区';
+  }
+
   bool get isUsefulForLoading =>
       bounds.dimensions.widthMm >= 500 && bounds.dimensions.heightMm >= 500;
 
@@ -221,8 +235,7 @@ class LoadingSpace {
       for (final (i, s) in visible.indexed)
         LoadingSpace(
           id: s.id,
-          name:
-              '${(i + 1).toString().padLeft(2, '0')} · ${s.name.split(' · ').last}',
+          name: areaName(i),
           bounds: s.bounds,
           parentId: s.parentId,
           supportedLengthMm: s.supportedLengthMm,

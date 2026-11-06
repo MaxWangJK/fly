@@ -85,7 +85,9 @@ void main() {
     ];
     final visible = LoadingSpace.suggested(spaces, []);
     expect(visible.map((s) => s.id), ['a', 'd']);
-    expect(visible.last.name, '02 · 空间');
+    expect(visible.last.name, 'B区');
+    expect(LoadingSpace.areaName(25), 'Z区');
+    expect(LoadingSpace.areaName(26), 'AA区');
     final legacy = LoadingSpace.suggested(
       [...spaces, space('e', 400, 400, parent: 'b')],
       ['e'],
