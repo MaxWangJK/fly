@@ -12,4 +12,12 @@
 
 ## 验证及成品
 
-验证结果、源码提交、截图、Windows安装器/便携包及SHA-256在核验后补入。Android最新仍2.0.10+46（手机隐藏工具），本轮只构建Windows。未访问真实用户数据、部署后台或构建Apple版本。
+构建源码`7a5182fe3c34070a8657194785c2b4090ad3de34`。76项装柜相关回归全部通过，应用lib/test静态检查无问题。覆盖首次/区域添加、真实拖放、PVC160+WPC60无重叠、XYZ旋转、非法旋转拒绝、空白处右键不误删、移除/撤销、保存重开和原自动排布/数量草稿；未重跑整个客户端。真实Flutter截图覆盖1200×1000浅色及深色1.3倍文字。Android最新仍2.0.10+46（手机隐藏工具），本轮只构建Windows。未访问真实用户数据、部署后台或构建Apple版本。
+
+
+| 文件 | 字节数 | SHA-256 |
+| --- | --- | --- |
+| [Fly-Setup-2.0.13-build49-testing.exe](../../dist/Fly-Setup-2.0.13-build49-testing.exe) | 13481537 | `6EE6A11634C988190138DF1A25D487EB9F1907E4984F314578F62A73B9F04E6B` |
+| [Fly-2.0.13-build49-windows-test-20261106.zip](../../dist/Fly-2.0.13-build49-windows-test-20261106.zip) | 16109826 | `C5940410E4B91F8B63B8E548ABEAA2559647BA7BCC25988FB36F3175BFF3B012` |
+
+[公开清单](../handoff/windows/20261106-build49/manifest-Fly-2.0.13-build49-windows.json)、[A/B区域](../handoff/screenshots/cargo-area-build49-areas-light.png)、[WPC在上方](../handoff/screenshots/cargo-area-build49-loaded-light.png)、[右键菜单](../handoff/screenshots/cargo-area-build49-menu-dark.png)。Windows release构建、安装器和ZIP核验通过，SQLite相对加载及原书籍配置保持。安装器未作发行代码签名。修复及交付文档提交推送2.0分支，最终提交用git log -1核对；原网站和独立书稿工作区修改保留。

@@ -71,3 +71,12 @@
 
 真实Flutter渲染，1200×1000，浅色1倍和深色1.3倍文字，均使用内存数据：
 [清空第二组](cargo-input-build48-cleared-light.png)、[深色清空](cargo-input-build48-cleared-dark.png)、[移除后](cargo-input-build48-removed-light.png)、[深色移除](cargo-input-build48-removed-dark.png)。第一组80件保持，清空组为0且不占用，移除后该输入组消失，移除按钮在每组下方。
+
+
+## build49（2026-11-06）区域追加及剖面右键
+
+真实Flutter渲染，1200×1000，浅色1倍、深色1.3倍文字，内存数据：
+[A/B区](cargo-area-build49-areas-light.png)、[深色A/B区](cargo-area-build49-areas-dark.png)、
+[PVC160+WPC60](cargo-area-build49-loaded-light.png)、[深色装载](cargo-area-build49-loaded-dark.png)、
+[右键](cargo-area-build49-menu-light.png)、[深色右键](cargo-area-build49-menu-dark.png)。
+区域卡与剖面同名，空闲区域选择/拖放添加，WPC从上方加入并在3D可见，菜单提供XYZ旋转和移除。
