@@ -21,4 +21,12 @@
 
 装柜相关59项测试通过；字体调整后的两项真实UI截图再单独验证，应用lib/test静态检查单独运行。整仓首次扫描还包含独立书稿目录的既有提示，未将其当成装柜问题修改。
 
-构建源码、Windows安装器/便携包及校验值将在完成后补入。
+构建源码`adb813b675c1c819c6fce0ef2103fa22157d1abd`，本轮装柜修复与交付文档已提交并推送2.0分支，最终文档提交以git log -1核对。保留原有网页和独立书稿工作区修改。Windows安装器未作发行代码签名。
+
+
+| 文件 | 字节数 | SHA-256 |
+| --- | --- | --- |
+| [Fly-Setup-2.0.11-build47-testing.exe](../../dist/Fly-Setup-2.0.11-build47-testing.exe) | 13477802 | `0ADDA5B53CBE46A71B4A94CDBA671F1DE690B14DD34E61C157B02CABBED19B48` |
+| [Fly-2.0.11-build47-windows-test-20261106.zip](../../dist/Fly-2.0.11-build47-windows-test-20261106.zip) | 16105618 | `65B10501ACCBB21CF2061EF00B474BAAE921494820A372352277CCF76D7C4C61` |
+
+[公开构建清单](../handoff/windows/20261106-build47/manifest-Fly-2.0.11-build47-windows.json)、[修复截图](../handoff/screenshots/container-spaces-20261106-80-overhead-light.png)。完成Windows release构建、便携ZIP完整性、SQLite相对加载及原书籍配置核验。保留原有授权测试开关；本次没有构建Android、Apple或部署后台。

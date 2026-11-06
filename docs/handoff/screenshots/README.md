@@ -59,3 +59,9 @@
 ## build46（2026-11-02）
 
 [桌面头像与扫码图解](sync-guide-build46-desktop.png)、[手机头像与扫码图解](sync-guide-build46-phone.png)、[窄屏深色大字](sync-guide-build46-dark-large.png)。真实Flutter渲染并目视检查，1100×900、390×844、320×850/1.3倍文字。隔离数据库及合成头像，不含真实用户资料；摄像头扫码仍需真机。
+
+
+## 2026-11-06 装柜实际剩余空间
+
+真实Flutter渲染、内存测试数据、1200×1000。浅色1倍与深色1.3倍文字：
+[80件上方空间](container-spaces-20261106-80-overhead-light.png)、[80件深色](container-spaces-20261106-80-overhead-dark.png)、[60件上方和侧方](container-spaces-20261106-60-two-spaces-light.png)、[60件深色](container-spaces-20261106-60-two-spaces-dark.png)。宽200mm仅余隙说明，宽700mm是装货空间；未使用真实用户方案。
