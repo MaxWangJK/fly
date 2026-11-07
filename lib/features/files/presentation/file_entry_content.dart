@@ -172,11 +172,18 @@ class FileEntryContent extends StatelessWidget {
         ),
       );
     }
-    final size = mode == FileViewMode.small ? 36.0 : 72.0;
     return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SizedBox(width: size, height: size, child: visual),
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(7),
+            child: SizedBox.expand(
+              key: ValueKey('file-grid-visual-${entry.file.id}'),
+              child: visual,
+            ),
+          ),
+        ),
         const SizedBox(height: 6),
         label(entry.name, name: true),
         if (caption.isNotEmpty) label(caption),

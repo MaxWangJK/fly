@@ -22,6 +22,7 @@ import '../../../shared/formatters/relative_date_formatter.dart';
 import '../../../shared/attachments/attachment.dart';
 import '../../../shared/attachments/attachment_providers.dart';
 import '../../orders/domain/order.dart';
+import '../../orders/presentation/order_create_dialog.dart';
 import '../../orders/presentation/order_providers.dart';
 import '../domain/customer.dart';
 import '../domain/customer_name.dart';
@@ -984,11 +985,17 @@ class _OrdersSummary extends ConsumerWidget {
               OutlinedButton.icon(
                 key: const ValueKey('create-order-for-customer'),
                 onPressed: () async {
-                  final order = await ref
-                      .read(orderRepositoryProvider)
-                      .createOrder(customerId: customer.id);
+                  final order = await showDialog<SalesOrder>(
+                    context: context,
+                    builder: (_) => OrderCreateDialog(
+                      customerId: customer.id,
+                      customerName: customer.name,
+                    ),
+                  );
+                  if (order == null || !context.mounted) return;
                   ref.read(orderCustomerFilterProvider.notifier).state =
                       customer.id;
+                  ref.read(orderSearchProvider.notifier).state = '';
                   ref.read(selectedOrderIdProvider.notifier).state = order.id;
                   ref.read(orderExtensionProvider.notifier).state =
                       OrderExtensionType.none;

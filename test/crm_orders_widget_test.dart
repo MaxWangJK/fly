@@ -268,9 +268,18 @@ void main() {
       );
       await tester.tap(find.byKey(const ValueKey('create-order-for-customer')));
       await _pumpUi(tester);
+      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(await database.select(database.orders).get(), isEmpty);
+      await tester.enterText(
+        find.byKey(const ValueKey('create-order-number')),
+        'PI-JACK-2026',
+      );
+      await tester.tap(find.byKey(const ValueKey('create-order-submit')));
+      await _pumpUi(tester);
 
       final created = await database.select(database.orders).getSingle();
       expect(created.customerId, customer.id);
+      expect(created.orderNumber, 'PI-JACK-2026');
       expect(created.orderDate, DateTime(today.year, today.month, today.day));
       expect(find.byType(OrderDetailPanel), findsOneWidget);
       expect(
@@ -338,10 +347,7 @@ void main() {
     final savedNotes = await (database.select(
       database.customerNotes,
     )..where((row) => row.customerId.equals(customer.id))).get();
-    expect(
-      savedNotes.any((note) => note.content == '客户本周五确认最终数量'),
-      isTrue,
-    );
+    expect(savedNotes.any((note) => note.content == '客户本周五确认最终数量'), isTrue);
     await _disposeUi(tester);
   });
 

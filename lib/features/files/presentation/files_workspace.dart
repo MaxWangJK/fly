@@ -35,6 +35,7 @@ import '../data/managed_file_storage.dart';
 import '../data/platform_file_transfer.dart';
 import 'file_providers.dart';
 import 'file_entry_content.dart';
+import 'file_grid_visuals.dart';
 import '../../../shared/design_system/responsive_layout.dart';
 import '../../../shared/design_system/mobile_workspace_actions.dart';
 import '../../../app/shell/mobile_details.dart';
@@ -2042,11 +2043,20 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
   }
 
   Widget _desktopListing(List<FileBrowserEntry> entries) {
+    final small = viewMode == FileViewMode.small;
+    final textScale = MediaQuery.textScalerOf(context).scale(13) / 13;
+    final extraTextHeight = (textScale - 1).clamp(0.0, 3.0).toDouble() * 40;
     final grid = SliverGridDelegateWithMaxCrossAxisExtent(
-      maxCrossAxisExtent: viewMode == FileViewMode.small ? 140 : 200,
-      mainAxisExtent: viewMode == FileViewMode.small ? 145 : 190,
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
+      maxCrossAxisExtent: small ? 120 : 184,
+      mainAxisExtent: (small ? 136 : 192) + extraTextHeight,
+      crossAxisSpacing: 8,
+      mainAxisSpacing: 8,
+    );
+    final folderGrid = SliverGridDelegateWithMaxCrossAxisExtent(
+      maxCrossAxisExtent: small ? 104 : 144,
+      mainAxisExtent: (small ? 94 : 122) + extraTextHeight,
+      crossAxisSpacing: 8,
+      mainAxisSpacing: 4,
     );
     final directories = _desktopDirectories(
       ref.watch(fileFoldersProvider).valueOrNull ?? [],
@@ -2068,21 +2078,25 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
                 borderRadius: BorderRadius.circular(8),
                 onTap: () => select(FileCollection.folder, folder.id),
                 child: Padding(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 4,
+                  ),
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.start,
                     children: [
-                      Icon(
-                        Icons.folder_rounded,
-                        size: viewMode == FileViewMode.small ? 56 : 72,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        folder.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
+                      FileFolderVisual(seed: folder.id, large: !small),
+                      const SizedBox(height: 4),
+                      Tooltip(
+                        message: folder.name,
+                        child: Text(
+                          folder.name,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(fontSize: 13, height: 1.25),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                     ],
                   ),
@@ -2101,7 +2115,7 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
                   itemBuilder: (_, i) => directory(directories[i]),
                 )
               : SliverGrid.builder(
-                  gridDelegate: grid,
+                  gridDelegate: folderGrid,
                   itemCount: directories.length,
                   itemBuilder: (_, i) => directory(directories[i]),
                 ),
@@ -2280,6 +2294,17 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
           : context.flyColors.accent,
     );
     Widget visual = icon;
+    if (!isPhoneLayout(context) &&
+        viewMode != FileViewMode.list &&
+        !f.mimeType.startsWith('image/') &&
+        !f.mimeType.startsWith('video/')) {
+      visual = FileDocumentVisual(
+        extension: entry.name.contains('.')
+            ? entry.name.split('.').last.toUpperCase()
+            : '',
+        large: viewMode == FileViewMode.medium,
+      );
+    }
     if (f.deletedAt == null && f.mimeType.startsWith('image/')) {
       visual = FutureBuilder<File?>(
         future: ref.read(thumbnailCacheProvider).get(f),
@@ -2354,7 +2379,11 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
           : Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(cardStyle ? 12 : 8),
-        side: cardStyle
+        side:
+            cardStyle &&
+                (isPhoneLayout(context) ||
+                    chosen ||
+                    viewMode == FileViewMode.list)
             ? BorderSide(
                 color: chosen
                     ? context.flyColors.accent.withValues(alpha: .48)
@@ -2379,7 +2408,13 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
             ? () => menu(entry, Offset.zero)
             : null,
         child: Padding(
-          padding: EdgeInsets.all(viewMode == FileViewMode.list ? 0 : 8),
+          padding: EdgeInsets.all(
+            viewMode == FileViewMode.list
+                ? 0
+                : isPhoneLayout(context)
+                ? 8
+                : 5,
+          ),
           child: Stack(
             children: [
               content,
@@ -2414,9 +2449,14 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
                     ),
                     child: Tooltip(
                       message: context.l10n.t('filesDragOut'),
-                      child: const Padding(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surface
+                              .withValues(alpha: .9),
+                          borderRadius: BorderRadius.circular(5),
+                        ),
                         padding: EdgeInsets.all(6),
-                        child: Icon(Icons.open_in_new, size: 16),
+                        child: const Icon(Icons.open_in_new, size: 14),
                       ),
                     ),
                   ),
