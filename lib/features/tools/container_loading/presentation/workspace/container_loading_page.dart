@@ -12,6 +12,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../shared/design_system/fly_color_scheme.dart';
+import '../../../../../shared/design_system/model_text_field.dart';
 import '../../../../../l10n/fly_localizations.dart';
 import '../../domain/models/container_loading_models.dart';
 import '../../domain/models/section_models.dart';
@@ -1155,16 +1156,16 @@ class _ContainerLoadingPageState extends ConsumerState<ContainerLoadingPage> {
                   icon: const Icon(Icons.remove, size: 16),
                 ),
                 Expanded(
-                  child: TextFormField(
-                    key: ValueKey('z-${g.id}-${g.positionZmm}'),
-                    initialValue: '${g.positionZmm}',
+                  child: ModelTextField(
+                    key: ValueKey('z-${g.id}'),
+                    value: '${g.positionZmm}',
                     keyboardType: TextInputType.number,
                     style: const TextStyle(fontSize: 12),
                     decoration: InputDecoration(
                       suffixText: 'mm',
                       isDense: true,
                     ),
-                    onFieldSubmitted: (v) {
+                    onSubmitted: (v) {
                       final n = int.tryParse(v);
                       if (n != null) _moveZ(e, g, n - g.positionZmm);
                     },
@@ -1368,12 +1369,12 @@ class _ManualCargoEditorState extends State<_ManualCargoEditor> {
     if (widget.group.quantity > 0 &&
         (oldWidget.group.rows != widget.group.rows ||
             int.tryParse(rows.text) != widget.group.rows)) {
-      rows.text = '${widget.group.rows}';
+      rows.syncTextFromModel('${widget.group.rows}');
     }
     if (widget.group.quantity > 0 &&
         (oldWidget.group.layers != widget.group.layers ||
             int.tryParse(layers.text) != widget.group.layers)) {
-      layers.text = '${widget.group.layers}';
+      layers.syncTextFromModel('${widget.group.layers}');
     }
   }
 
@@ -1563,7 +1564,7 @@ class _EntryEditorState extends State<_EntryEditor> {
     super.didUpdateWidget(old);
     if (old.entry.quantity != widget.entry.quantity &&
         int.tryParse(quantity.text) != widget.entry.quantity) {
-      quantity.text = '${widget.entry.quantity}';
+      quantity.syncTextFromModel('${widget.entry.quantity}');
     }
     if (widget.autoFocus && !old.autoFocus) focus.requestFocus();
   }

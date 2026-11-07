@@ -13,6 +13,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../shared/design_system/design_tokens.dart';
+import '../../../shared/design_system/model_text_field.dart';
 import '../../../shared/design_system/detail_section_entry.dart';
 import '../../../shared/design_system/priority.dart';
 import '../../../shared/design_system/tag_container.dart';
@@ -70,6 +71,7 @@ class _CustomerDetailPanelState extends ConsumerState<CustomerDetailPanel> {
   Widget build(BuildContext context) {
     final value = ref.watch(customerProvider(widget.customerId));
     return value.when(
+      skipLoadingOnReload: true,
       loading: () => Center(child: CircularProgressIndicator.adaptive()),
       error: (error, stack) => Center(
         child: Text(
@@ -127,6 +129,7 @@ class _CustomerDetailPanelState extends ConsumerState<CustomerDetailPanel> {
             const <FlyAttachment>[];
 
         return Material(
+          key: ValueKey('customer-details-${customer.id}'),
           color: Theme.of(context).colorScheme.surface,
           child: SafeArea(
             child: LayoutBuilder(
@@ -1272,7 +1275,7 @@ class _AutoSaveFieldState extends State<_AutoSaveField> {
     super.didUpdateWidget(oldWidget);
     if (widget.value != oldWidget.value &&
         _controller.text == oldWidget.value) {
-      _controller.text = widget.value;
+      _controller.syncTextFromModel(widget.value);
     }
   }
 
@@ -1308,7 +1311,7 @@ class _CustomerTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => _AutoSaveField(
-    key: ValueKey('$label-$value'),
+    key: ValueKey('customer-text-$label'),
     value: value,
     onSave: onSave,
     decoration: InputDecoration(isDense: true, labelText: label),
@@ -1328,7 +1331,7 @@ class _CustomFieldEditor extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => _AutoSaveField(
-    key: ValueKey('custom-field-${definition.id}-$value'),
+    key: ValueKey('custom-field-$customerId-${definition.id}'),
     value: value,
     keyboardType: definition.type == CustomerCustomFieldType.number
         ? const TextInputType.numberWithOptions(decimal: true)

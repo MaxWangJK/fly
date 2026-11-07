@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../shared/design_system/model_text_field.dart';
+
 class MobileFileFolder {
   const MobileFileFolder({
     required this.id,
@@ -43,7 +45,9 @@ class _MobileFilesHeaderState extends State<MobileFilesHeader> {
   @override
   void didUpdateWidget(covariant MobileFilesHeader oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (controller.text != widget.query) controller.text = widget.query;
+    if (widget.query != oldWidget.query && controller.text == oldWidget.query) {
+      controller.syncTextFromModel(widget.query);
+    }
   }
 
   @override
@@ -96,7 +100,10 @@ class _MobileFilesHeaderState extends State<MobileFilesHeader> {
                           key: const ValueKey('files-search-clear'),
                           tooltip: MaterialLocalizations.of(context)
                               .deleteButtonTooltip,
-                          onPressed: () => widget.onSearch(''),
+                          onPressed: () {
+                            controller.clear();
+                            widget.onSearch('');
+                          },
                           icon: const Icon(Icons.close),
                         ),
                 ),

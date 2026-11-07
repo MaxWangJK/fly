@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../../../shared/design_system/model_text_field.dart';
+
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 
@@ -443,11 +446,8 @@ class _BlockTextState extends State<_BlockText> {
   @override
   void didUpdateWidget(covariant _BlockText oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (controller.text != widget.block.text) {
-      controller.value = TextEditingValue(
-        text: widget.block.text,
-        selection: TextSelection.collapsed(offset: widget.block.text.length),
-      );
+    if (oldWidget.block.text != widget.block.text) {
+      controller.syncTextFromModel(widget.block.text);
     }
   }
 
@@ -562,9 +562,9 @@ class _TableBlock extends StatelessWidget {
                       for (var c = 0; c < rows[r].length; c++)
                         Padding(
                           padding: const EdgeInsets.all(4),
-                          child: TextFormField(
+                          child: ModelTextField(
                             key: ValueKey('${block.id}-$r-$c'),
-                            initialValue: rows[r][c],
+                            value: rows[r][c],
                             maxLines: null,
                             decoration: const InputDecoration(
                               border: InputBorder.none,

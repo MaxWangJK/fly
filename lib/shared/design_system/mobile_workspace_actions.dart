@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'model_text_field.dart';
+
 /// Shared phone search and creation controls, above the primary navigation.
 class MobileWorkspaceActions extends StatefulWidget {
   const MobileWorkspaceActions({
@@ -33,7 +35,9 @@ class _MobileWorkspaceActionsState extends State<MobileWorkspaceActions> {
   @override
   void didUpdateWidget(covariant MobileWorkspaceActions oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (controller.text != widget.query) controller.text = widget.query;
+    if (widget.query != oldWidget.query && controller.text == oldWidget.query) {
+      controller.syncTextFromModel(widget.query);
+    }
   }
 
   @override
@@ -70,6 +74,7 @@ class _MobileWorkspaceActionsState extends State<MobileWorkspaceActions> {
                     : 'Close search',
                 icon: const Icon(Icons.close),
                 onPressed: () {
+                  controller.clear();
                   widget.onSearchChanged('');
                   focus.unfocus();
                   setState(() => searching = false);

@@ -15,6 +15,7 @@ import '../../tasks/presentation/task_providers.dart';
 import '../data/daily_review_repository.dart';
 import 'review_providers.dart';
 import 'review_answer_field.dart';
+import '../../../shared/design_system/model_text_field.dart';
 
 class DailyReviewPage extends ConsumerStatefulWidget {
   const DailyReviewPage({this.onChooseProgram, super.key});
@@ -202,6 +203,7 @@ class _DailyReviewPageState extends ConsumerState<DailyReviewPage> {
                   },
                 )
               : session.when(
+                  skipLoadingOnReload: true,
                   loading: () =>
                       const Center(child: CircularProgressIndicator()),
                   error: (e, s) => Center(
@@ -630,7 +632,7 @@ class _ReviewEditorState extends ConsumerState<_ReviewEditor> {
   void _refreshAnswers() {
     for (final entry in controllers.entries) {
       final value = widget.session.values[entry.key] ?? '';
-      if (entry.value.text != value) entry.value.text = value;
+      entry.value.syncTextFromModel(value);
     }
   }
 

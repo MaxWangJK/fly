@@ -9,6 +9,7 @@ import '../data/daily_review_repository.dart';
 import '../domain/review_program.dart';
 import 'guided_review_providers.dart';
 import 'review_answer_field.dart';
+import '../../../shared/design_system/model_text_field.dart';
 import 'review_providers.dart';
 
 enum _ReviewView { daily, week, history }
@@ -77,6 +78,7 @@ class _GuidedReviewPageState extends ConsumerState<GuidedReviewPage> {
               : ref
                     .watch(guidedReviewSessionProvider(day))
                     .when(
+                      skipLoadingOnReload: true,
                       loading: () => const Center(
                         child: CircularProgressIndicator.adaptive(),
                       ),
@@ -147,7 +149,7 @@ class _GuidedBodyState extends ConsumerState<_GuidedBody> {
   void _receive() {
     for (final entry in controllers.entries) {
       final text = values[entry.key] ?? '';
-      if (entry.value.text != text) entry.value.text = text;
+      entry.value.syncTextFromModel(text);
     }
     if (mounted) setState(() {});
   }

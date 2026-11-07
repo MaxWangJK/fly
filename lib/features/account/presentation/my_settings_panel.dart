@@ -233,6 +233,7 @@ class _MySettingsPanelState extends ConsumerState<MySettingsPanel> {
         TextField(
           key: const ValueKey('my-display-name'),
           controller: name,
+          enabled: loaded,
           maxLength: 80,
           decoration: InputDecoration(labelText: t('我的名字', 'My name')),
         ),
@@ -260,6 +261,7 @@ class _MySettingsPanelState extends ConsumerState<MySettingsPanel> {
         TextField(
           key: const ValueKey('my-sync-server'),
           controller: server,
+          enabled: serverLoaded,
           autocorrect: false,
           enableSuggestions: false,
           decoration: InputDecoration(

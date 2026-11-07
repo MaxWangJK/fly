@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../l10n/fly_localizations.dart';
 import '../../../shared/design_system/design_tokens.dart';
+import '../../../shared/design_system/model_text_field.dart';
 import '../domain/task.dart';
 import 'task_providers.dart';
 
@@ -17,6 +18,7 @@ class TaskDetailPanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final task = ref.watch(taskProvider(taskId));
     return task.when(
+      skipLoadingOnReload: true,
       loading: () => const Center(child: CircularProgressIndicator.adaptive()),
       error: (error, stack) => Center(
         child: Text(context.l10n.error(context.l10n.t('details'), error)),
@@ -74,8 +76,8 @@ class _TaskEditorState extends ConsumerState<_TaskEditor> {
     }
     _draft = widget.task;
     _syncingText = true;
-    _title.text = widget.task.title;
-    _description.text = widget.task.description;
+    _title.syncTextFromModel(widget.task.title);
+    _description.syncTextFromModel(widget.task.description);
     _syncingText = false;
   }
 

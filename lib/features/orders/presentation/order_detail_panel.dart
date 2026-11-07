@@ -17,6 +17,7 @@ import '../../../app/shell/mobile_details.dart';
 import '../../../shared/design_system/responsive_layout.dart';
 
 import '../../../shared/design_system/design_tokens.dart';
+import '../../../shared/design_system/model_text_field.dart';
 import '../../../shared/design_system/detail_section_entry.dart';
 import '../../../shared/design_system/extension_panel.dart';
 import '../../../shared/design_system/tag_container.dart';
@@ -36,6 +37,7 @@ class OrderDetailPanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final value = ref.watch(orderProvider(orderId));
     return value.when(
+      skipLoadingOnReload: true,
       loading: () => Center(child: CircularProgressIndicator.adaptive()),
       error: (error, stack) => Center(
         child: Text(
@@ -77,6 +79,7 @@ class OrderDetailPanel extends ConsumerWidget {
           costEntries: costEntries,
         );
         return Material(
+          key: ValueKey('order-details-${order.id}'),
           color: Theme.of(context).colorScheme.surface,
           child: SafeArea(
             child: ListView(
@@ -372,6 +375,7 @@ class _OrderExtensionPanelState extends ConsumerState<OrderExtensionPanel> {
         : null;
 
     return Focus(
+      key: ValueKey('order-extension-${order.id}-${widget.type.name}'),
       onKeyEvent: (node, event) {
         if (event is KeyDownEvent &&
             event.logicalKey == LogicalKeyboardKey.escape) {
@@ -1015,7 +1019,7 @@ class _ExchangeRateEditor extends StatelessWidget {
         SizedBox(
           width: 100,
           child: _AutoSaveOrderField(
-            key: ValueKey('fx-${order.exchangeRateMicros}'),
+            key: ValueKey('fx-${order.id}'),
             value: order.exchangeRateMicros <= 0
                 ? ''
                 : (roundExchangeRateMicros(order.exchangeRateMicros) / 1000000)
@@ -1079,7 +1083,7 @@ class CurrencyAmountField extends StatelessWidget {
         SizedBox(
           width: 108,
           child: _AutoSaveOrderField(
-            key: ValueKey('$label-$value-$normalized'),
+            key: ValueKey('currency-amount-$label'),
             value: (value / 100).toStringAsFixed(2),
             textAlign: TextAlign.right,
             decoration: InputDecoration(
@@ -2007,7 +2011,7 @@ class _MoneyEditor extends StatelessWidget {
       SizedBox(
         width: 132,
         child: _AutoSaveOrderField(
-          key: ValueKey('$label-$value'),
+          key: ValueKey('money-$label'),
           value: (value / 100).toStringAsFixed(2),
           textAlign: TextAlign.right,
           decoration: InputDecoration(
@@ -2096,7 +2100,7 @@ class _AutoSaveOrderFieldState extends State<_AutoSaveOrderField> {
     super.didUpdateWidget(oldWidget);
     if (widget.value != oldWidget.value &&
         _controller.text == oldWidget.value) {
-      _controller.text = widget.value;
+      _controller.syncTextFromModel(widget.value);
     }
   }
 

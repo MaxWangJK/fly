@@ -476,6 +476,7 @@ class _NotesWorkspaceState extends ConsumerState<NotesWorkspace> {
         : ref
               .watch(noteSessionProvider(selectedId!))
               .when(
+                skipLoadingOnReload: true,
                 data: (session) => _NoteDocument(
                   key: ValueKey(selectedId),
                   session: session,
