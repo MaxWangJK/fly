@@ -1,0 +1,59 @@
+{
+  "version": "2.0.19+55",
+  "sourceCommit": "8719f7be35ae1323af36351ae656de034ff14edf",
+  "sourceIncludesUncommittedAppChanges": false,
+  "branch": "codex/fly-2-sync",
+  "platform": "windows-x64",
+  "releaseDate": "2026-11-07",
+  "builtAtUtc": "2026-11-07T15:01:07.788962+00:00",
+  "databaseSchemaVersion": 20,
+  "backendMigration": "0004",
+  "backendUnchanged": true,
+  "artifacts": [
+    {
+      "name": "Fly-Setup-2.0.19-build55-testing.exe",
+      "bytes": 19084515,
+      "sha256": "EA8F41997D5BF985D0C20BCB46D9C38EB8EE37DB3E762E720B25599828783991"
+    },
+    {
+      "name": "Fly-2.0.19-build55-windows-test-20261107.zip",
+      "bytes": 24046188,
+      "sha256": "B4BD3D7F7D67DF57CAA265227CD44682C88FAB700CD3ED19729CD974C90B0226"
+    }
+  ],
+  "scopedRegressionPassed": 50,
+  "newMediaCasesPassed": 20,
+  "fullClientSuiteRerun": false,
+  "appLibTestAnalyze": "No issues found",
+  "windowsNativePlayback": {
+    "initialized": true,
+    "durationMs": 7540,
+    "width": 1280.0,
+    "height": 720.0,
+    "playedPositionMs": 2936,
+    "paused": true,
+    "volume": 0.5,
+    "sourceIsOfficialFlutterTestFixture": true,
+    "businessDatabaseOpened": false
+  },
+  "windowsNativeSmokeExitCode": 0,
+  "nativeRenderedFrameVisuallyInspected": true,
+  "playbackBackend": "fvp 0.39.1 / MDK 0.39.0",
+  "pinnedMdkArchiveSha256": "68962cd889607417529f501c5ec169d07a87abdd7359c9ae9da7fd5689300a05",
+  "originalBookReaderConfigurationVerified": true,
+  "ENABLE_LOCAL_LICENSE": false,
+  "windowsDistributionCodeSigned": false,
+  "androidRebuilt": false,
+  "latestAndroidVersion": "2.0.14+50",
+  "iosCompiled": false,
+  "iosPhysicalConversionVerified": false,
+  "androidDevicePlaybackVerified": false,
+  "productionDeploymentPerformed": false,
+  "livePhotoSingleCardGroupingImplemented": false,
+  "iOSConversionStatus": "Native implementation written; Mac/Xcode compile and iPhone HEIC/HEVC/Live/HDR verification pending",
+  "features": [
+    "iOS native compatible import with source preservation and cancellation",
+    "Same-location image gallery with zoom, swipe, keyboard, share and external open",
+    "Basic native video playback, seek, volume, in-app fullscreen, retry and background pause"
+  ]
+}

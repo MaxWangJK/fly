@@ -101,3 +101,8 @@
 ## build54（2026-11-07）统一缩略图底框
 
 实际Flutter渲染、内存数据库及临时文件：[浅色桌面](file-grid-light-build54.png)、[深色桌面1.3倍文字](file-grid-dark-build54.png)、[手机相册](file-grid-phone-build54.png)。桌面1264×800、手机430×932。横图、竖图、PDF类型封面及待下载图片统一底框；移除右上角拖出小图标，保留多选。手机截图来自桌面测试渲染，本轮没有生成新版APK或进行手机实机验收。
+
+
+## build55（2026-11-07）图片与视频查看
+
+实际Flutter渲染：[桌面图片](gallery-1200-build55.png)、[手机图片](gallery-390-build55.png)、[横屏图片](gallery-844-build55.png)、[窄屏图片](gallery-320-build55.png)；[桌面视频](video-1200-build55.png)、[手机视频](video-390-build55.png)、[横屏视频](video-844-build55.png)、[窄屏视频](video-320-build55.png)。分辨率1200×850、390×844、844×390、320×720；手机深色及1.2倍字。图片为生成测试图，视频界面使用模拟画面验证控件及布局，不冒充真实视频解码截图。另有隔离Windows程序真实播放官方示例视频的[元数据证据](../windows/20261107-build55/native-playback.json)，未访问业务数据库；原生截图及视频源仅留本地忽略目录，不纳入公开仓库。iOS与Android实机均未验收。

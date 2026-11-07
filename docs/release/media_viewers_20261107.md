@@ -34,4 +34,19 @@ SDK的FFmpeg动态库实际报告`git-2026-09-17-590fb40-avbuild`、LGPL2.1+，�
 
 ## 验证与交付
 
-验证结果、实际Windows解码证据、构建源码和安装包校验完成后补入。
+构建源码`8719f7be35ae1323af36351ae656de034ff14edf`。50项相关回归通过，其中20项新增媒体用例（8项导入、10项查看器、2项图库范围），lib/test静态检查无问题；另含30项现有文件/目录/移动/手机/输入回归，未重跑全套客户端或后台。
+
+界面测试覆盖1200×850、390×844、844×390、320×720，浅色/深色与1.2倍字、首尾切换、缩放/滑动、分享回调、同目录/客户隔离、视频进度/音量/重试、后台暂停及关闭释放。视频界面测试使用模拟播放器，不以模拟画面证明解码。
+
+独立Windows程序使用Flutter官方示例视频，实际初始化尺寸1280.0×720.0、时长7540ms，播放位置前进到2936ms，并完成暂停、跳转、音量和释放。程序未启动Fly业务界面、未打开业务数据库；[原生播放元数据](../handoff/windows/20261107-build55/native-playback.json)。这不是所有编码/显卡/Win10版本的验收，也不是Android/iOS实机证据。
+
+**iOS原生导入尚未在Mac/Xcode编译或iPhone实测；Android播放器未做实机验收，未重打APK。Live单卡归组未实现。** 普通导入、图片浏览和Windows视频可用范围、特殊编码限制见上文。
+
+[图片界面](../handoff/screenshots/gallery-390-build55.png)、[视频横屏](../handoff/screenshots/video-844-build55.png)、[构建清单](../handoff/windows/20261107-build55/manifest-Fly-2.0.19-build55-windows.json)。
+
+| 文件 | 字节数 | SHA-256 |
+| --- | --- | --- |
+| [Fly-Setup-2.0.19-build55-testing.exe](../../dist/Fly-Setup-2.0.19-build55-testing.exe) | 19084515 | `EA8F41997D5BF985D0C20BCB46D9C38EB8EE37DB3E762E720B25599828783991` |
+| [Fly-2.0.19-build55-windows-test-20261107.zip](../../dist/Fly-2.0.19-build55-windows-test-20261107.zip) | 24046188 | `B4BD3D7F7D67DF57CAA265227CD44682C88FAB700CD3ED19729CD974C90B0226` |
+
+Windows编译、安装器、ZIP完整性、视频DLL、便携SQLite及原书籍配置核验通过。测试包关闭本地授权门槛，安装器未作发行代码签名。源码与交付文档保存2.0分支，最终提交用git log -1核对。

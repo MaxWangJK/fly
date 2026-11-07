@@ -1,6 +1,11 @@
 # Fly 安装包、安卓备案与迁移台账
 
-## 最新Windows build54（2026-11-07，仅Windows）
+## 最新Windows build55（2026-11-07，仅Windows）
+
+Windows2.0.19+55新增图片连续浏览与基础视频播放，包含视频插件DLL。iOS导入转换仅完成原生实现代码，尚无Xcode编译及iPhone验收；Live单卡归组未实现。Android仍build50和原两种签名，备案字段保持。[下载、验证与边界](../release/media_viewers_20261107.md)。
+
+
+## 历史Windows build54（2026-11-07，仅Windows）
 
 Windows2.0.18+54移除文件右上角小图标并统一带底色缩略图，横竖图完整显示，PDF使用同尺寸底框。本轮不构建安卓，保留build50及原两种签名，备案字段保持。[下载及验证](../release/file_thumbnail_frames_20261107.md)。
 

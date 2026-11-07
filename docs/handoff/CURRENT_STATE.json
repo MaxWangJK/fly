@@ -1,12 +1,12 @@
 {
-  "capturedAtUtc": "2026-11-07T09:09:27.399326+00:00",
+  "capturedAtUtc": "2026-11-07T15:01:07.809962+00:00",
   "documentationOnly": false,
   "branch": "codex/fly-2-sync",
-  "releaseCommitSource": "Windows build54 22c49b0b8e9b973cf66ea9b3dd510bb982504bb2; Android remains build50",
+  "releaseCommitSource": "Windows build55 8719f7be35ae1323af36351ae656de034ff14edf; Android remains build50",
   "developmentBaseCommit": "8a5cbc58994ef817b5898aaaf979ff676363091a",
   "master": "94efdc2d9ac34feb2f3d1b635302278b4671a414",
   "gitDirectoryIsLocalFolder": true,
-  "appVersion": "2.0.18+54",
+  "appVersion": "2.0.19+55",
   "databaseSchemaVersion": 20,
   "originalSdk": {
     "frameworkVersion": "3.47.7",
@@ -23,11 +23,11 @@
     "flutterVersion": "3.47.7"
   },
   "buildStatus": "Windows installer and portable ZIP verified; Android not rebuilt per prior request",
-  "releaseReport": "../release/file_thumbnail_frames_20261107.md",
+  "releaseReport": "../release/media_viewers_20261107.md",
   "currentFeaturesIncludeUncommittedFiles": false,
-  "latestPublishedTestBundle": "Windows2.0.18+54; Android2.0.14+50 unchanged by request",
-  "verifiedClientTests": 30,
-  "clientTestsEvidence": "30 scoped file/navigation/mobile/input regression cases passed; full client suite not rerun",
+  "latestPublishedTestBundle": "Windows2.0.19+55; Android2.0.14+50 unchanged",
+  "verifiedClientTests": 50,
+  "clientTestsEvidence": "50 scoped media/file/mobile/input regression cases; native Windows video separately verified; full suite not rerun",
   "verifiedServerTests": 61,
   "websiteCoreAndHttpTests": "passed",
   "analyze": "No issues found in application lib/test",
@@ -35,26 +35,26 @@
   "latestSourceNotRepackaged": false,
   "noDeploymentPerformed": true,
   "remotePushPerformed": true,
-  "historicalUserMessagesArchived": 166,
+  "historicalUserMessagesArchived": 167,
   "textAttachmentsCopied": 19,
   "inlinePromptCopies": 2,
   "historicalTextNormalization": "Brand-neutral portable copies; SHA-256 entries refer to current bytes, with original digest retained separately.",
   "brandNeutralDocumentsAndWebsite": true,
-  "screenshotsCopied": 80,
+  "screenshotsCopied": 88,
   "developmentSkillsCopied": 4,
   "workingTreeStatusSource": "git status --short",
   "localReleaseCommitCompleted": true,
   "expectedWorkingTreeAfterReleaseCommit": "Only pre-existing unrelated web/src/site.php and fly-foreign-trade-book/ changes remain",
   "artifacts": [
     {
-      "name": "Fly-Setup-2.0.18-build54-testing.exe",
-      "bytes": 13485320,
-      "sha256": "62B4DB7EBF488675C7359E1C1CE8FCA36821E900A6387F01F07F28F461587E4F"
+      "name": "Fly-Setup-2.0.19-build55-testing.exe",
+      "bytes": 19084515,
+      "sha256": "EA8F41997D5BF985D0C20BCB46D9C38EB8EE37DB3E762E720B25599828783991"
     },
     {
-      "name": "Fly-2.0.18-build54-windows-test-20261107.zip",
-      "bytes": 16114875,
-      "sha256": "5D2A381F43954C6C96ACFC2ECB30A3F569BD3D8B71FB1C344A699A6A32F50861"
+      "name": "Fly-2.0.19-build55-windows-test-20261107.zip",
+      "bytes": 24046188,
+      "sha256": "B4BD3D7F7D67DF57CAA265227CD44682C88FAB700CD3ED19729CD974C90B0226"
     },
     {
       "name": "Fly-2.0.14-build50-android-release-signed-20261107.apk",
@@ -103,7 +103,7 @@
   "bookChapters": 16,
   "bookReaderDesktopOnly": true,
   "bookReadingStateCloudSync": false,
-  "additionalCurrentUserRequests": 39,
+  "additionalCurrentUserRequests": 40,
   "formalAndroidSigning": {
     "date": "2026-10-16",
     "appVersion": "2.0.14+50",
@@ -145,8 +145,8 @@
     "appleBuildAndDeviceAcceptance": "not performed"
   },
   "latestSourceNotRepackagedExplanation": "Windows current source packaged; Android intentionally retained at build50",
-  "localReleaseCommitHash": "22c49b0b8e9b973cf66ea9b3dd510bb982504bb2",
-  "workingTreeStatusAtCapture": "Scoped file thumbnail frames, overlay removal and delivery docs committed; original web/book work excluded",
+  "localReleaseCommitHash": "8719f7be35ae1323af36351ae656de034ff14edf",
+  "workingTreeStatusAtCapture": "Scoped media features and delivery docs committed; original web/book work excluded",
   "portableInternalIssuer": {
     "version": "1.0.0",
     "date": "2026-10-17",
@@ -181,9 +181,9 @@
     "androidBuild41LicenseGateEnabled": false,
     "sourceCommit": "311c7b3799d4d3a8fc3a0dcef867781f275a135b"
   },
-  "latestAndroidTestingUpgradePackage": "Fly-2.0.10-build46-android-test-20261102.apk",
+  "latestAndroidTestingUpgradePackage": "Fly-2.0.14-build50-android-test-20261107.apk",
   "temporaryBackendStopped": true,
-  "latestWindowsPackageVersion": "2.0.18+54",
+  "latestWindowsPackageVersion": "2.0.19+55",
   "windowsRebuiltThisTurn": true,
   "mobileUiLatestVerification": {
     "date": "2026-10-17",
@@ -469,7 +469,7 @@
   ],
   "unrelatedWorkingTreePathsRetained": [],
   "websiteHasIndependentUncommittedChanges": false,
-  "sourceCommitScope": "Uniform themed file thumbnail frames, complete image aspect ratio and removal of drag-out overlay",
+  "sourceCommitScope": "iOS import compatibility implementation, scoped image gallery and basic native video player",
   "reviewProgramIncludedInBuild43": true,
   "emailAuthIncludedInBuild43": true,
   "packagedBuild43Verification": {
@@ -550,11 +550,12 @@
     ]
   },
   "clientRegression": {
-    "distinctPassingCases": 30,
-    "scopedRegressionPassed": 30,
+    "distinctPassingCases": 50,
+    "scopedRegressionPassed": 50,
+    "newMediaCasesPassed": 20,
     "fullSuiteRerun": false,
     "logs": [
-      ".buildlog/file-frames-regression.log"
+      ".buildlog/media-regression.log"
     ]
   },
   "previouslyIndependentWebsiteChangesCommitted": true,
@@ -605,7 +606,7 @@
   },
   "backendTestsRerunThisRelease": false,
   "backendUnchangedSinceBuild44": true,
-  "remoteVerifiedSourceCommit": "22c49b0b8e9b973cf66ea9b3dd510bb982504bb2",
+  "remoteVerifiedSourceCommit": "8719f7be35ae1323af36351ae656de034ff14edf",
   "remotePushBranch": "codex/fly-2-sync",
   "build45Features": [
     "customer context PI order dialog",
@@ -633,7 +634,7 @@
     "Counts and snapshots follow quantity edits and removal",
     "Manual intent retained in compatible layoutV3 metadata"
   ],
-  "publicWindowsMetadataPath": "windows/20261107-build54/",
+  "publicWindowsMetadataPath": "windows/20261107-build55/",
   "build49Features": [
     "First cargo may enter an empty section; later cargo must target a remaining area",
     "A/B area names shared by cross section and cards; area selection and drag/drop use actual coordinates",
@@ -673,20 +674,23 @@
   ],
   "latestHandoffUpdate": {
     "date": "2026-11-07",
-    "documentationOnly": true,
-    "requirement": "FILE-24",
-    "status": "not-developed",
-    "document": "IOS_MEDIA_IMPORT_PLAN.md",
-    "appCodeChanged": false,
-    "packagesRebuilt": false,
-    "viewerRecommendationsAreConfirmedRequirements": false
+    "documentationOnly": false,
+    "requirement": "FILE-25",
+    "status": "implemented-with-platform-verification-pending",
+    "document": "../release/media_viewers_20261107.md",
+    "appCodeChanged": true,
+    "packagesRebuilt": "Windows only",
+    "viewerRecommendationsAreConfirmedRequirements": true
   },
   "iosMediaImportCompatibility": {
-    "requirement": "FILE-24",
-    "status": "not-developed",
+    "requirement": "FILE-24/25",
+    "status": "native-implementation-written-ios-build-and-device-tests-pending",
     "targetPlatforms": [
       "Android",
       "Windows10"
+    ],
+    "conversionImplementationPlatforms": [
+      "iOS"
     ],
     "targetImageFormats": [
       "JPG",
@@ -694,9 +698,26 @@
     ],
     "suggestedVideoFormat": "MP4/H.264/AAC",
     "livePhotoStaticAndMotionContentRequired": true,
+    "liveRepresentation": "two ordinary files with paired base names; single-card grouping not implemented",
     "sourceMediaPreserved": true,
     "cloudMediaSyncEnabled": false,
     "iosPhysicalDeviceVerified": false,
-    "document": "IOS_MEDIA_IMPORT_PLAN.md"
+    "document": "../release/media_viewers_20261107.md"
+  },
+  "build55Features": [
+    "iOS native compatible import with source preservation and cancellation",
+    "Same-location image gallery with zoom, swipe, keyboard, share and external open",
+    "Basic native video playback, seek, volume, in-app fullscreen, retry and background pause"
+  ],
+  "windowsNativeVideoVerification": {
+    "initialized": true,
+    "durationMs": 7540,
+    "width": 1280.0,
+    "height": 720.0,
+    "playedPositionMs": 2936,
+    "paused": true,
+    "volume": 0.5,
+    "sourceIsOfficialFlutterTestFixture": true,
+    "businessDatabaseOpened": false
   }
 }
