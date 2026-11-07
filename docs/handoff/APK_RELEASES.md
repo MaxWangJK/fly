@@ -1,6 +1,11 @@
 # Fly 安装包、安卓备案与迁移台账
 
-## 当前build50（2026-11-07）
+## 最新Windows build51（2026-11-07，仅Windows）
+
+Windows2.0.15+51修复手动12×20按一整组240件展示、允许超出柜体并标红。按用户要求只构建Windows，安卓最新仍为下面build50及原两种签名；没有新增安卓包或更改备案字段。[下载及验证](../release/manual_grid_20261107.md)。
+
+
+## 当前Android / 历史Windows build50（2026-11-07）
 
 Windows/Android2.0.14+50修复输入连续性，保留原两种安卓签名、包名及备案证书。按已有安装身份选择正式包或原测试升级包，不混用覆盖。
 [下载、修复和核验](../release/input_continuity_20261107.md)、[build50公开清单与备案](apk/20261107-build50/README.md)。SQLite20、后台0004不变；Git不包含安装包与私有配置，真机输入法仍需用户验收。

@@ -14,4 +14,12 @@ SQLite20及后台0004不变。只构建Windows安装器和便携包，安卓最�
 
 ## 验证与交付
 
-最终测试、截图、源码提交及安装包校验将在核验后补入。测试仅使用内存数据库和合成的同尺寸/重量PVC，不读取真实业务数据。
+构建源码`89f9a3a28124cd541a3958d89d2cfd26ef74983e`。95项相关回归通过，新增6项手动整组用例覆盖160+48旧算法复现、12×20单组、超宽/超高、0件/重填、朝向、居中/靠右、保存重开及刷新柜型。应用lib/test静态检查无问题；未重跑整个客户端或后台测试。测试仅使用内存数据库和合成的同尺寸/重量PVC，不读取真实业务数据。
+
+
+| 文件 | 字节数 | SHA-256 |
+| --- | --- | --- |
+| [Fly-Setup-2.0.15-build51-testing.exe](../../dist/Fly-Setup-2.0.15-build51-testing.exe) | 13479196 | `29C7E356CAAB3B3BAA2A7BD0019FF45A2846061979FC657ED7977FDF3E58A33C` |
+| [Fly-2.0.15-build51-windows-test-20261107.zip](../../dist/Fly-2.0.15-build51-windows-test-20261107.zip) | 16106041 | `F3BC82EF1C5DB9C7F890396C6EC43AD8FF28DC569D6133316E781DFAC563A50C` |
+
+[公开清单](../handoff/windows/20261107-build51/manifest-Fly-2.0.15-build51-windows.json)、[240件单组剖面与3D](../handoff/screenshots/manual-grid-build51-light.png)、[深色大文字](../handoff/screenshots/manual-grid-build51-dark.png)。Windows编译、安装器/ZIP完整性及原书籍配置核验通过；安装器未作发行代码签名。安卓保持build50，本轮没有构建安卓。源码与交付记录提交推送2.0分支，最终提交用git log -1核对。

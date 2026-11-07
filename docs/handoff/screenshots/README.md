@@ -80,3 +80,9 @@
 [PVC160+WPC60](cargo-area-build49-loaded-light.png)、[深色装载](cargo-area-build49-loaded-dark.png)、
 [右键](cargo-area-build49-menu-light.png)、[深色右键](cargo-area-build49-menu-dark.png)。
 区域卡与剖面同名，空闲区域选择/拖放添加，WPC从上方加入并在3D可见，菜单提供XYZ旋转和移除。
+
+
+## build51（2026-11-07）手动12×20单组与越界
+
+真实Flutter组件、1200×1000：[浅色](manual-grid-build51-light.png)、[深色1.3倍文字](manual-grid-build51-dark.png)。
+合成PVC为2900×250×100mm、20kg，柜宽2200mm。输入12×20后剖面仅标记一组PVC×240，3D同组，保留超宽800mm并标红；理论208仅供参考。
