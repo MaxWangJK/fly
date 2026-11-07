@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 
 import '../data/file_browser_query.dart';
+import 'file_name_label.dart';
 
 enum FileViewMode { small, medium, list }
 
@@ -75,15 +76,17 @@ class FileEntryContent extends StatelessWidget {
         ?.copyWith(fontSize: 13);
     final metadata = Theme.of(context).textTheme.bodySmall
         ?.copyWith(fontSize: 12);
-    Widget label(String value, {bool name = false}) => Tooltip(
-      message: value,
-      child: Text(
-        value,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: name ? nameStyle : metadata,
-      ),
-    );
+    Widget label(String value, {bool name = false}) => name
+        ? FileNameLabel(name: value, style: nameStyle)
+        : Tooltip(
+            message: value,
+            child: Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: name ? nameStyle : metadata,
+            ),
+          );
     if (mode == FileViewMode.list) {
       if (compact) {
         return Padding(
@@ -97,12 +100,7 @@ class FileEntryContent extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      entry.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: nameStyle,
-                    ),
+                    FileNameLabel(name: entry.name, style: nameStyle),
                     const SizedBox(height: 4),
                     Text(
                       '${fileSizeLabel(entry.file.fileSize)} · ${DateFormat('MM-dd HH:mm').format(entry.file.updatedAt)}',

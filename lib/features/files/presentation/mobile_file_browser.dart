@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../shared/design_system/model_text_field.dart';
+import 'file_grid_visuals.dart';
 
 class MobileFileFolder {
   const MobileFileFolder({
@@ -134,7 +135,9 @@ class MobileFileFoldersSliver extends StatelessWidget {
       if (list) {
         return ListTile(
           key: ValueKey('mobile-file-folder-${folder.id}'),
-          leading: Icon(folder.icon, color: colors.primary, size: 36),
+          leading: folder.icon == Icons.folder_rounded
+              ? FileFolderVisual(seed: folder.id, compact: true)
+              : Icon(folder.icon, color: colors.primary, size: 36),
           title: Text(folder.name),
           subtitle: folder.subtitle == null ? null : Text(folder.subtitle!),
           trailing: const Icon(Icons.chevron_right),
@@ -155,7 +158,10 @@ class MobileFileFoldersSliver extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(folder.icon, color: colors.primary, size: 54),
+                if (folder.icon == Icons.folder_rounded)
+                  FileFolderVisual(seed: folder.id)
+                else
+                  Icon(folder.icon, color: colors.primary, size: 54),
                 const SizedBox(height: 8),
                 Text(
                   folder.name,

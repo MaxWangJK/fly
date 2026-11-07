@@ -36,6 +36,8 @@ import '../data/platform_file_transfer.dart';
 import 'file_providers.dart';
 import 'file_entry_content.dart';
 import 'file_grid_visuals.dart';
+import 'file_name_label.dart';
+import 'file_path_bar.dart';
 import '../../../shared/design_system/responsive_layout.dart';
 import '../../../shared/design_system/mobile_workspace_actions.dart';
 import '../../../app/shell/mobile_details.dart';
@@ -55,7 +57,8 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
   FileSort sort = FileSort.modified;
   String? folderId, selectedId, cutId;
   String search = '';
-  bool includeChildren = false, importing = false;
+  final _desktopSearchController = TextEditingController();
+  bool importing = false;
   FileViewMode viewMode = FileViewMode.small;
   bool _viewInitialized = false;
   bool imagesFirst = true;
@@ -160,7 +163,6 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
         folderId = saved.folderId;
       }
       imagesFirst = saved.imagesFirst;
-      includeChildren = saved.includeChildren;
       _showCustomerFolder = saved.showCustomerFolder;
       if (!phone) {
         tags.addAll(saved.fileTags);
@@ -188,7 +190,7 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
       folderId: folderId,
       sort: sort,
       imagesFirst: imagesFirst,
-      includeChildren: includeChildren,
+      includeChildren: false,
       fileTags: {...tags},
       customerTags: {...customerTags},
       showCustomerFolder: _showCustomerFolder,
@@ -583,6 +585,8 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
   }
 
   void select(FileCollection value, [String? folder]) {
+    search = '';
+    _desktopSearchController.clear();
     if (isPhoneLayout(context)) {
       _mobileHome = false;
       search = '';
@@ -612,6 +616,7 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
   @override
   void dispose() {
     cancellation?.cancel();
+    _desktopSearchController.dispose();
     super.dispose();
   }
 
@@ -968,7 +973,7 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
               ],
               PopupMenuItem(
                 value: 'info',
-                child: Text(context.l10n.t('details')),
+                child: Text(context.l10n.t('filesDetails')),
               ),
             ],
           );
@@ -1083,9 +1088,10 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
           await showDialog<void>(
             context: context,
             builder: (c) => AlertDialog(
-              title: Text(entry.name),
+              key: const ValueKey('file-details-dialog'),
+              title: Text(context.l10n.t('filesDetails')),
               content: SelectableText(
-                '${f.mimeType}\n${f.fileSize} bytes\n${context.l10n.t('fileModified')}: ${f.updatedAt}\n${entry.customerName}\n$path',
+                '${entry.name}\n${f.mimeType}\n${f.fileSize} bytes\n${context.l10n.t('fileModified')}: ${f.updatedAt}\n${entry.customerName}\n$path',
               ),
               actions: [
                 TextButton(
@@ -1119,7 +1125,7 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
     rows ??= FileBrowserQuery(ref.read(databaseProvider)).watch(
       collection: homeSearch ? FileCollection.recent : collection,
       folderId: folderId,
-      descendants: phone ? search.trim().isNotEmpty : includeChildren,
+      descendants: search.trim().isNotEmpty,
       search: search,
       fileTags: !phone && locateId == null ? tags : const {},
       sort: sort,
@@ -1218,9 +1224,8 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
               color: context.flyColors.surface,
               child: Padding(
                 padding: const EdgeInsets.all(12),
-                child: Wrap(
-                  spacing: 8,
-                  crossAxisAlignment: WrapCrossAlignment.center,
+                child: Row(
+                  key: const ValueKey('desktop-files-toolbar'),
                   children: [
                     IconButton(
                       key: const ValueKey('files-multi-select'),
@@ -1230,138 +1235,6 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
                           : () => _setSelecting(!_selecting),
                       icon: Icon(_selecting ? Icons.close : Icons.checklist),
                     ),
-                    if (isPhoneLayout(context))
-                      IconButton(
-                        tooltip: context.l10n.t('filesFolders'),
-                        icon: const Icon(Icons.folder_outlined),
-                        onPressed: () => showModalBottomSheet<void>(
-                          context: context,
-                          useSafeArea: true,
-                          builder: (_) => SizedBox(
-                            height: MediaQuery.sizeOf(context).height * .7,
-                            child: tree,
-                          ),
-                        ),
-                      ),
-                    TextButton(
-                      onPressed: () => select(FileCollection.folder),
-                      child: Text(context.l10n.t('filesRoot')),
-                    ),
-                    if (collection == FileCollection.folder)
-                      ..._breadcrumbs(folders.valueOrNull ?? []),
-                    if (collection != FileCollection.folder)
-                      Text(switch (collection) {
-                        FileCollection.recent => context.l10n.t('noteRecent'),
-                        FileCollection.customers => context.l10n.t(
-                          'filesCustomers',
-                        ),
-                        FileCollection.deleted => context.l10n.t('noteDeleted'),
-                        _ => '',
-                      }),
-                    PopupMenuButton<FileViewMode>(
-                      key: const ValueKey('file-view-mode'),
-                      tooltip: context.l10n.t('fileViewMode'),
-                      initialValue: viewMode,
-                      onSelected: (value) {
-                        setState(() => viewMode = value);
-                        _savePreferences();
-                      },
-                      icon: Icon(
-                        viewMode == FileViewMode.list
-                            ? Icons.view_list_outlined
-                            : Icons.grid_view,
-                      ),
-                      itemBuilder: (_) => [
-                        for (final mode
-                            in isPhoneLayout(context)
-                                ? [FileViewMode.small, FileViewMode.list]
-                                : FileViewMode.values)
-                          CheckedPopupMenuItem(
-                            value: mode,
-                            checked: viewMode == mode,
-                            child: Text(
-                              isPhoneLayout(context) &&
-                                      mode == FileViewMode.small
-                                  ? '相册'
-                                  : context.l10n.t('fileView_${mode.name}'),
-                            ),
-                          ),
-                      ],
-                    ),
-                    if (isPhoneLayout(context))
-                      PopupMenuButton<bool>(
-                        key: const ValueKey('file-kind-order'),
-                        tooltip: '图片和文件顺序',
-                        icon: const Icon(Icons.swap_vert),
-                        onSelected: (v) {
-                          setState(() => imagesFirst = v);
-                          _savePreferences();
-                        },
-                        itemBuilder: (_) => [
-                          for (final value in [true, false])
-                            CheckedPopupMenuItem(
-                              value: value,
-                              checked: imagesFirst == value,
-                              child: Text(value ? '图片在前' : '文件在前'),
-                            ),
-                        ],
-                      ),
-                    TextButton.icon(
-                      onPressed: () => attempt(filters),
-                      icon: const Icon(Icons.filter_list, size: 18),
-                      label: Text(
-                        '${context.l10n.t('filesTagFilter')}${tags.isEmpty && (collection != FileCollection.customers || customerTags.isEmpty) ? '' : ' (${tags.length + (collection == FileCollection.customers ? customerTags.length : 0)})'}',
-                      ),
-                    ),
-                    PopupMenuButton<FileSort>(
-                      tooltip: context.l10n.t('filesSort'),
-                      initialValue: sort,
-                      onSelected: (v) {
-                        sort = v;
-                        reload();
-                        _savePreferences();
-                      },
-                      itemBuilder: (_) => [
-                        for (final s in FileSort.values)
-                          PopupMenuItem(
-                            value: s,
-                            child: Text(switch (s) {
-                              FileSort.modified => context.l10n.t(
-                                'fileModified',
-                              ),
-                              FileSort.created => context.l10n.t(
-                                'filesCreated',
-                              ),
-                              FileSort.name => context.l10n.t('filesName'),
-                              FileSort.type => context.l10n.t('filesType'),
-                              FileSort.size => context.l10n.t('filesSize'),
-                            }),
-                          ),
-                      ],
-                    ),
-                    if (!isPhoneLayout(context) &&
-                        (collection == FileCollection.folder ||
-                            collection == FileCollection.recent))
-                      TextButton.icon(
-                        onPressed: importing
-                            ? null
-                            : () => attempt(() async {
-                                final files = await openFiles();
-                                await importPicked(files);
-                              }),
-                        icon: const Icon(Icons.file_upload_outlined),
-                        label: Text(context.l10n.t('filesImport')),
-                      ),
-                    if (!isPhoneLayout(context) &&
-                        (Platform.isAndroid || Platform.isIOS) &&
-                        (collection == FileCollection.folder ||
-                            collection == FileCollection.recent))
-                      TextButton.icon(
-                        key: const ValueKey('file-take-photo'),
-                        onPressed: importing ? null : () => attempt(takePhoto),
-                        icon: const Icon(Icons.camera_alt_outlined),
-                        label: Text(context.l10n.isZh ? '拍照上传' : 'Take photo'),
-                      ),
                     if (cutId != null && collection == FileCollection.folder)
                       TextButton(
                         onPressed: () => attempt(() async {
@@ -1372,6 +1245,39 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
                         }),
                         child: Text(context.l10n.t('filesPaste')),
                       ),
+                    if (collection == FileCollection.folder ||
+                        collection == FileCollection.recent)
+                      Expanded(
+                        child: Align(
+                          alignment: AlignmentDirectional.centerEnd,
+                          child: TextButton.icon(
+                            key: const ValueKey('files-import'),
+                            onPressed: importing
+                                ? null
+                                : () => attempt(() async {
+                                    await importPicked(await openFiles());
+                                  }),
+                            icon: const Icon(Icons.file_upload_outlined),
+                            label: Text(
+                              context.l10n.t('filesImport'),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      const Spacer(),
+                    if ((Platform.isAndroid || Platform.isIOS) &&
+                        (collection == FileCollection.folder ||
+                            collection == FileCollection.recent))
+                      IconButton(
+                        key: const ValueKey('file-take-photo'),
+                        tooltip: _phoneText('拍照上传', 'Take photo'),
+                        onPressed: importing ? null : () => attempt(takePhoto),
+                        icon: const Icon(Icons.camera_alt_outlined),
+                      ),
+                    _desktopSettings(),
                   ],
                 ),
               ),
@@ -1382,6 +1288,8 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: TextField(
+                    key: const ValueKey('file-search-input'),
+                    controller: _desktopSearchController,
                     decoration: InputDecoration(
                       prefixIcon: const Icon(Icons.search),
                       hintText: context.l10n.t('filesSearch'),
@@ -1394,22 +1302,7 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
                   ),
                 ),
               ),
-            if (collection == FileCollection.folder)
-              Material(
-                type: MaterialType.transparency,
-                child: CheckboxListTile(
-                  dense: true,
-                  controlAffinity: ListTileControlAffinity.leading,
-                  title: Text(context.l10n.t('filesIncludeChildren')),
-                  value: includeChildren,
-                  onChanged: (v) {
-                    includeChildren = v == true;
-                    reload();
-                    _selectedFiles.clear();
-                    _savePreferences();
-                  },
-                ),
-              ),
+            _filePath(folders.valueOrNull ?? []),
             if (importing)
               Row(
                 children: [
@@ -1589,6 +1482,17 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
         children: [
           ListTile(title: Text(folder.name)),
           ListTile(
+            leading: const Icon(Icons.folder_open_outlined),
+            title: Text(context.l10n.t('filesOpen')),
+            onTap: () => Navigator.pop(sheet, 'open'),
+          ),
+          ListTile(
+            key: const ValueKey('folder-context-move'),
+            leading: const Icon(Icons.drive_file_move_outlined),
+            title: Text(context.l10n.t('filesMove')),
+            onTap: () => Navigator.pop(sheet, 'move'),
+          ),
+          ListTile(
             leading: const Icon(Icons.drive_file_rename_outline),
             title: Text(context.l10n.t('rename')),
             onTap: () => Navigator.pop(sheet, 'rename'),
@@ -1608,6 +1512,14 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
       ),
     );
     if (!mounted) return;
+    if (action == 'open') {
+      select(FileCollection.folder, folder.id);
+      return;
+    }
+    if (action == 'move') {
+      await attempt(() => _moveFolder(folder));
+      return;
+    }
     if (action == 'delete') {
       await folderDelete(folder);
       return;
@@ -1655,7 +1567,7 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
 
   Widget _phoneMoreMenu(bool crm) => PopupMenuButton<String>(
     key: const ValueKey('file-more-menu'),
-    tooltip: _phoneText('更多选项', 'More options'),
+    tooltip: context.l10n.t('settings'),
     enabled: !_batchBusy,
     icon: const Icon(Icons.more_horiz),
     onSelected: (action) {
@@ -1813,16 +1725,6 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
         ? ref.watch(deletedFileFoldersProvider).valueOrNull ??
               <WorkspaceFolder>[]
         : <WorkspaceFolder>[];
-    final title = _mobileHome
-        ? null
-        : switch (collection) {
-            FileCollection.customers => context.l10n.t('filesCustomers'),
-            FileCollection.deleted => context.l10n.t('noteDeleted'),
-            FileCollection.recent => context.l10n.t('noteRecent'),
-            FileCollection.folder =>
-              all.where((f) => f.id == folderId).firstOrNull?.name ??
-                  _phoneText('未分类文件', 'Unfiled files'),
-          };
     return PopScope(
       canPop: _mobileHome,
       onPopInvokedWithResult: (didPop, _) {
@@ -1850,7 +1752,6 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
             children: [
               MobileFilesHeader(
                 query: search,
-                title: title,
                 searchHint: _phoneText('搜索文件和文件夹', 'Search files and folders'),
                 onBack: () => _phoneBack(all),
                 menu: _phoneMoreMenu(crm),
@@ -1860,6 +1761,7 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
                   reload();
                 },
               ),
+              if (!_mobileHome) _filePath(all),
               if (importing)
                 Row(
                   children: [
@@ -1982,23 +1884,120 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
         ],
       );
 
-  List<Widget> _breadcrumbs(List<WorkspaceFolder> folders) {
+  Widget _desktopSettings() => PopupMenuButton<Object>(
+    key: const ValueKey('files-settings'),
+    tooltip: context.l10n.t('settings'),
+    icon: const Icon(Icons.more_vert),
+    onSelected: (value) async {
+      if (value is FileViewMode) {
+        setState(() => viewMode = value);
+      } else if (value is FileSort) {
+        sort = value;
+        reload();
+      } else if (value == 'tags') {
+        await attempt(filters);
+      } else if (value == 'clear') {
+        tags.clear();
+        customerTags.clear();
+        _selectedFiles.clear();
+        reload();
+      }
+      if (mounted) _savePreferences();
+    },
+    itemBuilder: (_) => [
+      PopupMenuItem<Object>(
+        enabled: false,
+        child: Text(context.l10n.t('fileViewMode')),
+      ),
+      for (final mode in FileViewMode.values)
+        CheckedPopupMenuItem<FileViewMode>(
+          key: ValueKey('files-settings-view-${mode.name}'),
+          value: mode,
+          checked: viewMode == mode,
+          child: Text(context.l10n.t('fileView_${mode.name}')),
+        ),
+      const PopupMenuDivider(),
+      PopupMenuItem<Object>(
+        enabled: false,
+        child: Text(context.l10n.t('filesSort')),
+      ),
+      for (final option in FileSort.values)
+        CheckedPopupMenuItem<FileSort>(
+          key: ValueKey('files-settings-sort-${option.name}'),
+          value: option,
+          checked: sort == option,
+          child: Text(
+            context.l10n.t(switch (option) {
+              FileSort.modified => 'fileModified',
+              FileSort.created => 'filesCreated',
+              FileSort.name => 'filesName',
+              FileSort.type => 'filesType',
+              FileSort.size => 'filesSize',
+            }),
+          ),
+        ),
+      const PopupMenuDivider(),
+      PopupMenuItem<Object>(
+        value: 'tags',
+        child: Text(
+          '${context.l10n.t('filesTagFilter')}${tags.isEmpty && customerTags.isEmpty ? '' : ' (${tags.length + customerTags.length})'}',
+        ),
+      ),
+      if (tags.isNotEmpty || customerTags.isNotEmpty)
+        PopupMenuItem<Object>(
+          value: 'clear',
+          child: Text(context.l10n.t('filesClear')),
+        ),
+    ],
+  );
+
+  Widget _filePath(List<WorkspaceFolder> folders) {
     final path = <WorkspaceFolder>[];
     final seen = <String>{};
     var id = folderId;
-    while (id != null && seen.add(id)) {
-      final f = folders.where((f) => f.id == id).firstOrNull;
-      if (f == null) break;
-      path.insert(0, f);
-      id = f.parentId;
+    while (collection == FileCollection.folder && id != null && seen.add(id)) {
+      final folder = folders.where((f) => f.id == id).firstOrNull;
+      if (folder == null) break;
+      path.insert(0, folder);
+      id = folder.parentId;
     }
-    return [
-      for (final f in path)
-        TextButton(
-          onPressed: () => select(FileCollection.folder, f.id),
-          child: Text('› ${f.name}'),
-        ),
-    ];
+    final collectionTitle = switch (collection) {
+      FileCollection.recent => context.l10n.t('noteRecent'),
+      FileCollection.customers => context.l10n.t('filesCustomers'),
+      FileCollection.deleted => context.l10n.t('noteDeleted'),
+      FileCollection.folder =>
+        isPhoneLayout(context) && folderId == null
+            ? _phoneText('未分类文件', 'Unfiled files')
+            : null,
+    };
+    return FilePathBar(
+      path: path,
+      collectionTitle: collectionTitle,
+      onHome: isPhoneLayout(context)
+          ? _phoneHome
+          : () => select(FileCollection.folder),
+      onFolder: (id) => select(FileCollection.folder, id),
+      onBack: isPhoneLayout(context) && !_mobileHome
+          ? () => _phoneBack(folders)
+          : null,
+    );
+  }
+
+  Future<void> _moveFolder(WorkspaceFolder folder) async {
+    final target = await showFileMoveDialog(
+      context,
+      fileName: folder.name,
+      currentFolderId: folder.parentId,
+      movingFolderId: folder.id,
+    );
+    if (target == null || !mounted) return;
+    await ref
+        .read(fileFolderRepositoryProvider)
+        .move(folder.id, target.isEmpty ? null : target);
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(context.l10n.t('filesFolderMoved'))));
   }
 
   List<WorkspaceFolder> _desktopDirectories(List<WorkspaceFolder> items) =>
@@ -2022,11 +2021,19 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
         Offset.zero & overlay.size,
       ),
       items: [
+        PopupMenuItem(value: 'open', child: Text(context.l10n.t('filesOpen'))),
+        PopupMenuItem(
+          key: const ValueKey('folder-context-move'),
+          value: 'move',
+          child: Text(context.l10n.t('filesMove')),
+        ),
         PopupMenuItem(value: 'rename', child: Text(context.l10n.t('rename'))),
         PopupMenuItem(value: 'delete', child: Text(context.l10n.t('delete'))),
       ],
     );
     if (!mounted) return;
+    if (action == 'open') select(FileCollection.folder, folder.id);
+    if (action == 'move') await attempt(() => _moveFolder(folder));
     if (action == 'delete') await folderDelete(folder);
     if (action == 'rename' && mounted) {
       final name = await workspaceNameDialog(
@@ -2053,8 +2060,8 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
       mainAxisSpacing: 8,
     );
     final folderGrid = SliverGridDelegateWithMaxCrossAxisExtent(
-      maxCrossAxisExtent: small ? 104 : 144,
-      mainAxisExtent: (small ? 94 : 122) + extraTextHeight,
+      maxCrossAxisExtent: small ? 112 : 152,
+      mainAxisExtent: (small ? 100 : 130) + extraTextHeight,
       crossAxisSpacing: 8,
       mainAxisSpacing: 4,
     );
@@ -2069,7 +2076,7 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
         child: viewMode == FileViewMode.list
             ? ListTile(
                 key: ValueKey('desktop-folder-list-${folder.id}'),
-                leading: const Icon(Icons.folder_rounded),
+                leading: FileFolderVisual(seed: folder.id, compact: true),
                 title: Text(folder.name),
                 onTap: () => select(FileCollection.folder, folder.id),
               )
@@ -2332,11 +2339,7 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
               ),
               Padding(
                 padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  entry.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                child: FileNameLabel(name: entry.name),
               ),
             ],
           )

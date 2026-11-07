@@ -155,17 +155,17 @@ void main() {
       await capture(tester, 'folders');
       await tester.tap(find.byKey(ValueKey('desktop-file-folder-$parent')));
       await settle(tester);
-      expect(find.text('产品价格表.pdf'), findsOneWidget);
-      expect(find.text('安装手册.pdf'), findsNothing);
+      expect(find.byTooltip('产品价格表.pdf'), findsOneWidget);
+      expect(find.byTooltip('安装手册.pdf'), findsNothing);
       expect(find.text('室内产品'), findsOneWidget);
       expect(find.byTooltip('展开'), findsNothing);
       await tester.tap(find.text('室内产品'));
       await settle(tester);
-      expect(find.text('安装手册.pdf'), findsOneWidget);
-      expect(find.text('产品价格表.pdf'), findsNothing);
-      await tester.tap(find.text('› 产品资料'));
+      expect(find.byTooltip('安装手册.pdf'), findsOneWidget);
+      expect(find.byTooltip('产品价格表.pdf'), findsNothing);
+      await tester.tap(find.byKey(ValueKey('file-path-folder-$parent')));
       await settle(tester);
-      expect(find.text('产品价格表.pdf'), findsOneWidget);
+      expect(find.byTooltip('产品价格表.pdf'), findsOneWidget);
       await tester.tapAt(
         tester.getBottomRight(browser) - const Offset(24, 24),
         kind: PointerDeviceKind.mouse,
@@ -188,10 +188,10 @@ void main() {
         ),
       );
       await settle(tester);
-      expect(find.text('› 空白处新建'), findsOneWidget);
-      await tester.tap(find.text('› 产品资料'));
+      expect(find.text('空白处新建'), findsOneWidget);
+      await tester.tap(find.byKey(ValueKey('file-path-folder-$parent')));
       await settle(tester);
-      await tester.tap(find.byTooltip('视图模式'));
+      await tester.tap(find.byKey(const ValueKey('files-settings')));
       await settle(tester);
       await tester.tap(
         find.widgetWithText(CheckedPopupMenuItem<FileViewMode>, '小图标'),
@@ -204,13 +204,13 @@ void main() {
         FileViewMode.small,
       );
       await capture(tester, 'small');
-      await tester.tap(find.text('产品价格表.pdf'));
+      await tester.tap(find.byTooltip('产品价格表.pdf'));
       await settle(tester);
       expect(find.byKey(const ValueKey('file-preview-price')), findsNothing);
       expect(opener.paths.single, endsWith('price.pdf'));
       expect(find.text('使用系统程序打开'), findsNothing);
       await capture(tester, 'preview');
-      await tester.tap(find.byTooltip('视图模式'));
+      await tester.tap(find.byKey(const ValueKey('files-settings')));
       await settle(tester);
       await tester.tap(
         find.widgetWithText(CheckedPopupMenuItem<FileViewMode>, '中图标'),
@@ -223,7 +223,7 @@ void main() {
         FileViewMode.medium,
       );
       expect(find.byKey(const ValueKey('file-preview-price')), findsNothing);
-      await tester.tap(find.byTooltip('视图模式'));
+      await tester.tap(find.byKey(const ValueKey('files-settings')));
       await settle(tester);
       await tester.tap(
         find.widgetWithText(CheckedPopupMenuItem<FileViewMode>, '列表'),

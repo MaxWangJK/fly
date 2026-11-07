@@ -4,10 +4,16 @@ import '../../../shared/design_system/design_tokens.dart';
 
 /// A small folder with layered paper, drawn at the actual icon size.
 class FileFolderVisual extends StatelessWidget {
-  const FileFolderVisual({required this.seed, this.large = false, super.key});
+  const FileFolderVisual({
+    required this.seed,
+    this.large = false,
+    this.compact = false,
+    super.key,
+  });
 
   final String seed;
   final bool large;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -28,8 +34,16 @@ class FileFolderVisual extends StatelessWidget {
     final front = Color.lerp(scheme.surface, tint, dark ? .42 : .32)!;
     final back = Color.lerp(scheme.surface, tint, dark ? .58 : .48)!;
     return SizedBox(
-      width: large ? 100 : 64,
-      height: large ? 72 : 48,
+      width: compact
+          ? 36
+          : large
+          ? 108
+          : 72,
+      height: compact
+          ? 27
+          : large
+          ? 78
+          : 54,
       child: CustomPaint(
         painter: _FolderPainter(
           front,

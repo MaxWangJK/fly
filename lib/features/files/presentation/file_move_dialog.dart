@@ -13,12 +13,14 @@ Future<String?> showFileMoveDialog(
   required String? currentFolderId,
   Set<String?>? currentFolderIds,
   String? hint,
+  String? movingFolderId,
 }) => showDialog<String>(
   context: context,
   builder: (_) => _FileMoveDialog(
     fileName: fileName,
     currentFolderIds: currentFolderIds ?? {currentFolderId},
     hint: hint,
+    movingFolderId: movingFolderId,
   ),
 );
 
@@ -27,11 +29,13 @@ class _FileMoveDialog extends ConsumerStatefulWidget {
     required this.fileName,
     required this.currentFolderIds,
     this.hint,
+    this.movingFolderId,
   });
 
   final String fileName;
   final Set<String?> currentFolderIds;
   final String? hint;
+  final String? movingFolderId;
 
   @override
   ConsumerState<_FileMoveDialog> createState() => _FileMoveDialogState();
@@ -45,6 +49,12 @@ class _FileMoveDialogState extends ConsumerState<_FileMoveDialog> {
     final folders = ref.watch(fileFoldersProvider);
     final items = folders.valueOrNull ?? <WorkspaceFolder>[];
     final byId = {for (final folder in items) folder.id: folder};
+    final moving = byId[widget.movingFolderId];
+    final excluded = widget.movingFolderId == null
+        ? <String>{}
+        : ref
+              .read(fileFolderRepositoryProvider)
+              .descendants(widget.movingFolderId!, items);
     final current = byId[_folderId];
     final valid = _folderId == null || current != null;
     final path = <String>[];
@@ -56,18 +66,28 @@ class _FileMoveDialogState extends ConsumerState<_FileMoveDialog> {
     }
     final root = context.l10n.t('filesRoot');
     final destination = [root, ...path].join(' / ');
-    final children = items.where((f) => f.parentId == _folderId).toList();
+    final children = items
+        .where((f) => f.parentId == _folderId && !excluded.contains(f.id))
+        .toList();
     final canMove =
         folders.hasValue &&
         !folders.isLoading &&
         !folders.hasError &&
         valid &&
+        (widget.movingFolderId == null || moving != null) &&
+        !excluded.contains(_folderId) &&
         widget.currentFolderIds.any((id) => id != _folderId);
 
     return AlertDialog(
       key: const ValueKey('file-move-dialog'),
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      title: Text(context.l10n.t('filesMoveTitle')),
+      title: Text(
+        context.l10n.t(
+          widget.movingFolderId == null
+              ? 'filesMoveTitle'
+              : 'filesMoveFolderTitle',
+        ),
+      ),
       content: SizedBox(
         width: 440,
         height: (MediaQuery.sizeOf(context).height * .4).clamp(140, 360),

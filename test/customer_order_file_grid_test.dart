@@ -257,9 +257,9 @@ void main() {
           );
           expect(
             tester.getSize(folderTile).height,
-            lessThanOrEqualTo(dark ? 110 : 94),
+            lessThanOrEqualTo(dark ? 114 : 100),
           );
-          expect(tester.getSize(folderTile).width, lessThanOrEqualTo(104));
+          expect(tester.getSize(folderTile).width, lessThanOrEqualTo(112));
           expect(find.byType(FileFolderVisual), findsNWidgets(3));
           final photoArea = find.byKey(const ValueKey('file-grid-visual-door'));
           expect(tester.getSize(photoArea).width, greaterThan(85));
@@ -272,7 +272,7 @@ void main() {
             dark ? 'file-grid-dark' : 'file-grid-light',
           );
           // PDF keeps direct system opening; image opens Fly's full image viewer.
-          await tester.tap(find.text('PI-COAST-0015.pdf'));
+          await tester.tap(find.byTooltip('PI-COAST-0015.pdf'));
           await ui.settle(tester);
           expect(opener.paths.single, endsWith('PI-COAST-0015.pdf'));
           await tester.tap(find.text('木门.png'));
@@ -307,7 +307,7 @@ void main() {
           await tester.tap(find.text('取消').last);
           await ui.settle(tester);
           for (final name in ['中图标', '列表']) {
-            await tester.tap(find.byTooltip('视图模式'));
+            await tester.tap(find.byKey(const ValueKey('files-settings')));
             await ui.settle(tester);
             await tester.tap(
               find.widgetWithText(CheckedPopupMenuItem<FileViewMode>, name),
