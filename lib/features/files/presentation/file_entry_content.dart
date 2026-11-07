@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 
 import '../data/file_browser_query.dart';
+import 'file_grid_visuals.dart';
 import 'file_name_label.dart';
 
 enum FileViewMode { small, medium, list }
@@ -174,12 +175,9 @@ class FileEntryContent extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(7),
-            child: SizedBox.expand(
-              key: ValueKey('file-grid-visual-${entry.file.id}'),
-              child: visual,
-            ),
+          child: FileThumbnailFrame(
+            key: ValueKey('file-grid-visual-${entry.file.id}'),
+            child: visual,
           ),
         ),
         const SizedBox(height: 6),

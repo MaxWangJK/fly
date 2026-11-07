@@ -24,6 +24,7 @@ import 'package:fly/features/tasks/presentation/task_providers.dart';
 import 'package:fly/shared/attachments/attachment_providers.dart';
 import 'package:fly/shared/attachments/attachment_storage.dart';
 import 'package:fly/shared/data/workspace_folder_repository.dart';
+import 'package:fly/shared/design_system/fly_color_scheme.dart';
 
 import 'input_continuity_widget_test.dart' as ui;
 
@@ -31,6 +32,37 @@ class _Opener extends PlatformAttachmentOpener {
   final paths = <String>[];
   @override
   Future<void> open(String path) async => paths.add(path);
+}
+
+void _expectThumbnailFrames(WidgetTester tester) {
+  Size? expected;
+  for (final id in ['door', 'panels', 'invoice', 'missing']) {
+    final frame = find.byKey(ValueKey('file-grid-visual-$id'));
+    expect(frame, findsOneWidget);
+    expected ??= tester.getSize(frame);
+    expect(tester.getSize(frame), expected);
+    final container = tester.widget<Container>(
+      find.descendant(of: frame, matching: find.byType(Container)).first,
+    );
+    final decoration = container.decoration! as BoxDecoration;
+    final colors = FlyColorScheme.of(tester.element(frame));
+    expect(decoration.color, colors.surfaceMuted);
+    expect(decoration.color, isNot(colors.surface));
+    expect(decoration.border, isNotNull);
+    expect(
+      find.descendant(
+        of: find.byKey(ValueKey('file-item-$id')),
+        matching: find.byIcon(Icons.open_in_new),
+      ),
+      findsNothing,
+    );
+    if (id == 'door' || id == 'panels') {
+      final image = tester.widget<Image>(
+        find.descendant(of: frame, matching: find.byType(Image)),
+      );
+      expect(image.fit, BoxFit.contain);
+    }
+  }
 }
 
 Future<void> _photo(File file, {required bool portrait}) async {
@@ -265,6 +297,7 @@ void main() {
           expect(tester.getSize(photoArea).width, greaterThan(85));
           expect(tester.getSize(photoArea).height, greaterThan(85));
           expect(find.byType(FileDocumentVisual), findsOneWidget);
+          _expectThumbnailFrames(tester);
           expect(tester.takeException(), isNull);
           await ui.capture(
             tester,
@@ -298,6 +331,12 @@ void main() {
           expect(find.text('已选 2 项'), findsOneWidget);
           expect(
             tester
+                .widget<Checkbox>(find.byKey(const ValueKey('file-check-door')))
+                .value,
+            isTrue,
+          );
+          expect(
+            tester
                 .widget<TextButton>(
                   find.byKey(const ValueKey('files-batch-move')),
                 )
@@ -316,6 +355,7 @@ void main() {
             expect(find.text('木门.png'), findsOneWidget);
             if (name == '中图标') {
               expect(tester.getSize(photoArea).height, greaterThan(140));
+              _expectThumbnailFrames(tester);
             } else {
               expect(
                 find.byKey(ValueKey('desktop-folder-list-$folder')),
@@ -323,6 +363,22 @@ void main() {
               );
             }
             expect(tester.takeException(), isNull);
+          }
+          if (!dark) {
+            await tester.tap(find.byKey(const ValueKey('files-settings')));
+            await ui.settle(tester);
+            await tester.tap(
+              find.byKey(const ValueKey('files-settings-view-small')),
+            );
+            await ui.settle(tester);
+            tester.view.physicalSize = const Size(430, 932);
+            debugDefaultTargetPlatformOverride = TargetPlatform.android;
+            await ui.settle(tester);
+            // Search the folder-first phone home to display all test files.
+            await tester.enterText(find.byType(TextField).first, '.');
+            await ui.settle(tester);
+            _expectThumbnailFrames(tester);
+            await ui.capture(tester, capture, 'file-grid-phone');
           }
           expect(tester.takeException(), isNull);
         } finally {

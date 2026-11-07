@@ -2320,9 +2320,7 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
             : Image.file(
                 snapshot.data!,
                 cacheWidth: 240,
-                fit: isPhoneLayout(context) && viewMode != FileViewMode.list
-                    ? BoxFit.cover
-                    : BoxFit.contain,
+                fit: BoxFit.contain,
                 errorBuilder: (_, _, _) => icon,
               ),
       );
@@ -2332,9 +2330,9 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: SizedBox.expand(child: visual),
+                child: FileThumbnailFrame(
+                  key: ValueKey('file-grid-visual-${f.id}'),
+                  child: visual,
                 ),
               ),
               Padding(
@@ -2431,37 +2429,6 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
                     onChanged: _batchBusy
                         ? null
                         : (_) => _toggleSelection(f.id),
-                  ),
-                ),
-              if (!_selecting &&
-                  !isPhoneLayout(context) &&
-                  Platform.isWindows &&
-                  f.deletedAt == null)
-                Positioned(
-                  top: 0,
-                  right: 0,
-                  child: GestureDetector(
-                    onPanStart: (_) => attempt(
-                      () => PlatformFileTransfer()
-                          .drag(
-                            ref
-                                .read(managedFileStorageProvider)
-                                .absolute(f.relativePath),
-                          )
-                          .then((_) {}),
-                    ),
-                    child: Tooltip(
-                      message: context.l10n.t('filesDragOut'),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surface
-                              .withValues(alpha: .9),
-                          borderRadius: BorderRadius.circular(5),
-                        ),
-                        padding: EdgeInsets.all(6),
-                        child: const Icon(Icons.open_in_new, size: 14),
-                      ),
-                    ),
                   ),
                 ),
             ],

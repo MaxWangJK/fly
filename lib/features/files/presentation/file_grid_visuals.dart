@@ -1,6 +1,29 @@
 import 'package:flutter/material.dart';
 
 import '../../../shared/design_system/design_tokens.dart';
+import '../../../shared/design_system/fly_color_scheme.dart';
+
+/// Gives differently shaped file visuals a common, visible thumbnail area.
+class FileThumbnailFrame extends StatelessWidget {
+  const FileThumbnailFrame({required this.child, super.key});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = FlyColorScheme.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.surfaceMuted,
+        border: Border.all(color: colors.divider.withValues(alpha: .65)),
+        borderRadius: BorderRadius.circular(7),
+      ),
+      clipBehavior: Clip.antiAlias,
+      padding: const EdgeInsets.all(3),
+      child: SizedBox.expand(child: child),
+    );
+  }
+}
 
 /// A small folder with layered paper, drawn at the actual icon size.
 class FileFolderVisual extends StatelessWidget {
