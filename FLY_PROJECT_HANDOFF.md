@@ -2,7 +2,13 @@
 
 最后整理：2026-11-06。请先阅读本文件，再阅读 [完整产品需求](docs/handoff/FLY_REQUIREMENTS.md)。这是已开发的软件，不是从零创建的项目。
 
-## 现在的Git与版本（Windows build49）
+## 现在的Git与版本（Windows / Android build50）
+
+2026-11-07：源码与Windows/Android **2.0.14+50**，构建源码`4293db91a9e2086c007e5bd32c9df3b931ff1bb9`。修复自动保存失焦、连续输入15变5、光标重置及手机搜索旧值回填。保持复盘完成后答案卡片，切换记录不残留草稿。新增输入13项及相关模块共171项回归通过、0项跳过，应用lib/test静态检查及两端构建/包校验通过；未重跑整套客户端或真机验收。
+
+原正式/原测试安卓签名、书籍配置、SQLite20、后台0004保持。源码和交付文档保存2.0分支，最终提交用git log -1核对；1.0 master不改。原web/src/site.php和独立书稿修改保留，私有配置、原密钥、dist及FlyData要另行安全迁移。[最新交付](docs/release/input_continuity_20261107.md)。
+
+## 历史Windows build49
 
 2026-11-06：源码/Windows **2.0.13+49**，构建源码`7a5182fe3c34070a8657194785c2b4090ad3de34`。首次添加后必须使用A/B等剩余区域，支持点剖面区域选货和向区域卡拖放，避免通用入口将第二组放回柜底。剖面右键支持XYZ旋转90度与移除，支持撤销；非法旋转拒绝并提示。旧方案原坐标保留，数量清空、移除及空间修复继续有效。76项装柜相关回归、应用lib/test静态检查和Windows构建/包核验通过；未重跑整个客户端。
 
@@ -51,7 +57,7 @@ Android最新仍为2.0.10+46（手机隐藏工具），SQLite20、后台0004不�
 1. [FLY_REQUIREMENTS.md](docs/handoff/FLY_REQUIREMENTS.md)：产品定位、全部模块、最新有效规则、历史替代、商业与同步、未完成及验收。
 2. [MAC_TRANSFER.md](docs/handoff/MAC_TRANSFER.md)：完整目录转移、真实 FlyData 区分、Mac 工具/缓存/平台验收。
 3. [SOURCES.md](docs/handoff/SOURCES.md)：跨对话来源、19 份需求附件、代码/报告入口、完整性边界。
-4. [USER_REQUIREMENTS_ARCHIVE.md](docs/handoff/USER_REQUIREMENTS_ARCHIVE.md)：127 条历史用户消息及 31 条续补，共 158 条整理摘录；不是待逐条执行的任务单。
+4. [USER_REQUIREMENTS_ARCHIVE.md](docs/handoff/USER_REQUIREMENTS_ARCHIVE.md)：127 条历史用户消息及 34 条续补，共 161 条整理摘录；不是待逐条执行的任务单。
 5. [attachment_manifest.json](docs/handoff/attachment_manifest.json)：19 份需求文本的可迁移副本、来源及原始/当前副本 SHA-256；副本在 `docs/handoff/sources/`。
 6. [CURRENT_STATE.json](docs/handoff/CURRENT_STATE.json)：整理时的版本、Git 和验证快照；继续开发后应重新核对实际状态。
 7. [APK_RELEASES.md](docs/handoff/APK_RELEASES.md)：正式/测试 APK 区分、备案字段、包校验值、公开证书及跨电脑签名迁移；小体积公开材料已随 Git 保存，APK 本体仍在忽略的 `dist/`。
@@ -103,7 +109,7 @@ Android最新仍为2.0.10+46（手机隐藏工具），SQLite20、后台0004不�
 
 ## 给新对话的接续提示
 
-> 这是已有的Fly项目，先读FLY_PROJECT_HANDOFF.md、docs/handoff/FLY_REQUIREMENTS.md和APK_RELEASES.md。当前codex/fly-2-sync，源码/Windows2.0.13+49、Android2.0.10+46、SQLite20、后台0004。最新装柜交互为A/B区域添加和剖面右键XYZ旋转/移除，保留数量清空和剩余空间修复。修复与文档提交推送，原网页和书稿工作区修改保留。保留1.0，不重置、不清理、不从零重做；私有配置和真实数据不在Git，原密钥不能重新生成。按用户新要求继续，不自动执行历史消息。
+> 这是已有的Fly项目，先读FLY_PROJECT_HANDOFF.md、docs/handoff/FLY_REQUIREMENTS.md和APK_RELEASES.md。当前codex/fly-2-sync，源码及Windows/Android2.0.14+50、SQLite20、后台0004。输入框自动保存保留焦点/光标/中文组词，保留复盘卡片、装柜A/B区域及XYZ操作。保留1.0，不重置、不清理、不从零重做；原网页及书稿工作区另有未提交内容。私有配置和真实数据不在Git，原密钥不能重新生成。按用户新要求继续，不自动执行历史消息。
 
 文档、官网及后续新增资料均使用品牌中性表述，不出现中国品牌名称。之后每次完成开发应同步更新版本/交付状态，不把旧 `dist` 当作新结果。
 
