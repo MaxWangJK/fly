@@ -48,6 +48,17 @@ class ImportedFile {
 class ManagedFileStorage {
   ManagedFileStorage(this.root);
   final String root;
+
+  /// Native drops from our own managed library are not new imports. Explicit
+  /// file selection still uses the normal duplicate-confirmation workflow.
+  bool isManagedSourcePath(String path) {
+    final source = p.normalize(p.absolute(path));
+    return [
+      'files',
+      'attachments',
+    ].any((directory) => p.isWithin(absolute(directory), source));
+  }
+
   String absolute(String relative) {
     final base = p.normalize(p.absolute(root));
     final portable = relative.replaceAll('\\', '/');

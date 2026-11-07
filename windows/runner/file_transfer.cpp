@@ -61,6 +61,10 @@ std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> CreateFileTrans
         if (call.method_name() == "copy") {
           status = OleSetClipboard(data.Get());
           if (SUCCEEDED(status)) status = OleFlushClipboard();
+        } else if (!(GetAsyncKeyState(VK_LBUTTON) & 0x8000)) {
+          // The platform message may arrive after a quick click has ended.
+          // Starting OLE now would immediately drop the file under the cursor.
+          status = DRAGDROP_S_CANCEL;
         } else {
           auto* source = new FileDropSource();
           DWORD effect = DROPEFFECT_NONE;

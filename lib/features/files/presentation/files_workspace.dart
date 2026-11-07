@@ -46,6 +46,7 @@ import 'image_file_viewer.dart';
 import 'video_file_viewer.dart';
 import 'mobile_file_browser.dart';
 import 'file_move_dialog.dart';
+import 'desktop_file_drag_area.dart';
 
 class FilesWorkspace extends ConsumerStatefulWidget {
   const FilesWorkspace({this.initialFileId, super.key});
@@ -77,6 +78,7 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
   bool _cameraRecoveryStarted = false;
   bool _pickingMedia = false;
   String? _importStage;
+  bool _nativeDragActive = false;
 
   Future<void> _addOnPhone() async {
     final action = await showModalBottomSheet<String>(
@@ -640,6 +642,36 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
 
   Future<void> importPicked(List<XFile> files) =>
       importPaths(files.map((f) => f.path).toList(), pickedFiles: files);
+
+  Future<void> _startNativeDrag(AttachmentRecord file) async {
+    if (_nativeDragActive || importing || _selecting || _batchBusy) return;
+    final path = ref
+        .read(managedFileStorageProvider)
+        .absolute(file.relativePath);
+    setState(() => _nativeDragActive = true);
+    try {
+      await PlatformFileTransfer().drag(path);
+    } finally {
+      if (mounted) setState(() => _nativeDragActive = false);
+    }
+  }
+
+  Future<void> _importDroppedFiles(DropDoneDetails details) async {
+    if (_nativeDragActive ||
+        importing ||
+        _pickingMedia ||
+        _selecting ||
+        _batchBusy ||
+        !(ModalRoute.isCurrentOf(context) ?? true)) {
+      return;
+    }
+    final storage = ref.read(managedFileStorageProvider);
+    final external = details.files
+        .map((file) => file.path)
+        .where((path) => !storage.isManagedSourcePath(path))
+        .toList();
+    await importPaths(external);
+  }
 
   Future<void> pickMedia() async {
     if (_pickingMedia || importing) return;
@@ -1472,9 +1504,15 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
               ),
             Expanded(
               child: DropTarget(
-                onDragDone: (details) => attempt(
-                  () => importPaths(details.files.map((f) => f.path).toList()),
-                ),
+                enable:
+                    !_nativeDragActive &&
+                    !importing &&
+                    !_pickingMedia &&
+                    !_selecting &&
+                    !_batchBusy &&
+                    (ModalRoute.isCurrentOf(context) ?? true),
+                onDragDone: (details) =>
+                    attempt(() => _importDroppedFiles(details)),
                 child: StreamBuilder<List<FileBrowserEntry>>(
                   stream: rows,
                   builder: (context, snapshot) {
@@ -2218,47 +2256,58 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
     final directories = _desktopDirectories(
       ref.watch(fileFoldersProvider).valueOrNull ?? [],
     );
-    Widget directory(WorkspaceFolder folder) => GestureDetector(
-      key: ValueKey('desktop-file-folder-${folder.id}'),
-      onSecondaryTapDown: (d) => _desktopFolderMenu(folder, d.globalPosition),
-      child: Material(
-        color: context.flyColors.surface,
-        child: viewMode == FileViewMode.list
-            ? ListTile(
-                key: ValueKey('desktop-folder-list-${folder.id}'),
-                leading: FileFolderVisual(seed: folder.id, compact: true),
-                title: Text(folder.name),
-                onTap: () => select(FileCollection.folder, folder.id),
-              )
-            : InkWell(
-                key: ValueKey('desktop-folder-icon-${folder.id}'),
-                borderRadius: BorderRadius.circular(8),
-                onTap: () => select(FileCollection.folder, folder.id),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 4,
-                    vertical: 4,
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      FileFolderVisual(seed: folder.id, large: !small),
-                      const SizedBox(height: 4),
-                      Tooltip(
-                        message: folder.name,
-                        child: Text(
-                          folder.name,
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(fontSize: 13, height: 1.25),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
+    Widget directory(WorkspaceFolder folder) => DragTarget<String>(
+      onWillAcceptWithDetails: (_) => !_selecting && !_batchBusy && !importing,
+      onAcceptWithDetails: (details) => attempt(() async {
+        await ref
+            .read(managedFileRepositoryProvider)
+            .move(details.data, folder.id);
+        if (mounted) setState(() => selectedId = null);
+      }),
+      builder: (context, candidates, _) => GestureDetector(
+        key: ValueKey('desktop-file-folder-${folder.id}'),
+        onSecondaryTapDown: (d) => _desktopFolderMenu(folder, d.globalPosition),
+        child: Material(
+          color: candidates.isEmpty
+              ? context.flyColors.surface
+              : context.flyColors.selected,
+          child: viewMode == FileViewMode.list
+              ? ListTile(
+                  key: ValueKey('desktop-folder-list-${folder.id}'),
+                  leading: FileFolderVisual(seed: folder.id, compact: true),
+                  title: Text(folder.name),
+                  onTap: () => select(FileCollection.folder, folder.id),
+                )
+              : InkWell(
+                  key: ValueKey('desktop-folder-icon-${folder.id}'),
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () => select(FileCollection.folder, folder.id),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 4,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        FileFolderVisual(seed: folder.id, large: !small),
+                        const SizedBox(height: 4),
+                        Tooltip(
+                          message: folder.name,
+                          child: Text(
+                            folder.name,
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(fontSize: 13, height: 1.25),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
+        ),
       ),
     );
     return CustomScrollView(
@@ -2591,16 +2640,8 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
             !isPhoneLayout(context) &&
             Platform.isWindows &&
             f.deletedAt == null
-        ? GestureDetector(
-            onPanStart: (_) => attempt(
-              () => PlatformFileTransfer()
-                  .drag(
-                    ref
-                        .read(managedFileStorageProvider)
-                        .absolute(f.relativePath),
-                  )
-                  .then((_) {}),
-            ),
+        ? DesktopFileDragArea(
+            onDragStart: () => attempt(() => _startNativeDrag(f)),
             child: card,
           )
         : card;
