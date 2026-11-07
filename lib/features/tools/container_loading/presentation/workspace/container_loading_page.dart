@@ -684,6 +684,10 @@ class _ContainerLoadingPageState extends ConsumerState<ContainerLoadingPage> {
                 onChanged: e.updateEntry,
                 onDelete: () => e.removeEntry(entry.id),
                 capacity: e.capacityFor(entry),
+                hasPlacementConflict: groups.any(
+                  (g) =>
+                      g.entryId == entry.id && e.scene.hasPlacementConflict(g),
+                ),
               ),
             if (e.manuallyAdjustedSections.contains(section.id)) ...[
               Text(context.l10n.t('cargoManualMode')),
@@ -957,6 +961,11 @@ class _ContainerLoadingPageState extends ConsumerState<ContainerLoadingPage> {
                       onDelete: () => e.removeEntry(entry.id),
                       autoFocus: entry.id == focusEntryId,
                       capacity: e.gridFor(entry).$1 * e.gridFor(entry).$2,
+                      hasPlacementConflict: e.scene.loadedGroups.any(
+                        (g) =>
+                            g.entryId == entry.id &&
+                            e.scene.hasPlacementConflict(g),
+                      ),
                     ),
                   if (!space.isUsefulForLoading)
                     Text(
@@ -1521,6 +1530,7 @@ class _EntryEditor extends StatefulWidget {
     required this.capacity,
     required this.autoFocus,
     required this.recommended,
+    this.hasPlacementConflict = false,
     super.key,
   });
   final SectionCargoEntry entry;
@@ -1529,6 +1539,7 @@ class _EntryEditor extends StatefulWidget {
   final int capacity;
   final bool autoFocus;
   final (int, int) recommended;
+  final bool hasPlacementConflict;
   @override
   State<_EntryEditor> createState() => _EntryEditorState();
 }
@@ -1731,6 +1742,15 @@ class _EntryEditorState extends State<_EntryEditor> {
               context.toolsCopy('⚠ 用户覆盖理论容量'),
               style: TextStyle(fontSize: 11, color: Color(0xFFB87A35)),
             ),
+          if (e.manualGrid && widget.hasPlacementConflict)
+            Text(
+              key: ValueKey('grid-placement-warning-${e.id}'),
+              context.l10n.isZh ? '当前摆放超出柜体或存在冲突，已完整保留输入数量。' : 'Placement exceeds bounds or conflicts; the full entered grid is retained.',
+              style: TextStyle(
+                fontSize: 11,
+                color: Theme.of(context).colorScheme.error,
+              ),
+            ),
           if (expanded) ...[
             const SizedBox(height: 8),
             _choices<PlacementOrientation>(
@@ -1822,6 +1842,7 @@ class _EntryEditorState extends State<_EntryEditor> {
         rowCount: b,
         quantity: a * b,
         manualQuantityOverride: false,
+        manualGrid: true,
       ),
     );
   }

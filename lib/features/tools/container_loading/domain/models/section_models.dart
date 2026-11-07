@@ -92,6 +92,7 @@ class SectionCargoEntry {
     this.horizontalPlacement = HorizontalPlacement.automatic,
     this.manualQuantityOverride = false,
     this.manualPlacement = false,
+    this.manualGrid = false,
     this.colorOverride,
     this.perRow,
     this.rowCount,
@@ -110,6 +111,10 @@ class SectionCargoEntry {
   final HorizontalPlacement horizontalPlacement;
   final bool manualQuantityOverride;
   final bool manualPlacement;
+
+  /// Explicit rows/layers describe one complete block, including any overflow.
+  /// Legacy automatic layouts remain constrained unless the user edits a grid.
+  final bool manualGrid;
   final int? colorOverride;
   final int? perRow;
   final int? rowCount;
@@ -128,6 +133,7 @@ class SectionCargoEntry {
     HorizontalPlacement? horizontalPlacement,
     bool? manualQuantityOverride,
     bool? manualPlacement,
+    bool? manualGrid,
     int? colorOverride,
     int? perRow,
     int? rowCount,
@@ -145,6 +151,7 @@ class SectionCargoEntry {
     manualQuantityOverride:
         manualQuantityOverride ?? this.manualQuantityOverride,
     manualPlacement: manualPlacement ?? this.manualPlacement,
+    manualGrid: manualGrid ?? this.manualGrid,
     colorOverride: colorOverride ?? this.colorOverride,
     perRow: perRow ?? this.perRow,
     rowCount: rowCount ?? this.rowCount,

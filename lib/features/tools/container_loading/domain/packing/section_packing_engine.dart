@@ -22,21 +22,30 @@ class SectionPackingResult {
 }
 
 /// Maximal empty spaces in section-local coordinates. Placements remain exact
-/// integer boxes; an experience override preserves requested quantity, never
-/// fabricates a collision-free location for physically unplaced cargo.
+/// integer boxes. Automatic packing is constrained; explicit user grids retain
+/// their complete geometry so the scene can show any overflow or conflict.
+/// A legacy shortfall acknowledgement alone never changes physical placement.
 class SectionPackingEngine {
   const SectionPackingEngine();
 
   // Legacy clearance arguments are accepted for old callers but never applied.
   (int, int) recommendedGrid(Dimensions3 size, SectionCargoEntry entry) {
-    var best = (0, 0);
+    final best = _gridRecommendation(size, entry);
+    return (best.$2, best.$3);
+  }
+
+  (CargoOrientation, int, int) _gridRecommendation(
+    Dimensions3 size,
+    SectionCargoEntry entry,
+  ) {
+    var best = (entry.orientations.first, 0, 0);
     for (final o in entry.orientations) {
       if (o.dimensions.lengthMm > size.lengthMm) continue;
       final rows = size.widthMm ~/ o.dimensions.widthMm;
       final layers = entry.allowStack
           ? size.heightMm ~/ o.dimensions.heightMm
           : math.min(1, size.heightMm ~/ o.dimensions.heightMm);
-      if (rows * layers > best.$1 * best.$2) best = (rows, layers);
+      if (rows * layers > best.$2 * best.$3) best = (o, rows, layers);
     }
     return best;
   }
@@ -457,6 +466,81 @@ class SectionPackingEngine {
       }
       requested[entry.id] = entry.quantity;
       packed[entry.id] = 0;
+      final rows = entry.perRow ?? 0;
+      final layers = entry.rowCount ?? 0;
+      if (entry.manualGrid &&
+          !entry.isBase &&
+          rows > 0 &&
+          layers > 0 &&
+          entry.quantity == rows * layers) {
+        // A user-entered grid is a placement instruction, not a capacity cap.
+        // Keep all units together; the scene/UI exposes overflow and conflicts.
+        final orientation = _gridRecommendation(size, entry).$1;
+        final d = orientation.dimensions;
+        final orderedSpaces = [...spaces]
+          ..sort((a, b) {
+            final z = a.z.compareTo(b.z);
+            if (z != 0) return z;
+            final x = a.x.compareTo(b.x);
+            return x != 0 ? x : a.y.compareTo(b.y);
+          });
+        final anchor = orderedSpaces.firstOrNull;
+        final width = rows * d.widthMm;
+        final y = switch (entry.horizontalPlacement) {
+          HorizontalPlacement.left => 0,
+          HorizontalPlacement.center => (container.widthMm - width) ~/ 2,
+          HorizontalPlacement.right => container.widthMm - width,
+          HorizontalPlacement.automatic => anchor?.y ?? 0,
+        };
+        final group = CargoGroupModel(
+          id: '${entry.id}-group-${groups.length}',
+          planId: section.planId,
+          cargoPackageId: entry.cargo.id,
+          sectionId: section.id,
+          entryId: entry.id,
+          quantity: rows * layers,
+          rows: rows,
+          columns: 1,
+          layers: layers,
+          emptySlots: 0,
+          boundingDimensions: Dimensions3(
+            d.lengthMm,
+            width,
+            layers * d.heightMm,
+          ),
+          positionXmm: section.startXmm + (anchor?.x ?? 0),
+          positionYmm: y,
+          positionZmm: entry.placeOnBottom ? 0 : anchor?.z ?? 0,
+          rotationX: orientation.rotationX,
+          rotationY: orientation.rotationY,
+          rotationZ: orientation.rotationZ,
+          colorValue: entry.colorValue,
+          sortOrder: groups.length,
+          allowStack: entry.allowStack,
+        );
+        groups.add(group);
+        packed[entry.id] = group.quantity;
+        weight += group.quantity * entry.cargo.weightGrams;
+        spaces = _subtract(
+          spaces,
+          Aabb3(
+            x: group.positionXmm - section.startXmm,
+            y: group.positionYmm,
+            z: group.positionZmm,
+            dimensions: Dimensions3(
+              group.boundingDimensions.lengthMm,
+              group.boundingDimensions.widthMm,
+              entry.allowStack
+                  ? group.boundingDimensions.heightMm
+                  : math.max(
+                      group.boundingDimensions.heightMm,
+                      size.heightMm - group.positionZmm,
+                    ),
+            ),
+          ),
+        );
+        continue;
+      }
       var remaining = entry.quantity;
       while (remaining > 0) {
         final byWeight = entry.cargo.weightGrams == 0
