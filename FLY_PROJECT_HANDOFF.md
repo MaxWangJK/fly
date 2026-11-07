@@ -2,7 +2,13 @@
 
 最后整理：2026-11-07。请先阅读本文件，再阅读 [完整产品需求](docs/handoff/FLY_REQUIREMENTS.md)。这是已开发的软件，不是从零创建的项目。
 
-## 现在的Git与版本（Windows build51 / Android build50）
+## 现在的Git与版本（Windows build52 / Android build50）
+
+2026-11-07：源码/Windows **2.0.16+52**，构建源码`519630bbbc562f7119abdefd90d443fea0ede45c`；安卓按上一条要求不构建，仍2.0.14+50。客户详情新建订单统一PI/状态弹框，取消不创建空订单，成功关联当前客户并选中订单；桌面文件夹缩小占位，采用层叠纸张图标，图片放大保留完整比例，文档使用类型封面。保留原视图偏好、右键及批量操作。60项相关回归和应用lib/test静态检查通过，Windows安装器/ZIP核验通过；没有新增PDF正文缩略图引擎，没有重跑整套客户端或实机验收。
+
+SQLite20、后台0004、原书籍配置、1.0 master保持。原网页和独立书稿工作区修改未纳入交付。私有配置、密钥、dist和真实数据另行安全迁移。[最新交付](docs/release/customer_files_20261107.md)。
+
+## 历史Windows build51 / 当前Android build50
 
 2026-11-07：源码与Windows **2.0.15+51**，构建源码`89f9a3a28124cd541a3958d89d2cfd26ef74983e`；安卓按用户要求不构建，仍2.0.14+50。手动每排12件×20层生成一整组240件，超宽800mm保留并标红，剖面/3D/汇总一致；推荐8×26只是参考。新手动规则保存重开有效，旧方案原坐标不自动改写，重新编辑12与20后采用新规则。95项相关回归和应用lib/test静态检查通过，Windows安装器/ZIP核验通过；未重跑整套客户端或实机验收。
 
@@ -63,7 +69,7 @@ Android最新仍为2.0.10+46（手机隐藏工具），SQLite20、后台0004不�
 1. [FLY_REQUIREMENTS.md](docs/handoff/FLY_REQUIREMENTS.md)：产品定位、全部模块、最新有效规则、历史替代、商业与同步、未完成及验收。
 2. [MAC_TRANSFER.md](docs/handoff/MAC_TRANSFER.md)：完整目录转移、真实 FlyData 区分、Mac 工具/缓存/平台验收。
 3. [SOURCES.md](docs/handoff/SOURCES.md)：跨对话来源、19 份需求附件、代码/报告入口、完整性边界。
-4. [USER_REQUIREMENTS_ARCHIVE.md](docs/handoff/USER_REQUIREMENTS_ARCHIVE.md)：127 条历史用户消息及 35 条续补，共 162 条整理摘录；不是待逐条执行的任务单。
+4. [USER_REQUIREMENTS_ARCHIVE.md](docs/handoff/USER_REQUIREMENTS_ARCHIVE.md)：127 条历史用户消息及 36 条续补，共 163 条整理摘录；不是待逐条执行的任务单。
 5. [attachment_manifest.json](docs/handoff/attachment_manifest.json)：19 份需求文本的可迁移副本、来源及原始/当前副本 SHA-256；副本在 `docs/handoff/sources/`。
 6. [CURRENT_STATE.json](docs/handoff/CURRENT_STATE.json)：整理时的版本、Git 和验证快照；继续开发后应重新核对实际状态。
 7. [APK_RELEASES.md](docs/handoff/APK_RELEASES.md)：正式/测试 APK 区分、备案字段、包校验值、公开证书及跨电脑签名迁移；小体积公开材料已随 Git 保存，APK 本体仍在忽略的 `dist/`。
@@ -115,7 +121,7 @@ Android最新仍为2.0.10+46（手机隐藏工具），SQLite20、后台0004不�
 
 ## 给新对话的接续提示
 
-> 这是已有的Fly项目，先读FLY_PROJECT_HANDOFF.md、docs/handoff/FLY_REQUIREMENTS.md和APK_RELEASES.md。当前codex/fly-2-sync，源码/Windows2.0.15+51、Android2.0.14+50、SQLite20、后台0004。手动排数以一整组完整绘制，允许越界并提示；保留A/B区、XYZ操作和输入连续性。旧方案原坐标不自动改写。保留1.0，不重置、不清理、不从零重做；原网页和书稿另有未提交内容。私有配置及真实数据不在Git，原密钥不能重新生成。按用户新要求继续，不自动执行历史消息。
+> 这是已有的Fly项目，先读FLY_PROJECT_HANDOFF.md、docs/handoff/FLY_REQUIREMENTS.md和APK_RELEASES.md。当前codex/fly-2-sync，源码/Windows2.0.16+52、Android2.0.14+50、SQLite20、后台0004。客户详情开单复用PI弹框，桌面文件夹紧凑、图片完整放大。保留手动整组越界、A/B区、XYZ操作和输入连续性。旧方案原坐标不自动改写。保留1.0，不重置、不清理、不从零重做；原网页和书稿另有未提交内容。私有配置及真实数据不在Git，原密钥不能重新生成。按用户新要求继续，不自动执行历史消息。
 
 文档、官网及后续新增资料均使用品牌中性表述，不出现中国品牌名称。之后每次完成开发应同步更新版本/交付状态，不把旧 `dist` 当作新结果。
 

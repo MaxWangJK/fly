@@ -1,6 +1,11 @@
 # Fly 安装包、安卓备案与迁移台账
 
-## 最新Windows build51（2026-11-07，仅Windows）
+## 最新Windows build52（2026-11-07，仅Windows）
+
+Windows2.0.16+52包含客户详情PI开单弹框和紧凑文件夹/大缩略图；文档为类型封面，不是PDF正文缩略图。本轮延续仅打包Windows，安卓最新仍build50及原两种签名，备案字段未改。[下载及验证](../release/customer_files_20261107.md)。
+
+
+## 历史Windows build51（2026-11-07，仅Windows）
 
 Windows2.0.15+51修复手动12×20按一整组240件展示、允许超出柜体并标红。按用户要求只构建Windows，安卓最新仍为下面build50及原两种签名；没有新增安卓包或更改备案字段。[下载及验证](../release/manual_grid_20261107.md)。
 

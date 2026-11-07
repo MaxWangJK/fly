@@ -10,4 +10,13 @@
 
 不改变数据库schema20、后台迁移0004、同步协议、文件实体或目录层级。测试使用内存数据库和临时合成文件，不读取真实业务数据。原网页和独立书稿工作区修改不纳入本次交付。
 
-验证结果、构建源码及安装包校验完成后补入。
+构建源码`519630bbbc562f7119abdefd90d443fea0ede45c`。60项相关回归通过，包括新增4项客户详情开单/桌面文件图标交互用例；应用lib/test静态检查无问题。验证桌面与手机弹框的取消、必填、默认状态、PI关联、成功选中和搜索清理，以及文件视图切换、缩略图尺寸、深色/放大文字、PDF系统打开请求、Fly图片查看、右键和多选。其他既有用例覆盖批量移动、搜索、文件归属和连续输入。没有重跑整套客户端或后台测试，也没有进行真实设备人工验收或实际外部程序启动验证。
+
+[文件界面浅色](../handoff/screenshots/file-grid-build52-light.png)、[深色大文字](../handoff/screenshots/file-grid-build52-dark.png)、[公开构建清单](../handoff/windows/20261107-build52/manifest-Fly-2.0.16-build52-windows.json)。
+
+| 文件 | 字节数 | SHA-256 |
+| --- | --- | --- |
+| [Fly-Setup-2.0.16-build52-testing.exe](../../dist/Fly-Setup-2.0.16-build52-testing.exe) | 13481734 | `043FD54D345D7E28528EA98D3593CBF49791DCF4976E204BD985D5C2F895B854` |
+| [Fly-2.0.16-build52-windows-test-20261107.zip](../../dist/Fly-2.0.16-build52-windows-test-20261107.zip) | 16109337 | `EFB10ADC2FC5EAD71D1C0BDC642616B9AA6AD6C6B8065EBDE6BCD86826C41F17` |
+
+Windows编译、安装器/ZIP完整性、便携SQLite和原书籍配置核验通过。测试包关闭本地授权门槛；安装器未作发行代码签名。安卓本轮未构建，最新仍2.0.14+50。源码和交付记录保存到2.0分支，最终提交用git log -1核对。

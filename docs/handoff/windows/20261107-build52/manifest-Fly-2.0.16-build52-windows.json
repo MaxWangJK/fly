@@ -1,0 +1,36 @@
+{
+  "version": "2.0.16+52",
+  "sourceCommit": "519630bbbc562f7119abdefd90d443fea0ede45c",
+  "sourceIncludesUncommittedAppChanges": false,
+  "branch": "codex/fly-2-sync",
+  "platform": "windows-x64",
+  "releaseDate": "2026-11-07",
+  "builtAtUtc": "2026-11-07T06:46:42.744704+00:00",
+  "databaseSchemaVersion": 20,
+  "backendMigration": "0004",
+  "backendUnchanged": true,
+  "artifacts": [
+    {
+      "name": "Fly-Setup-2.0.16-build52-testing.exe",
+      "bytes": 13481734,
+      "sha256": "043FD54D345D7E28528EA98D3593CBF49791DCF4976E204BD985D5C2F895B854"
+    },
+    {
+      "name": "Fly-2.0.16-build52-windows-test-20261107.zip",
+      "bytes": 16109337,
+      "sha256": "EFB10ADC2FC5EAD71D1C0BDC642616B9AA6AD6C6B8065EBDE6BCD86826C41F17"
+    }
+  ],
+  "scopedRegressionPassed": 60,
+  "newInteractionCasesPassed": 4,
+  "fullClientSuiteRerun": false,
+  "appLibTestAnalyze": "No issues found",
+  "originalBookReaderConfigurationVerified": true,
+  "ENABLE_LOCAL_LICENSE": false,
+  "windowsDistributionCodeSigned": false,
+  "androidRebuilt": false,
+  "latestAndroidVersion": "2.0.14+50",
+  "physicalDeviceAcceptance": false,
+  "productionDeploymentPerformed": false,
+  "pdfContentThumbnailsImplemented": false
+}

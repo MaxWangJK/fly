@@ -1,12 +1,12 @@
 {
-  "capturedAtUtc": "2026-11-07T01:47:17.135163+00:00",
+  "capturedAtUtc": "2026-11-07T06:46:42.758705+00:00",
   "documentationOnly": false,
   "branch": "codex/fly-2-sync",
-  "releaseCommitSource": "Windows build51 89f9a3a28124cd541a3958d89d2cfd26ef74983e; Android remains build50",
+  "releaseCommitSource": "Windows build52 519630bbbc562f7119abdefd90d443fea0ede45c; Android remains build50",
   "developmentBaseCommit": "8a5cbc58994ef817b5898aaaf979ff676363091a",
   "master": "94efdc2d9ac34feb2f3d1b635302278b4671a414",
   "gitDirectoryIsLocalFolder": true,
-  "appVersion": "2.0.15+51",
+  "appVersion": "2.0.16+52",
   "databaseSchemaVersion": 20,
   "originalSdk": {
     "frameworkVersion": "3.47.7",
@@ -22,12 +22,12 @@
     "devToolsVersion": "2.60.0",
     "flutterVersion": "3.47.7"
   },
-  "buildStatus": "Windows installer and portable ZIP verified; Android not rebuilt per request",
-  "releaseReport": "../release/manual_grid_20261107.md",
+  "buildStatus": "Windows installer and portable ZIP verified; Android not rebuilt per prior request",
+  "releaseReport": "../release/customer_files_20261107.md",
   "currentFeaturesIncludeUncommittedFiles": false,
-  "latestPublishedTestBundle": "Windows2.0.15+51; Android2.0.14+50 unchanged by request",
-  "verifiedClientTests": 95,
-  "clientTestsEvidence": "95 scoped container/input regression cases passed; full client suite not rerun",
+  "latestPublishedTestBundle": "Windows2.0.16+52; Android2.0.14+50 unchanged by request",
+  "verifiedClientTests": 60,
+  "clientTestsEvidence": "60 scoped customer/order/file/input regression cases passed; full client suite not rerun",
   "verifiedServerTests": 61,
   "websiteCoreAndHttpTests": "passed",
   "analyze": "No issues found in application lib/test",
@@ -35,26 +35,26 @@
   "latestSourceNotRepackaged": false,
   "noDeploymentPerformed": true,
   "remotePushPerformed": true,
-  "historicalUserMessagesArchived": 162,
+  "historicalUserMessagesArchived": 163,
   "textAttachmentsCopied": 19,
   "inlinePromptCopies": 2,
   "historicalTextNormalization": "Brand-neutral portable copies; SHA-256 entries refer to current bytes, with original digest retained separately.",
   "brandNeutralDocumentsAndWebsite": true,
-  "screenshotsCopied": 69,
+  "screenshotsCopied": 71,
   "developmentSkillsCopied": 4,
   "workingTreeStatusSource": "git status --short",
   "localReleaseCommitCompleted": true,
   "expectedWorkingTreeAfterReleaseCommit": "Only pre-existing unrelated web/src/site.php and fly-foreign-trade-book/ changes remain",
   "artifacts": [
     {
-      "name": "Fly-Setup-2.0.15-build51-testing.exe",
-      "bytes": 13479196,
-      "sha256": "29C7E356CAAB3B3BAA2A7BD0019FF45A2846061979FC657ED7977FDF3E58A33C"
+      "name": "Fly-Setup-2.0.16-build52-testing.exe",
+      "bytes": 13481734,
+      "sha256": "043FD54D345D7E28528EA98D3593CBF49791DCF4976E204BD985D5C2F895B854"
     },
     {
-      "name": "Fly-2.0.15-build51-windows-test-20261107.zip",
-      "bytes": 16106041,
-      "sha256": "F3BC82EF1C5DB9C7F890396C6EC43AD8FF28DC569D6133316E781DFAC563A50C"
+      "name": "Fly-2.0.16-build52-windows-test-20261107.zip",
+      "bytes": 16109337,
+      "sha256": "EFB10ADC2FC5EAD71D1C0BDC642616B9AA6AD6C6B8065EBDE6BCD86826C41F17"
     },
     {
       "name": "Fly-2.0.14-build50-android-release-signed-20261107.apk",
@@ -103,7 +103,7 @@
   "bookChapters": 16,
   "bookReaderDesktopOnly": true,
   "bookReadingStateCloudSync": false,
-  "additionalCurrentUserRequests": 35,
+  "additionalCurrentUserRequests": 36,
   "formalAndroidSigning": {
     "date": "2026-10-16",
     "appVersion": "2.0.14+50",
@@ -146,7 +146,7 @@
   },
   "latestSourceNotRepackagedExplanation": "Windows current source packaged; Android intentionally retained at build50",
   "localReleaseCommitHash": "6fdd581802239e9a87eaf50669f43afdeb1f3cf6",
-  "workingTreeStatusAtCapture": "Scoped manual-grid fix and delivery docs committed; original web/book work excluded",
+  "workingTreeStatusAtCapture": "Scoped customer-order and desktop-file changes and delivery docs committed; original web/book work excluded",
   "portableInternalIssuer": {
     "version": "1.0.0",
     "date": "2026-10-17",
@@ -183,7 +183,7 @@
   },
   "latestAndroidTestingUpgradePackage": "Fly-2.0.10-build46-android-test-20261102.apk",
   "temporaryBackendStopped": true,
-  "latestWindowsPackageVersion": "2.0.15+51",
+  "latestWindowsPackageVersion": "2.0.16+52",
   "windowsRebuiltThisTurn": true,
   "mobileUiLatestVerification": {
     "date": "2026-10-17",
@@ -469,7 +469,7 @@
   ],
   "unrelatedWorkingTreePathsRetained": [],
   "websiteHasIndependentUncommittedChanges": false,
-  "sourceCommitScope": "Explicit cargo grids, persistence, overflow feedback, tests and requirements",
+  "sourceCommitScope": "Customer detail order dialog, compact desktop folders and larger file visuals, tests and requirements",
   "reviewProgramIncludedInBuild43": true,
   "emailAuthIncludedInBuild43": true,
   "packagedBuild43Verification": {
@@ -550,12 +550,11 @@
     ]
   },
   "clientRegression": {
-    "distinctPassingCases": 95,
-    "scopedRegressionPassed": 95,
+    "distinctPassingCases": 60,
+    "scopedRegressionPassed": 60,
     "fullSuiteRerun": false,
     "logs": [
-      ".buildlog/manual-grid-regression.log",
-      ".buildlog/manual-grid-focused.log"
+      ".buildlog/customer-file-grid-regression.log"
     ]
   },
   "previouslyIndependentWebsiteChangesCommitted": true,
@@ -606,7 +605,7 @@
   },
   "backendTestsRerunThisRelease": false,
   "backendUnchangedSinceBuild44": true,
-  "remoteVerifiedSourceCommit": "89f9a3a28124cd541a3958d89d2cfd26ef74983e",
+  "remoteVerifiedSourceCommit": "519630bbbc562f7119abdefd90d443fea0ede45c",
   "remotePushBranch": "codex/fly-2-sync",
   "build45Features": [
     "customer context PI order dialog",
@@ -634,7 +633,7 @@
     "Counts and snapshots follow quantity edits and removal",
     "Manual intent retained in compatible layoutV3 metadata"
   ],
-  "publicWindowsMetadataPath": "windows/20261107-build51/",
+  "publicWindowsMetadataPath": "windows/20261107-build52/",
   "build49Features": [
     "First cargo may enter an empty section; later cargo must target a remaining area",
     "A/B area names shared by cross section and cards; area selection and drag/drop use actual coordinates",
@@ -651,6 +650,12 @@
     "User-entered rows and layers produce one complete cargo block",
     "Overflow remains visible in section and3D; recommendations remain constrained",
     "Manual-grid flag persists in existing JSON; legacy plans preserve original geometry",
+    "Windows-only packaging; Android50 retained"
+  ],
+  "build52Features": [
+    "Shared PI/status dialog from customer details",
+    "Compact layered folder icons with responsive labels",
+    "Larger complete-aspect image thumbnails and file-type covers",
     "Windows-only packaging; Android50 retained"
   ]
 }

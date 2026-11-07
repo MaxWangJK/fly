@@ -86,3 +86,8 @@
 
 真实Flutter组件、1200×1000：[浅色](manual-grid-build51-light.png)、[深色1.3倍文字](manual-grid-build51-dark.png)。
 合成PVC为2900×250×100mm、20kg，柜宽2200mm。输入12×20后剖面仅标记一组PVC×240，3D同组，保留超宽800mm并标红；理论208仅供参考。
+
+
+## build52（2026-11-07）紧凑文件图标
+
+真实Flutter界面、合成图片及内存数据库、1264×800：[浅色](file-grid-build52-light.png)、[深色1.3倍文字](file-grid-build52-dark.png)。展示紧凑的层叠文件夹、完整竖图/横图、大文件类型封面和缺失图片回退；PDF封面不是正文缩略图。
