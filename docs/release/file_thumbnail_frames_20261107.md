@@ -8,4 +8,13 @@
 
 SQLite20、后台0004、原书籍配置及1.0基线保持。验证仅使用内存数据库和临时文件；原网站与独立书稿修改另行保留。
 
-验证结果、构建源码和安装包校验完成后补入。
+构建源码`22c49b0b8e9b973cf66ea9b3dd510bb982504bb2`。30项相关回归通过，lib/test静态检查无问题。缩略图回归核对浅色/深色1.3倍字号、小/中图标及430宽手机布局：横竖图/PDF/待下载图片的底框等宽等高、主题底色一致、图片完整比例、右上角小图标消失、多选勾选框保留。既有用例覆盖点击图片、PDF外部打开请求、右键、多选与批量移动、文件夹移动、路径/设置/长名称及小屏横屏。未重跑整个客户端或后台测试，未进行真实设备人工验收或外部程序实际启动验证。
+
+[浅色效果](../handoff/screenshots/file-grid-light-build54.png)、[深色大字](../handoff/screenshots/file-grid-dark-build54.png)、[手机效果](../handoff/screenshots/file-grid-phone-build54.png)、[公开构建清单](../handoff/windows/20261107-build54/manifest-Fly-2.0.18-build54-windows.json)。
+
+| 文件 | 字节数 | SHA-256 |
+| --- | --- | --- |
+| [Fly-Setup-2.0.18-build54-testing.exe](../../dist/Fly-Setup-2.0.18-build54-testing.exe) | 13485320 | `62B4DB7EBF488675C7359E1C1CE8FCA36821E900A6387F01F07F28F461587E4F` |
+| [Fly-2.0.18-build54-windows-test-20261107.zip](../../dist/Fly-2.0.18-build54-windows-test-20261107.zip) | 16114875 | `5D2A381F43954C6C96ACFC2ECB30A3F569BD3D8B71FB1C344A699A6A32F50861` |
+
+Windows构建、安装器、ZIP完整性及便携SQLite/原书籍配置核验通过。测试包关闭本地授权门槛，安装器未作发行代码签名。安卓保留2.0.14+50。源码和交付记录保存2.0分支，最终提交用git log -1核对。

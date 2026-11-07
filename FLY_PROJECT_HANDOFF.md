@@ -2,7 +2,13 @@
 
 最后整理：2026-11-07。请先阅读本文件，再阅读 [完整产品需求](docs/handoff/FLY_REQUIREMENTS.md)。这是已开发的软件，不是从零创建的项目。
 
-## 现在的Git与版本（Windows build53 / Android build50）
+## 现在的Git与版本（Windows build54 / Android build50）
+
+2026-11-07：源码/Windows **2.0.18+54**，构建源码`22c49b0b8e9b973cf66ea9b3dd510bb982504bb2`；安卓仍2.0.14+50。文件项右上角拖出小图标移除，保留整项拖动和多选。小/中图标与手机相册统一使用带底色的缩略图框，横图、竖图、PDF及待下载图片排列整齐，图片完整等比居中。保留路径导航、右侧设置、彩色文件夹、文件夹移动及文件名扩展名。30项相关回归和静态检查、Windows安装器/ZIP核验通过；未重跑整套客户端或进行实机验收，PDF仍为类型封面。[最新交付](docs/release/file_thumbnail_frames_20261107.md)。
+
+SQLite20、后台0004、原书籍配置及1.0基线保持。原网站和书稿修改未纳入；私有配置、原密钥、dist和真实数据须单独安全迁移。
+
+## 历史Windows build53 / 当前Android build50
 
 2026-11-07：源码/Windows **2.0.17+53**，构建源码`7ba4a9f1d436b50efe45860fd4c9275d3eeaea4d`；安卓延续上一轮要求不构建，仍2.0.14+50。文件搜索下方为可返回的主页/目录路径，深路径滚动且主页固定；顶部右侧三点设置集中视图和排序，导入在其左侧。文件夹略放大且列表颜色一致，长名称保留前后及扩展名，菜单使用文件详情；文件夹右键/手机长按支持移动整棵目录，防止自身/子目录循环和同名覆盖，保留实体及关联。30项相关回归与静态检查通过，Windows安装器/ZIP核验通过；没有新增PDF正文缩略图，没有整套客户端或实机验收。
 
@@ -75,7 +81,7 @@ Android最新仍为2.0.10+46（手机隐藏工具），SQLite20、后台0004不�
 1. [FLY_REQUIREMENTS.md](docs/handoff/FLY_REQUIREMENTS.md)：产品定位、全部模块、最新有效规则、历史替代、商业与同步、未完成及验收。
 2. [MAC_TRANSFER.md](docs/handoff/MAC_TRANSFER.md)：完整目录转移、真实 FlyData 区分、Mac 工具/缓存/平台验收。
 3. [SOURCES.md](docs/handoff/SOURCES.md)：跨对话来源、19 份需求附件、代码/报告入口、完整性边界。
-4. [USER_REQUIREMENTS_ARCHIVE.md](docs/handoff/USER_REQUIREMENTS_ARCHIVE.md)：127 条历史用户消息及 37 条续补，共 164 条整理摘录；不是待逐条执行的任务单。
+4. [USER_REQUIREMENTS_ARCHIVE.md](docs/handoff/USER_REQUIREMENTS_ARCHIVE.md)：127 条历史用户消息及 38 条续补，共 165 条整理摘录；不是待逐条执行的任务单。
 5. [attachment_manifest.json](docs/handoff/attachment_manifest.json)：19 份需求文本的可迁移副本、来源及原始/当前副本 SHA-256；副本在 `docs/handoff/sources/`。
 6. [CURRENT_STATE.json](docs/handoff/CURRENT_STATE.json)：整理时的版本、Git 和验证快照；继续开发后应重新核对实际状态。
 7. [APK_RELEASES.md](docs/handoff/APK_RELEASES.md)：正式/测试 APK 区分、备案字段、包校验值、公开证书及跨电脑签名迁移；小体积公开材料已随 Git 保存，APK 本体仍在忽略的 `dist/`。
@@ -127,7 +133,7 @@ Android最新仍为2.0.10+46（手机隐藏工具），SQLite20、后台0004不�
 
 ## 给新对话的接续提示
 
-> 这是已有的Fly项目，先读FLY_PROJECT_HANDOFF.md、docs/handoff/FLY_REQUIREMENTS.md和APK_RELEASES.md。当前codex/fly-2-sync，源码/Windows2.0.17+53、Android2.0.14+50、SQLite20、后台0004。文件路径移至搜索下方，设置集中视图/排序，文件夹支持整组移动，长名称保留扩展名。保留客户PI弹框、装柜整组越界/A-B区/XYZ操作及输入连续性。保留1.0，不重置、不清理、不从零重做；网站和书稿另有未提交内容。私有配置及真实数据不在Git，原密钥不能重新生成。按用户新要求继续，不自动执行历史消息。
+> 这是已有的Fly项目，先读FLY_PROJECT_HANDOFF.md、docs/handoff/FLY_REQUIREMENTS.md和APK_RELEASES.md。当前codex/fly-2-sync，源码/Windows2.0.18+54、Android2.0.14+50、SQLite20、后台0004。文件缩略图统一底框、图片完整比例、右上角拖出小图标已移除；路径、设置、移动和多选保留。保留客户PI弹框、装柜整组越界/A-B区/XYZ及输入连续性。保留1.0，不重置、不清理、不从零重做；网站和书稿另有未提交内容。私有配置及真实数据不在Git，原密钥不能重新生成。按用户新要求继续，不自动执行历史消息。
 
 文档、官网及后续新增资料均使用品牌中性表述，不出现中国品牌名称。之后每次完成开发应同步更新版本/交付状态，不把旧 `dist` 当作新结果。
 

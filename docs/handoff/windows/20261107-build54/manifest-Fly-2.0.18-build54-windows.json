@@ -1,0 +1,40 @@
+{
+  "version": "2.0.18+54",
+  "sourceCommit": "22c49b0b8e9b973cf66ea9b3dd510bb982504bb2",
+  "sourceIncludesUncommittedAppChanges": false,
+  "branch": "codex/fly-2-sync",
+  "platform": "windows-x64",
+  "releaseDate": "2026-11-07",
+  "builtAtUtc": "2026-11-07T08:38:42.340414+00:00",
+  "databaseSchemaVersion": 20,
+  "backendMigration": "0004",
+  "backendUnchanged": true,
+  "artifacts": [
+    {
+      "name": "Fly-Setup-2.0.18-build54-testing.exe",
+      "bytes": 13485320,
+      "sha256": "62B4DB7EBF488675C7359E1C1CE8FCA36821E900A6387F01F07F28F461587E4F"
+    },
+    {
+      "name": "Fly-2.0.18-build54-windows-test-20261107.zip",
+      "bytes": 16114875,
+      "sha256": "5D2A381F43954C6C96ACFC2ECB30A3F569BD3D8B71FB1C344A699A6A32F50861"
+    }
+  ],
+  "scopedRegressionPassed": 30,
+  "fullClientSuiteRerun": false,
+  "appLibTestAnalyze": "No issues found",
+  "originalBookReaderConfigurationVerified": true,
+  "ENABLE_LOCAL_LICENSE": false,
+  "windowsDistributionCodeSigned": false,
+  "androidRebuilt": false,
+  "latestAndroidVersion": "2.0.14+50",
+  "physicalDeviceAcceptance": false,
+  "productionDeploymentPerformed": false,
+  "pdfContentThumbnailsImplemented": false,
+  "features": [
+    "Removed drag-out overlay icon; whole-item drag retained",
+    "Uniform themed thumbnail frames for images, documents and missing-image placeholders",
+    "Uncropped aspect ratio for images; selection and file actions retained"
+  ]
+}

@@ -1,12 +1,12 @@
 {
-  "capturedAtUtc": "2026-11-07T07:41:51.929339+00:00",
+  "capturedAtUtc": "2026-11-07T08:38:42.353419+00:00",
   "documentationOnly": false,
   "branch": "codex/fly-2-sync",
-  "releaseCommitSource": "Windows build53 7ba4a9f1d436b50efe45860fd4c9275d3eeaea4d; Android remains build50",
+  "releaseCommitSource": "Windows build54 22c49b0b8e9b973cf66ea9b3dd510bb982504bb2; Android remains build50",
   "developmentBaseCommit": "8a5cbc58994ef817b5898aaaf979ff676363091a",
   "master": "94efdc2d9ac34feb2f3d1b635302278b4671a414",
   "gitDirectoryIsLocalFolder": true,
-  "appVersion": "2.0.17+53",
+  "appVersion": "2.0.18+54",
   "databaseSchemaVersion": 20,
   "originalSdk": {
     "frameworkVersion": "3.47.7",
@@ -23,9 +23,9 @@
     "flutterVersion": "3.47.7"
   },
   "buildStatus": "Windows installer and portable ZIP verified; Android not rebuilt per prior request",
-  "releaseReport": "../release/file_navigation_20261107.md",
+  "releaseReport": "../release/file_thumbnail_frames_20261107.md",
   "currentFeaturesIncludeUncommittedFiles": false,
-  "latestPublishedTestBundle": "Windows2.0.17+53; Android2.0.14+50 unchanged by request",
+  "latestPublishedTestBundle": "Windows2.0.18+54; Android2.0.14+50 unchanged by request",
   "verifiedClientTests": 30,
   "clientTestsEvidence": "30 scoped file/navigation/mobile/input regression cases passed; full client suite not rerun",
   "verifiedServerTests": 61,
@@ -35,26 +35,26 @@
   "latestSourceNotRepackaged": false,
   "noDeploymentPerformed": true,
   "remotePushPerformed": true,
-  "historicalUserMessagesArchived": 164,
+  "historicalUserMessagesArchived": 165,
   "textAttachmentsCopied": 19,
   "inlinePromptCopies": 2,
   "historicalTextNormalization": "Brand-neutral portable copies; SHA-256 entries refer to current bytes, with original digest retained separately.",
   "brandNeutralDocumentsAndWebsite": true,
-  "screenshotsCopied": 77,
+  "screenshotsCopied": 80,
   "developmentSkillsCopied": 4,
   "workingTreeStatusSource": "git status --short",
   "localReleaseCommitCompleted": true,
   "expectedWorkingTreeAfterReleaseCommit": "Only pre-existing unrelated web/src/site.php and fly-foreign-trade-book/ changes remain",
   "artifacts": [
     {
-      "name": "Fly-Setup-2.0.17-build53-testing.exe",
-      "bytes": 13483073,
-      "sha256": "6D5AF61B06233142E54E360DF67817FC9FCA2B217BA0310E3CFF3515A01E21BF"
+      "name": "Fly-Setup-2.0.18-build54-testing.exe",
+      "bytes": 13485320,
+      "sha256": "62B4DB7EBF488675C7359E1C1CE8FCA36821E900A6387F01F07F28F461587E4F"
     },
     {
-      "name": "Fly-2.0.17-build53-windows-test-20261107.zip",
-      "bytes": 16113507,
-      "sha256": "60D2A1B0E0817F23F9B22927F8AD5CCC729E410BCA4965D9F723D8441E508FC8"
+      "name": "Fly-2.0.18-build54-windows-test-20261107.zip",
+      "bytes": 16114875,
+      "sha256": "5D2A381F43954C6C96ACFC2ECB30A3F569BD3D8B71FB1C344A699A6A32F50861"
     },
     {
       "name": "Fly-2.0.14-build50-android-release-signed-20261107.apk",
@@ -103,7 +103,7 @@
   "bookChapters": 16,
   "bookReaderDesktopOnly": true,
   "bookReadingStateCloudSync": false,
-  "additionalCurrentUserRequests": 37,
+  "additionalCurrentUserRequests": 38,
   "formalAndroidSigning": {
     "date": "2026-10-16",
     "appVersion": "2.0.14+50",
@@ -145,8 +145,8 @@
     "appleBuildAndDeviceAcceptance": "not performed"
   },
   "latestSourceNotRepackagedExplanation": "Windows current source packaged; Android intentionally retained at build50",
-  "localReleaseCommitHash": "6fdd581802239e9a87eaf50669f43afdeb1f3cf6",
-  "workingTreeStatusAtCapture": "Scoped file navigation/settings/folder move changes and delivery docs committed; original web/book work excluded",
+  "localReleaseCommitHash": "22c49b0b8e9b973cf66ea9b3dd510bb982504bb2",
+  "workingTreeStatusAtCapture": "Scoped file thumbnail frames, overlay removal and delivery docs committed; original web/book work excluded",
   "portableInternalIssuer": {
     "version": "1.0.0",
     "date": "2026-10-17",
@@ -183,7 +183,7 @@
   },
   "latestAndroidTestingUpgradePackage": "Fly-2.0.10-build46-android-test-20261102.apk",
   "temporaryBackendStopped": true,
-  "latestWindowsPackageVersion": "2.0.17+53",
+  "latestWindowsPackageVersion": "2.0.18+54",
   "windowsRebuiltThisTurn": true,
   "mobileUiLatestVerification": {
     "date": "2026-10-17",
@@ -469,7 +469,7 @@
   ],
   "unrelatedWorkingTreePathsRetained": [],
   "websiteHasIndependentUncommittedChanges": false,
-  "sourceCommitScope": "Clickable paths, unified file Settings, consistent folders, middle filename ellipsis and folder move UI",
+  "sourceCommitScope": "Uniform themed file thumbnail frames, complete image aspect ratio and removal of drag-out overlay",
   "reviewProgramIncludedInBuild43": true,
   "emailAuthIncludedInBuild43": true,
   "packagedBuild43Verification": {
@@ -554,7 +554,7 @@
     "scopedRegressionPassed": 30,
     "fullSuiteRerun": false,
     "logs": [
-      ".buildlog/file-nav-regression.log"
+      ".buildlog/file-frames-regression.log"
     ]
   },
   "previouslyIndependentWebsiteChangesCommitted": true,
@@ -605,7 +605,7 @@
   },
   "backendTestsRerunThisRelease": false,
   "backendUnchangedSinceBuild44": true,
-  "remoteVerifiedSourceCommit": "7ba4a9f1d436b50efe45860fd4c9275d3eeaea4d",
+  "remoteVerifiedSourceCommit": "22c49b0b8e9b973cf66ea9b3dd510bb982504bb2",
   "remotePushBranch": "codex/fly-2-sync",
   "build45Features": [
     "customer context PI order dialog",
@@ -633,7 +633,7 @@
     "Counts and snapshots follow quantity edits and removal",
     "Manual intent retained in compatible layoutV3 metadata"
   ],
-  "publicWindowsMetadataPath": "windows/20261107-build53/",
+  "publicWindowsMetadataPath": "windows/20261107-build54/",
   "build49Features": [
     "First cargo may enter an empty section; later cargo must target a remaining area",
     "A/B area names shared by cross section and cards; area selection and drag/drop use actual coordinates",
@@ -665,5 +665,10 @@
     "Middle ellipsis retaining file extensions and full tooltip names",
     "File details label and whole-folder moves protecting descendant/byte identity",
     "Windows-only packaging; Android50 retained"
+  ],
+  "build54Features": [
+    "Removed drag-out overlay icon; whole-item drag retained",
+    "Uniform themed thumbnail frames for images, documents and missing-image placeholders",
+    "Uncropped aspect ratio for images; selection and file actions retained"
   ]
 }

@@ -96,3 +96,8 @@
 ## build53（2026-11-07）文件路径与设置
 
 真实Flutter、内存数据库和临时文件：[电脑路径](file-path-desktop-build53.png)、[电脑彩色列表](file-list-desktop-build53.png)、[手机路径](file-path-phone-build53.png)、[手机彩色列表](file-list-phone-build53.png)、[图标](file-grid-light-build53.png)、[深色1.3倍文字](file-grid-dark-build53.png)。涵盖右侧设置/导入、路径位置、长名称保留后缀及图标/列表色彩。桌面1264×850、手机430×932；深色图标1264×800。
+
+
+## build54（2026-11-07）统一缩略图底框
+
+实际Flutter渲染、内存数据库及临时文件：[浅色桌面](file-grid-light-build54.png)、[深色桌面1.3倍文字](file-grid-dark-build54.png)、[手机相册](file-grid-phone-build54.png)。桌面1264×800、手机430×932。横图、竖图、PDF类型封面及待下载图片统一底框；移除右上角拖出小图标，保留多选。手机截图来自桌面测试渲染，本轮没有生成新版APK或进行手机实机验收。
