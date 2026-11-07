@@ -1,6 +1,11 @@
 # Fly 安装包、安卓备案与迁移台账
 
-## 最新Windows build52（2026-11-07，仅Windows）
+## 最新Windows build53（2026-11-07，仅Windows）
+
+Windows2.0.17+53包含搜索下方路径、右侧文件设置、彩色文件夹列表、长名称保留扩展名及整组文件夹移动。本轮延续仅Windows，安卓仍build50和原两种签名，备案字段保持。[下载及验证](../release/file_navigation_20261107.md)。
+
+
+## 历史Windows build52（2026-11-07，仅Windows）
 
 Windows2.0.16+52包含客户详情PI开单弹框和紧凑文件夹/大缩略图；文档为类型封面，不是PDF正文缩略图。本轮延续仅打包Windows，安卓最新仍build50及原两种签名，备案字段未改。[下载及验证](../release/customer_files_20261107.md)。
 

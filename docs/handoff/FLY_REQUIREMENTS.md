@@ -18,16 +18,16 @@ Fly 是面向外贸业务员、个体经营者和小型外贸团队中的个人�
 | --- | --- |
 | 开发目录 | 原电脑 `E:\workSpace\fly`；迁移后路径可改变 |
 | 当前 Git 分支 | `codex/fly-2-sync` |
-| 当前 Git 检查点 | 客户开单/文件视图源码`519630b`；最终文档提交用git log -1核对 |
+| 当前 Git 检查点 | 文件导航/移动源码`7ba4a9f`；最终文档提交用git log -1核对 |
 | 1.0 固定基线 | `master`，`94efdc2d9ac34feb2f3d1b635302278b4671a414`，1.0.0+35 |
-| 源码版本字段 | `2.0.16+52`，Windows已打包；Android保持2.0.14+50 |
+| 源码版本字段 | `2.0.17+53`，Windows已打包；Android保持2.0.14+50 |
 | 本地数据库 | 当前源码 Drift / SQLite schema 20，升级保留旧记录/待发送请求并将新编辑时间捕获为毫秒；旧包为 schema 19 |
-| 最新实现保存位置 | 本地及origin/codex/fly-2-sync，源码`519630b`；原网页与书稿修改保留 |
-| 已有测试包 | Windows build52；Android build50；后台0004未改 |
+| 最新实现保存位置 | 本地及origin/codex/fly-2-sync，源码`7ba4a9f`；原网页与书稿修改保留 |
+| 已有测试包 | Windows build53；Android build50；后台0004未改 |
 | 安卓正式签名包 | build50原长期证书，包名com.flyproduct.fly；[APK台账](APK_RELEASES.md) |
-| 最近自动验证 | 2026-11-07：60项客户/订单/文件/输入相关回归及静态检查通过，Windows构建和包校验通过；未重跑整个客户端 |
+| 最近自动验证 | 2026-11-07：30项文件/导航/手机/输入相关回归及静态检查通过，Windows构建和包校验通过；未重跑整个客户端 |
 
-**完整复制目录并包含 `.git`，会保留当前 2.0 分支、最新本地提交及以后新增的工作区修改，不需要切换分支。客户详情开单、文件图标及交付文档保存2.0分支，Windows为build52、Android为build50；clone/pull仍不包含私有配置、安装包和真实业务数据。** 迁移操作见 [MAC_TRANSFER.md](MAC_TRANSFER.md)。
+**完整复制目录并包含 `.git`，会保留当前 2.0 分支、最新本地提交及以后新增的工作区修改，不需要切换分支。文件导航、设置、文件夹移动及交付文档保存2.0分支，Windows为build53、Android为build50；clone/pull仍不包含私有配置、安装包和真实业务数据。** 迁移操作见 [MAC_TRANSFER.md](MAC_TRANSFER.md)。
 
 ### 1.2 状态用语
 

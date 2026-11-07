@@ -91,3 +91,8 @@
 ## build52（2026-11-07）紧凑文件图标
 
 真实Flutter界面、合成图片及内存数据库、1264×800：[浅色](file-grid-build52-light.png)、[深色1.3倍文字](file-grid-build52-dark.png)。展示紧凑的层叠文件夹、完整竖图/横图、大文件类型封面和缺失图片回退；PDF封面不是正文缩略图。
+
+
+## build53（2026-11-07）文件路径与设置
+
+真实Flutter、内存数据库和临时文件：[电脑路径](file-path-desktop-build53.png)、[电脑彩色列表](file-list-desktop-build53.png)、[手机路径](file-path-phone-build53.png)、[手机彩色列表](file-list-phone-build53.png)、[图标](file-grid-light-build53.png)、[深色1.3倍文字](file-grid-dark-build53.png)。涵盖右侧设置/导入、路径位置、长名称保留后缀及图标/列表色彩。桌面1264×850、手机430×932；深色图标1264×800。

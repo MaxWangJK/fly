@@ -16,4 +16,13 @@
 
 数据库schema20、后台迁移0004、原书籍配置保持。验证使用内存数据库和临时文件，不访问真实业务数据；原网站与独立书稿的修改不纳入本轮。
 
-验证结果、构建源码和安装包校验完成后补入。
+构建源码`7ba4a9f1d436b50efe45860fd4c9275d3eeaea4d`。30项相关回归通过，包括新增7项路径/设置/长名称/文件夹移动用例；应用lib/test静态检查无问题。验证430/320宽度的八级路径、字号及宽度变化、Emoji/扩展名、路径返回清理搜索、设置的视图/排序及偏好记忆、文件详情名称、文件夹移入归档再移回主页、排除自身/子目录和实体字节/文件关联保留。既有用例覆盖文件打开请求、多选与批量移动、手机横屏及小屏、搜索输入连续性；未重跑整个客户端或后台测试，未进行真实设备人工验收或外部程序实际启动验证。
+
+[电脑路径](../handoff/screenshots/file-path-desktop-build53.png)、[彩色列表](../handoff/screenshots/file-list-desktop-build53.png)、[手机路径](../handoff/screenshots/file-path-phone-build53.png)、[深色大字](../handoff/screenshots/file-grid-dark-build53.png)、[公开构建清单](../handoff/windows/20261107-build53/manifest-Fly-2.0.17-build53-windows.json)。
+
+| 文件 | 字节数 | SHA-256 |
+| --- | --- | --- |
+| [Fly-Setup-2.0.17-build53-testing.exe](../../dist/Fly-Setup-2.0.17-build53-testing.exe) | 13483073 | `6D5AF61B06233142E54E360DF67817FC9FCA2B217BA0310E3CFF3515A01E21BF` |
+| [Fly-2.0.17-build53-windows-test-20261107.zip](../../dist/Fly-2.0.17-build53-windows-test-20261107.zip) | 16113507 | `60D2A1B0E0817F23F9B22927F8AD5CCC729E410BCA4965D9F723D8441E508FC8` |
+
+Windows构建、安装器和ZIP完整性、便携SQLite及原书籍配置核验通过。测试包关闭本地授权门槛，安装器未作发行代码签名。本轮安卓不构建，仍为2.0.14+50。源码和交付记录保存2.0分支，最终提交用git log -1核对。
