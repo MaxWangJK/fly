@@ -28,4 +28,15 @@
 
 ## 验证与交付
 
-验证结果、构建源码及安装包校验完成后补入。
+构建源码`952aa3f3c877fb47cd74047d0fd8ea54c6bf8b91`。60项相关回归全部通过，其中10项本轮点击/拖放用例；包含图片/PDF/Word轻微移动单击、明确拖出、内部拖入文件夹、托管路径边界、自身回落、混合外部拖入、真正重复确认、查看器覆盖及关闭后恢复导入。另50项现有媒体/文件/手机/输入回归通过，应用lib/test静态检查无问题，未重跑整个客户端或后台。
+
+旧代码曾实测3×1逻辑像素的鼠标轻移调用了drag；修复后同一用例通过。操作回归使用内存库、临时文件和模拟系统传输通道，未打开真实业务数据。Windows发布构建包含原生松键取消检查，真实桌面拖入/拖出接收应用仍须用户验收；本轮没有把界面模拟当作OLE实际拖放证明。播放器未改，真实原生视频播放证据沿用[build55](../handoff/windows/20261107-build55/native-playback.json)。
+
+Windows安装器和便携ZIP、版本、主程序入口、媒体动态库、SQLite及原书籍配置核验通过。测试授权门槛保持关闭，安装器未作发行代码签名。Android未重打，Apple平台仍未编译或实测。
+
+[构建清单](../handoff/windows/20261107-build56/manifest-Fly-2.0.20-build56-windows.json)。
+
+| 文件 | 字节数 | SHA-256 |
+| --- | --- | --- |
+| [Fly-Setup-2.0.20-build56-testing.exe](../../dist/Fly-Setup-2.0.20-build56-testing.exe) | 19085641 | `C4F9008B1AE3EA8FD9CA88BDDB93A2B1EC0E64D02DDCB344B74C12EC33A8CF9B` |
+| [Fly-2.0.20-build56-windows-test-20261107.zip](../../dist/Fly-2.0.20-build56-windows-test-20261107.zip) | 24048312 | `F7D60F3F95E807C7745F2B8F60C5FA882DC00E1A398E3EED9298FB0EEA143590` |

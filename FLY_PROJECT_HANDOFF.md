@@ -2,7 +2,13 @@
 
 最后整理：2026-11-07。请先阅读本文件，再阅读 [完整产品需求](docs/handoff/FLY_REQUIREMENTS.md)。这是已开发的软件，不是从零创建的项目。
 
-## 现在的Git与版本（Windows build55 / Android build50）
+## 现在的Git与版本（Windows build56 / Android build50）
+
+2026-11-07：源码/Windows **2.0.20+56**，构建源码`952aa3f3c877fb47cd74047d0fd8ea54c6bf8b91`；Android仍2.0.14+50。修复鼠标轻移误触原生拖出及自身文件落回导入；明确拖动才交给系统，松开后的平台调用取消，查看器覆盖时不接收后台拖入。补回扁平文件夹接收内部长按拖动，保留右键/批量移动及PDF/Office系统打开。60项相关回归、静态检查、Windows构建和包核验通过；OLE实际拖出到接收软件仍待用户验收。[交付与建议](docs/release/file_click_drag_20261107.md)。
+
+媒体功能保留，iOS转换仍待Mac/Xcode与iPhone验收，Live为照片和视频两个文件。SQLite20、后台0004、原书籍配置和1.0基线保持；原网站/书稿修改未纳入。PDF/Word查看及产品发展建议未自动排期或实现。
+
+## 历史Windows build55 / 当前Android build50
 
 2026-11-07：源码/Windows **2.0.19+55**，构建源码`8719f7be35ae1323af36351ae656de034ff14edf`；Android仍2.0.14+50。用户已批准按格式兼容→图片连续浏览→视频播放开发。iOS原生转换代码写入，但尚未在Mac/Xcode或iPhone验证。图片支持同目录/同业务记录连续浏览、缩放、滑动/键盘、分享；视频支持播放、进度、音量、应用内全屏、重试、后台暂停与释放。Live导入输出照片与视频两份普通文件，单卡归组未做。50项相关回归、静态检查、Windows隔离原生播放及安装器/ZIP核验通过；未做Android/iOS实机验收，未重跑整套客户端。[最新交付](docs/release/media_viewers_20261107.md)。
 
@@ -89,7 +95,7 @@ Android最新仍为2.0.10+46（手机隐藏工具），SQLite20、后台0004不�
 1. [FLY_REQUIREMENTS.md](docs/handoff/FLY_REQUIREMENTS.md)：产品定位、全部模块、最新有效规则、历史替代、商业与同步、未完成及验收。
 2. [MAC_TRANSFER.md](docs/handoff/MAC_TRANSFER.md)：完整目录转移、真实 FlyData 区分、Mac 工具/缓存/平台验收。
 3. [SOURCES.md](docs/handoff/SOURCES.md)：跨对话来源、19 份需求附件、代码/报告入口、完整性边界。
-4. [USER_REQUIREMENTS_ARCHIVE.md](docs/handoff/USER_REQUIREMENTS_ARCHIVE.md)：127 条历史用户消息及 40 条续补，共 167 条整理摘录；不是待逐条执行的任务单。
+4. [USER_REQUIREMENTS_ARCHIVE.md](docs/handoff/USER_REQUIREMENTS_ARCHIVE.md)：127 条历史用户消息及 41 条续补，共 168 条整理摘录；不是待逐条执行的任务单。
 5. [attachment_manifest.json](docs/handoff/attachment_manifest.json)：19 份需求文本的可迁移副本、来源及原始/当前副本 SHA-256；副本在 `docs/handoff/sources/`。
 6. [CURRENT_STATE.json](docs/handoff/CURRENT_STATE.json)：整理时的版本、Git 和验证快照；继续开发后应重新核对实际状态。
 7. [APK_RELEASES.md](docs/handoff/APK_RELEASES.md)：正式/测试 APK 区分、备案字段、包校验值、公开证书及跨电脑签名迁移；小体积公开材料已随 Git 保存，APK 本体仍在忽略的 `dist/`。
@@ -141,7 +147,7 @@ Android最新仍为2.0.10+46（手机隐藏工具），SQLite20、后台0004不�
 
 ## 给新对话的接续提示
 
-> 这是已有的Fly项目，先读FLY_PROJECT_HANDOFF.md、docs/handoff/FLY_REQUIREMENTS.md和APK_RELEASES.md。当前codex/fly-2-sync，源码/Windows2.0.19+55、Android2.0.14+50、SQLite20、后台0004。FILE-25已批准媒体开发，覆盖仅记录限制；iOS转换代码写入但Mac/Xcode及iPhone未验证。图片连续浏览、基础视频和Windows实际播放已验证；Live为两份普通文件，单卡归组未做。保留文件路径/设置/移动、多选、客户PI弹框、装柜整组越界/A-B区/XYZ及输入连续性。Windows构建自动校验固定播放SDK，保留assets/licenses/windows-media.txt。保留1.0，不重置、不清理、不从零重做；网站和书稿另有未提交内容。私有配置、原密钥及真实数据不在Git，原密钥不能重建。按新要求继续，不自动执行历史消息。
+> 这是已有的Fly项目，先读FLY_PROJECT_HANDOFF.md、docs/handoff/FLY_REQUIREMENTS.md和APK_RELEASES.md。当前codex/fly-2-sync，源码/Windows2.0.20+56、Android2.0.14+50、SQLite20、后台0004。FILE-26修复单击轻移误触拖放、托管实体回落与覆盖路由接收，并补回扁平文件夹内部拖动；保留图片浏览、视频播放、文件路径/设置/移动、多选、客户PI弹框、装柜整组越界/A-B区/XYZ和输入连续性。iOS转换代码有但尚未Mac编译/iPhone实测，Live为两份文件。Windows构建自动校验固定播放SDK及许可。保留1.0，不重置、不清理、不从零重做；网站和书稿另有未提交内容。私有配置、原密钥及真实数据不在Git，不能重建原密钥。后续建议不自动执行，按用户新要求继续。
 
 文档、官网及后续新增资料均使用品牌中性表述，不出现中国品牌名称。之后每次完成开发应同步更新版本/交付状态，不把旧 `dist` 当作新结果。
 

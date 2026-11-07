@@ -1,12 +1,12 @@
 {
-  "capturedAtUtc": "2026-11-07T15:01:07.809962+00:00",
+  "capturedAtUtc": "2026-11-07T15:40:00.397357+00:00",
   "documentationOnly": false,
   "branch": "codex/fly-2-sync",
-  "releaseCommitSource": "Windows build55 8719f7be35ae1323af36351ae656de034ff14edf; Android remains build50",
+  "releaseCommitSource": "Windows build56 952aa3f3c877fb47cd74047d0fd8ea54c6bf8b91; Android remains build50",
   "developmentBaseCommit": "8a5cbc58994ef817b5898aaaf979ff676363091a",
   "master": "94efdc2d9ac34feb2f3d1b635302278b4671a414",
   "gitDirectoryIsLocalFolder": true,
-  "appVersion": "2.0.19+55",
+  "appVersion": "2.0.20+56",
   "databaseSchemaVersion": 20,
   "originalSdk": {
     "frameworkVersion": "3.47.7",
@@ -23,11 +23,11 @@
     "flutterVersion": "3.47.7"
   },
   "buildStatus": "Windows installer and portable ZIP verified; Android not rebuilt per prior request",
-  "releaseReport": "../release/media_viewers_20261107.md",
+  "releaseReport": "../release/file_click_drag_20261107.md",
   "currentFeaturesIncludeUncommittedFiles": false,
-  "latestPublishedTestBundle": "Windows2.0.19+55; Android2.0.14+50 unchanged",
-  "verifiedClientTests": 50,
-  "clientTestsEvidence": "50 scoped media/file/mobile/input regression cases; native Windows video separately verified; full suite not rerun",
+  "latestPublishedTestBundle": "Windows2.0.20+56; Android2.0.14+50 unchanged",
+  "verifiedClientTests": 60,
+  "clientTestsEvidence": "60 scoped click/drag/media/file/mobile/input cases; full client suite not rerun",
   "verifiedServerTests": 61,
   "websiteCoreAndHttpTests": "passed",
   "analyze": "No issues found in application lib/test",
@@ -35,7 +35,7 @@
   "latestSourceNotRepackaged": false,
   "noDeploymentPerformed": true,
   "remotePushPerformed": true,
-  "historicalUserMessagesArchived": 167,
+  "historicalUserMessagesArchived": 168,
   "textAttachmentsCopied": 19,
   "inlinePromptCopies": 2,
   "historicalTextNormalization": "Brand-neutral portable copies; SHA-256 entries refer to current bytes, with original digest retained separately.",
@@ -47,14 +47,14 @@
   "expectedWorkingTreeAfterReleaseCommit": "Only pre-existing unrelated web/src/site.php and fly-foreign-trade-book/ changes remain",
   "artifacts": [
     {
-      "name": "Fly-Setup-2.0.19-build55-testing.exe",
-      "bytes": 19084515,
-      "sha256": "EA8F41997D5BF985D0C20BCB46D9C38EB8EE37DB3E762E720B25599828783991"
+      "name": "Fly-Setup-2.0.20-build56-testing.exe",
+      "bytes": 19085641,
+      "sha256": "C4F9008B1AE3EA8FD9CA88BDDB93A2B1EC0E64D02DDCB344B74C12EC33A8CF9B"
     },
     {
-      "name": "Fly-2.0.19-build55-windows-test-20261107.zip",
-      "bytes": 24046188,
-      "sha256": "B4BD3D7F7D67DF57CAA265227CD44682C88FAB700CD3ED19729CD974C90B0226"
+      "name": "Fly-2.0.20-build56-windows-test-20261107.zip",
+      "bytes": 24048312,
+      "sha256": "F7D60F3F95E807C7745F2B8F60C5FA882DC00E1A398E3EED9298FB0EEA143590"
     },
     {
       "name": "Fly-2.0.14-build50-android-release-signed-20261107.apk",
@@ -103,7 +103,7 @@
   "bookChapters": 16,
   "bookReaderDesktopOnly": true,
   "bookReadingStateCloudSync": false,
-  "additionalCurrentUserRequests": 40,
+  "additionalCurrentUserRequests": 41,
   "formalAndroidSigning": {
     "date": "2026-10-16",
     "appVersion": "2.0.14+50",
@@ -145,8 +145,8 @@
     "appleBuildAndDeviceAcceptance": "not performed"
   },
   "latestSourceNotRepackagedExplanation": "Windows current source packaged; Android intentionally retained at build50",
-  "localReleaseCommitHash": "8719f7be35ae1323af36351ae656de034ff14edf",
-  "workingTreeStatusAtCapture": "Scoped media features and delivery docs committed; original web/book work excluded",
+  "localReleaseCommitHash": "952aa3f3c877fb47cd74047d0fd8ea54c6bf8b91",
+  "workingTreeStatusAtCapture": "Scoped file-click repair and delivery docs committed; original web/book work excluded",
   "portableInternalIssuer": {
     "version": "1.0.0",
     "date": "2026-10-17",
@@ -183,7 +183,7 @@
   },
   "latestAndroidTestingUpgradePackage": "Fly-2.0.14-build50-android-test-20261107.apk",
   "temporaryBackendStopped": true,
-  "latestWindowsPackageVersion": "2.0.19+55",
+  "latestWindowsPackageVersion": "2.0.20+56",
   "windowsRebuiltThisTurn": true,
   "mobileUiLatestVerification": {
     "date": "2026-10-17",
@@ -469,7 +469,7 @@
   ],
   "unrelatedWorkingTreePathsRetained": [],
   "websiteHasIndependentUncommittedChanges": false,
-  "sourceCommitScope": "iOS import compatibility implementation, scoped image gallery and basic native video player",
+  "sourceCommitScope": "File click/drag separation, managed drop guard and flat-folder internal movement",
   "reviewProgramIncludedInBuild43": true,
   "emailAuthIncludedInBuild43": true,
   "packagedBuild43Verification": {
@@ -550,12 +550,12 @@
     ]
   },
   "clientRegression": {
-    "distinctPassingCases": 50,
-    "scopedRegressionPassed": 50,
-    "newMediaCasesPassed": 20,
+    "distinctPassingCases": 60,
+    "scopedRegressionPassed": 60,
+    "newClickDragCasesPassed": 10,
     "fullSuiteRerun": false,
     "logs": [
-      ".buildlog/media-regression.log"
+      ".buildlog/file-click-regression.log"
     ]
   },
   "previouslyIndependentWebsiteChangesCommitted": true,
@@ -606,7 +606,7 @@
   },
   "backendTestsRerunThisRelease": false,
   "backendUnchangedSinceBuild44": true,
-  "remoteVerifiedSourceCommit": "8719f7be35ae1323af36351ae656de034ff14edf",
+  "remoteVerifiedSourceCommit": "952aa3f3c877fb47cd74047d0fd8ea54c6bf8b91",
   "remotePushBranch": "codex/fly-2-sync",
   "build45Features": [
     "customer context PI order dialog",
@@ -634,7 +634,7 @@
     "Counts and snapshots follow quantity edits and removal",
     "Manual intent retained in compatible layoutV3 metadata"
   ],
-  "publicWindowsMetadataPath": "windows/20261107-build55/",
+  "publicWindowsMetadataPath": "windows/20261107-build56/",
   "build49Features": [
     "First cargo may enter an empty section; later cargo must target a remaining area",
     "A/B area names shared by cross section and cards; area selection and drag/drop use actual coordinates",
@@ -675,12 +675,12 @@
   "latestHandoffUpdate": {
     "date": "2026-11-07",
     "documentationOnly": false,
-    "requirement": "FILE-25",
-    "status": "implemented-with-platform-verification-pending",
-    "document": "../release/media_viewers_20261107.md",
+    "requirement": "FILE-26",
+    "status": "implemented-windows-packaged-native-manual-drag-pending",
+    "document": "../release/file_click_drag_20261107.md",
     "appCodeChanged": true,
     "packagesRebuilt": "Windows only",
-    "viewerRecommendationsAreConfirmedRequirements": true
+    "productSuggestionsAreConfirmedRequirements": false
   },
   "iosMediaImportCompatibility": {
     "requirement": "FILE-24/25",
@@ -719,5 +719,14 @@
     "volume": 0.5,
     "sourceIsOfficialFlutterTestFixture": true,
     "businessDatabaseOpened": false
-  }
+  },
+  "build56Features": [
+    "Deliberate mouse drag threshold; jitter clicks still open files",
+    "Native OLE checks that the primary button is still down",
+    "Managed-source drop protection and covered-route drop suspension",
+    "Internal held drag can move library files into flat folders"
+  ],
+  "windowsNativeVideoVerificationLastRunVersion": "2.0.19+55",
+  "windowsNativeOleButtonGuardCompiled": true,
+  "windowsNativeOleManualDragVerified": false
 }

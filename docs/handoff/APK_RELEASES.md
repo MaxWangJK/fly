@@ -1,6 +1,10 @@
 # Fly 安装包、安卓备案与迁移台账
 
-## 最新Windows build55（2026-11-07，仅Windows）
+## 最新Windows build56（2026-11-07，仅Windows）
+
+Windows2.0.20+56修复文件单击轻移误触拖放与自身回落导入，并补回扁平文件夹内部移动。60项相关回归及静态检查、Windows构建/包核验通过；实际OLE接收软件待用户验收。Android仍build50及原两种签名，Apple未编译。[下载与验证](../release/file_click_drag_20261107.md)。
+
+## 历史Windows build55（2026-11-07，仅Windows）
 
 Windows2.0.19+55新增图片连续浏览与基础视频播放，包含视频插件DLL。iOS导入转换仅完成原生实现代码，尚无Xcode编译及iPhone验收；Live单卡归组未实现。Android仍build50和原两种签名，备案字段保持。[下载、验证与边界](../release/media_viewers_20261107.md)。
 

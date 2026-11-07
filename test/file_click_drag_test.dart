@@ -220,7 +220,7 @@ void main() {
       expect(fixture.opener.paths, isEmpty);
       expect(find.byType(AlertDialog), findsNothing);
     });
-  });
+  }, skip: !Platform.isWindows);
 
   testWidgets('own managed files dropped back into Fly are not imported', (
     tester,

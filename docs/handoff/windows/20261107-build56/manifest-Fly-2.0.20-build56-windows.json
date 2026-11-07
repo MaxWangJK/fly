@@ -1,0 +1,48 @@
+{
+  "version": "2.0.20+56",
+  "sourceCommit": "952aa3f3c877fb47cd74047d0fd8ea54c6bf8b91",
+  "sourceIncludesUncommittedAppChanges": false,
+  "branch": "codex/fly-2-sync",
+  "platform": "windows-x64",
+  "releaseDate": "2026-11-07",
+  "builtAtUtc": "2026-11-07T15:40:00.386355+00:00",
+  "databaseSchemaVersion": 20,
+  "backendMigration": "0004",
+  "backendUnchanged": true,
+  "artifacts": [
+    {
+      "name": "Fly-Setup-2.0.20-build56-testing.exe",
+      "bytes": 19085641,
+      "sha256": "C4F9008B1AE3EA8FD9CA88BDDB93A2B1EC0E64D02DDCB344B74C12EC33A8CF9B"
+    },
+    {
+      "name": "Fly-2.0.20-build56-windows-test-20261107.zip",
+      "bytes": 24048312,
+      "sha256": "F7D60F3F95E807C7745F2B8F60C5FA882DC00E1A398E3EED9298FB0EEA143590"
+    }
+  ],
+  "scopedRegressionPassed": 60,
+  "newClickDragCasesPassed": 10,
+  "fullClientSuiteRerun": false,
+  "appLibTestAnalyze": "No issues found",
+  "baselineJitterClickReproduced": true,
+  "widgetDragUsesMockPlatformChannel": true,
+  "nativeOleButtonGuardCompiled": true,
+  "nativeOleManualDragVerified": false,
+  "nativeMediaPlaybackLastVerifiedVersion": "2.0.19+55",
+  "nativeMediaPlaybackEvidence": "../20261107-build55/native-playback.json",
+  "originalBookReaderConfigurationVerified": true,
+  "ENABLE_LOCAL_LICENSE": false,
+  "windowsDistributionCodeSigned": false,
+  "androidRebuilt": false,
+  "latestAndroidVersion": "2.0.14+50",
+  "iosCompiled": false,
+  "iosPhysicalConversionVerified": false,
+  "productionDeploymentPerformed": false,
+  "features": [
+    "Deliberate mouse drag threshold; jitter clicks still open files",
+    "Native OLE checks that the primary button is still down",
+    "Managed-source drop protection and covered-route drop suspension",
+    "Internal held drag can move library files into flat folders"
+  ]
+}
