@@ -1,5 +1,5 @@
 {
-  "capturedAtUtc": "2026-11-07T08:38:42.353419+00:00",
+  "capturedAtUtc": "2026-11-07T09:09:27.399326+00:00",
   "documentationOnly": false,
   "branch": "codex/fly-2-sync",
   "releaseCommitSource": "Windows build54 22c49b0b8e9b973cf66ea9b3dd510bb982504bb2; Android remains build50",
@@ -35,7 +35,7 @@
   "latestSourceNotRepackaged": false,
   "noDeploymentPerformed": true,
   "remotePushPerformed": true,
-  "historicalUserMessagesArchived": 165,
+  "historicalUserMessagesArchived": 166,
   "textAttachmentsCopied": 19,
   "inlinePromptCopies": 2,
   "historicalTextNormalization": "Brand-neutral portable copies; SHA-256 entries refer to current bytes, with original digest retained separately.",
@@ -103,7 +103,7 @@
   "bookChapters": 16,
   "bookReaderDesktopOnly": true,
   "bookReadingStateCloudSync": false,
-  "additionalCurrentUserRequests": 38,
+  "additionalCurrentUserRequests": 39,
   "formalAndroidSigning": {
     "date": "2026-10-16",
     "appVersion": "2.0.14+50",
@@ -670,5 +670,33 @@
     "Removed drag-out overlay icon; whole-item drag retained",
     "Uniform themed thumbnail frames for images, documents and missing-image placeholders",
     "Uncropped aspect ratio for images; selection and file actions retained"
-  ]
+  ],
+  "latestHandoffUpdate": {
+    "date": "2026-11-07",
+    "documentationOnly": true,
+    "requirement": "FILE-24",
+    "status": "not-developed",
+    "document": "IOS_MEDIA_IMPORT_PLAN.md",
+    "appCodeChanged": false,
+    "packagesRebuilt": false,
+    "viewerRecommendationsAreConfirmedRequirements": false
+  },
+  "iosMediaImportCompatibility": {
+    "requirement": "FILE-24",
+    "status": "not-developed",
+    "targetPlatforms": [
+      "Android",
+      "Windows10"
+    ],
+    "targetImageFormats": [
+      "JPG",
+      "PNG"
+    ],
+    "suggestedVideoFormat": "MP4/H.264/AAC",
+    "livePhotoStaticAndMotionContentRequired": true,
+    "sourceMediaPreserved": true,
+    "cloudMediaSyncEnabled": false,
+    "iosPhysicalDeviceVerified": false,
+    "document": "IOS_MEDIA_IMPORT_PLAN.md"
+  }
 }
