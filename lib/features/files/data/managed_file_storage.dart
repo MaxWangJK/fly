@@ -9,7 +9,25 @@ class ImportCancelled implements Exception {}
 
 class ImportCancellation {
   bool _cancelled = false;
-  void cancel() => _cancelled = true;
+  final _listeners = <void Function()>{};
+  bool get isCancelled => _cancelled;
+  void cancel() {
+    if (_cancelled) return;
+    _cancelled = true;
+    for (final listener in _listeners.toList()) {
+      listener();
+    }
+  }
+
+  void Function() onCancel(void Function() listener) {
+    if (_cancelled) {
+      listener();
+    } else {
+      _listeners.add(listener);
+    }
+    return () => _listeners.remove(listener);
+  }
+
   void check() {
     if (_cancelled) throw ImportCancelled();
   }

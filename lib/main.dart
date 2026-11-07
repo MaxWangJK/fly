@@ -11,6 +11,7 @@ import 'core/database/app_database.dart';
 import 'core/storage/data_root_providers.dart';
 import 'core/storage/data_root_service.dart';
 import 'features/customers/data/drift_customer_repository.dart';
+import 'features/files/data/media_playback_platform.dart';
 import 'features/customers/domain/customer.dart';
 import 'features/customers/presentation/customer_providers.dart';
 import 'features/orders/data/drift_order_repository.dart';
@@ -30,6 +31,7 @@ import 'shared/dev/first_run_demo_seeder.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  configureMediaPlayback();
   if (defaultTargetPlatform == TargetPlatform.android) {
     await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   }

@@ -2,6 +2,26 @@
 cmake_minimum_required(VERSION 3.14)
 project(fly LANGUAGES CXX)
 
+# Pin the Windows playback SDK rather than taking a mutable nightly download.
+# The archive and extracted SDK are build dependencies, never application data.
+set(FLY_MEDIA_SDK_SHA256 "68962cd889607417529f501c5ec169d07a87abdd7359c9ae9da7fd5689300a05")
+set(FLY_MEDIA_SDK_CACHE "${CMAKE_BINARY_DIR}/media-sdk")
+set(FLY_MEDIA_SDK_ARCHIVE "${FLY_MEDIA_SDK_CACHE}/mdk-sdk-windows-x64.7z")
+file(MAKE_DIRECTORY "${FLY_MEDIA_SDK_CACHE}")
+if(NOT EXISTS "${FLY_MEDIA_SDK_ARCHIVE}")
+  file(DOWNLOAD
+    "https://github.com/wang-bin/mdk-sdk/releases/download/v0.39.0/mdk-sdk-windows-vs2026-ltl.7z"
+    "${FLY_MEDIA_SDK_ARCHIVE}"
+    EXPECTED_HASH "SHA256=${FLY_MEDIA_SDK_SHA256}"
+    TLS_VERIFY ON TIMEOUT 120)
+endif()
+file(SHA256 "${FLY_MEDIA_SDK_ARCHIVE}" FLY_MEDIA_SDK_ACTUAL)
+if(NOT FLY_MEDIA_SDK_ACTUAL STREQUAL FLY_MEDIA_SDK_SHA256)
+  message(FATAL_ERROR "Playback SDK checksum mismatch. Restore the pinned archive before building.")
+endif()
+set(FVP_DEPS_URL "file:///${FLY_MEDIA_SDK_CACHE}")
+set(FVP_DEPS_SHA256 "${FLY_MEDIA_SDK_SHA256}")
+
 # The name of the executable created for the application. Change this to change
 # the on-disk name of your application.
 set(BINARY_NAME "fly")

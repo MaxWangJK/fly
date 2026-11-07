@@ -7,6 +7,9 @@ import '../data/managed_file_repository.dart';
 import '../data/managed_file_storage.dart';
 import '../data/thumbnail_cache.dart';
 import '../data/file_folder_actions.dart';
+import '../data/media_import_service.dart';
+
+final mediaImportServiceProvider = Provider((ref) => MediaImportService());
 
 final fileFolderActionsProvider = Provider(
   (ref) => FileFolderActions(

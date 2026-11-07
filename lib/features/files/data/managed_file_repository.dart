@@ -32,6 +32,20 @@ class ManagedFileRepository {
   Future<AttachmentRecord?> find(String id) => (db.select(
     db.attachments,
   )..where((r) => r.id.equals(id))).getSingleOrNull();
+
+  Future<List<AttachmentRecord>> imagesInLocation(AttachmentRecord anchor) =>
+      (db.select(db.attachments)..where(
+            (r) =>
+                r.deletedAt.isNull() &
+                r.mimeType.like('image/%') &
+                r.ownerType.equals(anchor.ownerType) &
+                (anchor.ownerType == 'library'
+                    ? (anchor.folderId == null
+                          ? r.folderId.isNull()
+                          : r.folderId.equals(anchor.folderId!))
+                    : r.ownerId.equals(anchor.ownerId)),
+          ))
+          .get();
   Future<void> validateMoveDestination(String? folderId) => _folder(folderId);
 
   Future<String?> commit(
@@ -96,7 +110,16 @@ class ManagedFileRepository {
     '.jpg' || '.jpeg' => 'image/jpeg',
     '.gif' => 'image/gif',
     '.webp' => 'image/webp',
+    '.heic' || '.heif' => 'image/heic',
+    '.avif' => 'image/avif',
+    '.bmp' => 'image/bmp',
     '.mp4' => 'video/mp4',
+    '.mov' => 'video/quicktime',
+    '.m4v' => 'video/x-m4v',
+    '.webm' => 'video/webm',
+    '.mkv' => 'video/x-matroska',
+    '.avi' => 'video/x-msvideo',
+    '.3gp' => 'video/3gpp',
     '.pdf' => 'application/pdf',
     '.txt' => 'text/plain',
     '.docx' =>

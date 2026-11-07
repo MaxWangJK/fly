@@ -32,6 +32,7 @@ import '../../tasks/presentation/task_providers.dart';
 import '../data/file_browser_query.dart';
 import '../data/managed_file_repository.dart';
 import '../data/managed_file_storage.dart';
+import '../data/media_import_service.dart';
 import '../data/platform_file_transfer.dart';
 import 'file_providers.dart';
 import 'file_entry_content.dart';
@@ -42,6 +43,7 @@ import '../../../shared/design_system/responsive_layout.dart';
 import '../../../shared/design_system/mobile_workspace_actions.dart';
 import '../../../app/shell/mobile_details.dart';
 import 'image_file_viewer.dart';
+import 'video_file_viewer.dart';
 import 'mobile_file_browser.dart';
 import 'file_move_dialog.dart';
 
@@ -73,6 +75,8 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
   final customerTags = <String>{};
   final _imagePicker = ImagePicker();
   bool _cameraRecoveryStarted = false;
+  bool _pickingMedia = false;
+  String? _importStage;
 
   Future<void> _addOnPhone() async {
     final action = await showModalBottomSheet<String>(
@@ -88,6 +92,17 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
             title: Text(context.l10n.t('filesImport')),
             onTap: () => Navigator.pop(sheet, 'import'),
           ),
+          if (Platform.isIOS)
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: Text(
+                _phoneText(
+                  '照片与视频（保留Live动态）',
+                  'Photos and videos (including Live)',
+                ),
+              ),
+              onTap: () => Navigator.pop(sheet, 'media'),
+            ),
           ListTile(
             key: const ValueKey('file-take-photo'),
             leading: const Icon(Icons.camera_alt_outlined),
@@ -103,6 +118,9 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
       ),
     );
     if (!mounted || action == null) return;
+    if (action == 'media') {
+      await attempt(pickMedia);
+    }
     if (action == 'camera') {
       await attempt(takePhoto);
     }
@@ -623,6 +641,19 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
   Future<void> importPicked(List<XFile> files) =>
       importPaths(files.map((f) => f.path).toList(), pickedFiles: files);
 
+  Future<void> pickMedia() async {
+    if (_pickingMedia || importing) return;
+    setState(() => _pickingMedia = true);
+    PreparedMedia? batch;
+    try {
+      batch = await ref.read(mediaImportServiceProvider).pick();
+      if (mounted) await importPicked(batch.files);
+    } finally {
+      await batch?.dispose();
+      if (mounted) setState(() => _pickingMedia = false);
+    }
+  }
+
   Future<String> _customerFilesDestination() => ref
       .read(fileFolderRepositoryProvider)
       .ensureCustomerFilesRoot(context.l10n.t('filesCustomers'));
@@ -651,16 +682,51 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
       if (!mounted) throw ImportCancelled();
       for (final (index, path) in paths.indexed) {
         ImportedFile? copied;
+        PreparedMedia? prepared;
         bool committed = false;
         try {
+          if (mounted) {
+            setState(
+              () => _importStage = Platform.isIOS
+                  ? _phoneText('正在检查并转换兼容格式', 'Preparing compatible media')
+                  : null,
+            );
+          }
+          final original = pickedFiles?[index] ?? XFile(path);
+          prepared = await ref
+              .read(mediaImportServiceProvider)
+              .prepare(
+                original,
+                cancellation: cancellation,
+                progress: (value) {
+                  if (mounted) {
+                    setState(
+                      () => progress = (index + value * .7) / paths.length,
+                    );
+                  }
+                },
+              );
+          cancellation!.check();
+          final input = prepared.files.single;
+          if (mounted) {
+            setState(
+              () => _importStage = _phoneText('正在导入文件', 'Importing files'),
+            );
+          }
           copied = await storage.import(
-            path,
-            pickedFile: pickedFiles?[index],
+            input.path,
+            pickedFile: identical(input, original) && pickedFiles == null
+                ? null
+                : input,
             folderId: destination,
             cancellation: cancellation,
             progress: (done, total) {
               if (mounted) {
-                setState(() => progress = total == 0 ? 1 : done / total);
+                setState(
+                  () => progress =
+                      (index + .7 + (total == 0 ? 1 : done / total) * .3) /
+                      paths.length,
+                );
               }
             },
           );
@@ -705,12 +771,18 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
           if (mounted) setState(() => selectedId = id);
         } finally {
           if (copied != null && !committed) await storage.discard(copied);
+          await prepared?.dispose();
         }
       }
     } on ImportCancelled {
       /* Explicit cancellation; partial copy is removed. */
     } finally {
-      if (mounted) setState(() => importing = false);
+      if (mounted) {
+        setState(() {
+          importing = false;
+          _importStage = null;
+        });
+      }
     }
   }
 
@@ -773,32 +845,81 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
   }
 
   Future<void> open(FileBrowserEntry entry) async {
-    final latest = await ref
-        .read(managedFileRepositoryProvider)
-        .find(entry.file.id);
+    final repository = ref.read(managedFileRepositoryProvider);
+    final storage = ref.read(managedFileStorageProvider);
+    final opener = ref.read(attachmentOpenerProvider);
+    final latest = await repository.find(entry.file.id);
     if (!mounted) return;
     if (latest == null || latest.deletedAt != null) {
       throw StateError(context.l10n.t('filesRestoreFirst'));
     }
     if (latest.mimeType.startsWith('image/')) {
-      final path = ref
-          .read(managedFileStorageProvider)
-          .absolute(latest.relativePath);
+      final path = storage.absolute(latest.relativePath);
       if (!await File(path).exists()) throw StateError('文件内容尚未下载，请检查同步状态');
-      await ref.read(managedFileRepositoryProvider).opened(entry.file.id);
+      await repository.opened(entry.file.id);
+      final gallery = await repository.imagesInLocation(latest);
+      int compareName(AttachmentRecord a, AttachmentRecord b) =>
+          (a.displayName.isEmpty ? a.originalName : a.displayName)
+              .toLowerCase()
+              .compareTo(
+                (b.displayName.isEmpty ? b.originalName : b.displayName)
+                    .toLowerCase(),
+              );
+      gallery.sort((a, b) {
+        final value = switch (sort) {
+          FileSort.name => compareName(a, b),
+          FileSort.modified => b.updatedAt.compareTo(a.updatedAt),
+          FileSort.created => b.createdAt.compareTo(a.createdAt),
+          FileSort.size => b.fileSize.compareTo(a.fileSize),
+          FileSort.type => a.mimeType.compareTo(b.mimeType),
+        };
+        return value == 0 ? a.id.compareTo(b.id) : value;
+      });
+      final items = [
+        for (final file in gallery)
+          ImageViewerItem(
+            id: file.id,
+            path: storage.absolute(file.relativePath),
+            name: file.displayName.isEmpty
+                ? file.originalName
+                : file.displayName,
+          ),
+      ];
+      final index = items.indexWhere((item) => item.id == latest.id);
       if (!mounted) return;
       await showDialog<void>(
         context: context,
-        builder: (_) => ImageFileViewer(path: path, name: latest.originalName),
+        builder: (_) => ImageFileViewer(
+          path: path,
+          name: latest.originalName,
+          items: index < 0 ? const [] : items,
+          initialIndex: index < 0 ? 0 : index,
+          onChanged: (item) async {
+            if (await File(item.path).exists()) {
+              await repository.opened(item.id);
+            }
+          },
+          onExternal: (item) => opener.open(item.path),
+        ),
       );
       return;
     }
-    await ref
-        .read(attachmentOpenerProvider)
-        .open(
-          ref.read(managedFileStorageProvider).absolute(latest.relativePath),
-        );
-    await ref.read(managedFileRepositoryProvider).opened(entry.file.id);
+    if (latest.mimeType.startsWith('video/')) {
+      final path = storage.absolute(latest.relativePath);
+      await showDialog<void>(
+        context: context,
+        builder: (_) => VideoFileViewer(
+          path: path,
+          name: latest.displayName.isEmpty
+              ? latest.originalName
+              : latest.displayName,
+          onExternal: () => opener.open(path),
+        ),
+      );
+      return;
+    }
+    await opener.open(storage.absolute(latest.relativePath));
+    await repository.opened(entry.file.id);
   }
 
   Future<void> revealFolder(WorkspaceFolder folder) async {
@@ -1252,10 +1373,14 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
                           alignment: AlignmentDirectional.centerEnd,
                           child: TextButton.icon(
                             key: const ValueKey('files-import'),
-                            onPressed: importing
+                            onPressed: importing || _pickingMedia
                                 ? null
                                 : () => attempt(() async {
-                                    await importPicked(await openFiles());
+                                    if (Platform.isIOS) {
+                                      await _addOnPhone();
+                                    } else {
+                                      await importPicked(await openFiles());
+                                    }
                                   }),
                             icon: const Icon(Icons.file_upload_outlined),
                             label: Text(
@@ -1306,7 +1431,19 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
             if (importing)
               Row(
                 children: [
-                  Expanded(child: LinearProgressIndicator(value: progress)),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (_importStage != null)
+                          Text(
+                            _importStage!,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        LinearProgressIndicator(value: progress),
+                      ],
+                    ),
+                  ),
                   TextButton(
                     onPressed: () => cancellation?.cancel(),
                     child: Text(context.l10n.t('filesCancelImport')),
@@ -1739,6 +1876,7 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
         onAdd:
             !_selecting &&
                 !importing &&
+                !_pickingMedia &&
                 !_batchBusy &&
                 (collection == FileCollection.folder ||
                     collection == FileCollection.customers ||
@@ -1765,7 +1903,19 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
               if (importing)
                 Row(
                   children: [
-                    Expanded(child: LinearProgressIndicator(value: progress)),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (_importStage != null)
+                            Text(
+                              _importStage!,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          LinearProgressIndicator(value: progress),
+                        ],
+                      ),
+                    ),
                     TextButton(
                       onPressed: () => cancellation?.cancel(),
                       child: Text(context.l10n.t('filesCancelImport')),
