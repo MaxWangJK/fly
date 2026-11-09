@@ -16,8 +16,11 @@ services:
   api:
     build: .
     env_file: .env
+    environment:
+      RELEASE_DIRECTORY: /var/lib/fly/releases
     volumes:
       - blobs:/var/lib/fly/storage
+      - ${FLY_RELEASES_DIR:-../web/public/downloads}:/var/lib/fly/releases:ro
     depends_on:
       postgres:
         condition: service_healthy

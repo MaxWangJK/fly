@@ -33,6 +33,8 @@ def test_native_config_roundtrips_special_passwords_and_is_readable_by_settings(
     assert settings.allow_password_auth is True
     assert len(settings.jwt_private_secret) == 64
     assert settings.smtp_config_file.as_posix() == '/opt/fly-sync/server/private/smtp.json'
+    assert settings.release_directory.as_posix() == '/var/www/fly/public/downloads'
+    assert not settings.analytics_admin_password.get_secret_value()
     assert password not in output.read_text()
     assert not capsys.readouterr().out
     if os.name != 'nt':

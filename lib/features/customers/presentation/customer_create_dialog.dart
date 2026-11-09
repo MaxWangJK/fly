@@ -6,6 +6,11 @@ import '../../../l10n/service_error_copy.dart';
 import '../domain/customer.dart';
 import '../domain/customer_lifecycle.dart';
 import 'customer_providers.dart';
+import '../import/customer_import_dialog.dart';
+import '../import/customer_import_providers.dart';
+import '../import/customer_import_service.dart';
+import '../import/customer_template_export.dart';
+import '../../../l10n/crm_copy.dart';
 
 class CustomerCreateDialog extends ConsumerStatefulWidget {
   const CustomerCreateDialog({this.categoryId, super.key});
@@ -67,6 +72,58 @@ class _CustomerCreateDialogState extends ConsumerState<CustomerCreateDialog> {
     }
   }
 
+  Future<void> _batchImport() async {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    final result = await showDialog<CustomerImportResult>(
+      context: context,
+      builder: (_) => const CustomerImportDialog(),
+    );
+    if (!mounted || result?.firstCustomerId == null) return;
+    final customer = await ref
+        .read(customerRepositoryProvider)
+        .watchCustomer(result!.firstCustomerId!)
+        .first;
+    if (mounted && customer != null) Navigator.pop(context, customer);
+  }
+
+  Future<void> _template() async {
+    if (busy) return;
+    setState(() {
+      busy = true;
+      error = null;
+    });
+    try {
+      final bytes = ref
+          .read(customerImportServiceProvider)
+          .buildTemplate(
+            translate: context.l10n.isZh
+                ? null
+                : (value) => crmEnglish[value] ?? value,
+          );
+      final box = context.findRenderObject() as RenderBox;
+      final result = await ref
+          .read(customerTemplateExporterProvider)
+          .save(bytes, shareOrigin: box.localToGlobal(Offset.zero) & box.size);
+      if (mounted && result != TemplateExportResult.cancelled) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            duration: const Duration(seconds: 3),
+            content: Text(
+              t(
+                '模板已生成；带 * 的四项为必填，其余选填。',
+                'Template ready. The four starred fields are required.',
+              ),
+            ),
+          ),
+        );
+      }
+    } on Object catch (failure) {
+      if (mounted) setState(() => error = context.flyError(failure));
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
   Widget heading(String label, {bool required = false}) => Padding(
     padding: const EdgeInsets.only(top: 18, bottom: 8),
     child: Text(
@@ -96,6 +153,7 @@ class _CustomerCreateDialogState extends ConsumerState<CustomerCreateDialog> {
         content: SizedBox(
           width: 520,
           child: SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             child: Form(
               key: form,
               autovalidateMode: attempted
@@ -226,6 +284,25 @@ class _CustomerCreateDialogState extends ConsumerState<CustomerCreateDialog> {
                         ),
                       ),
                     ),
+                  const Divider(height: 28),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      TextButton.icon(
+                        key: const ValueKey('customer-batch-import'),
+                        onPressed: busy ? null : _batchImport,
+                        icon: const Icon(Icons.upload_file_outlined, size: 18),
+                        label: Text(t('批量导入', 'Batch import')),
+                      ),
+                      TextButton.icon(
+                        key: const ValueKey('customer-import-template'),
+                        onPressed: busy ? null : _template,
+                        icon: const Icon(Icons.download_outlined, size: 18),
+                        label: Text(t('Excel模板', 'Excel template')),
+                      ),
+                    ],
+                  ),
                   if (busy) const LinearProgressIndicator(),
                   if (error != null)
                     Padding(

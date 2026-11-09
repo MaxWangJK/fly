@@ -76,6 +76,8 @@ class FlyDataRootService {
   Future<Directory> get _support async =>
       _supportDirectory ?? await getApplicationSupportDirectory();
 
+  Future<Directory> get localConfigurationDirectory => _support;
+
   Future<File> get _settingsFile async =>
       File(p.join((await _support).path, 'settings.json'));
 

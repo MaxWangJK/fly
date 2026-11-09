@@ -14,7 +14,8 @@ def test_alembic_upgrade_and_downgrade(tmp_path, monkeypatch):
     assert set(inspect(engine).get_table_names()) >= {
         'users', 'devices', 'refresh_tokens', 'sync_records', 'sync_changes',
         'processed_mutations', 'sync_conflicts', 'file_blobs', 'file_upload_sessions',
-        'account_deletion_cleanup', 'alembic_version'}
+        'account_deletion_cleanup', 'alembic_version',
+        'analytics_devices', 'analytics_daily_active'}
     command.downgrade(config, 'base')
     assert inspect(engine).get_table_names() == ['alembic_version']
 

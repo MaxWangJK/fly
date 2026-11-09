@@ -4,6 +4,12 @@ import 'fly_localizations.dart';
 
 // Only fixed UI copy belongs here; never translate user-defined entity names.
 const crmEnglish = <String, String>{
+  '客户状态只支持新客户、开发中、意向客户、成交客户、复购客户':
+      'Use New customer, Developing, Interested, Customer or Repeat customer.',
+  '客户名称、国家、级别、状态为必填项': 'Name, country, category and status are required.',
+  '客户名称或联系方式重复': 'Duplicate customer name or contact details',
+  '当前文件中有重复客户': 'Duplicate customer within this file',
+  '表格没有客户数据，请先填写模板': 'No customer rows. Fill in the template first.',
   '待付款': 'Awaiting payment',
   '最近跟进': 'Last follow-up',
   '下一步 / 优先级': 'Next action / Priority',

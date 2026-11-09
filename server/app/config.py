@@ -1,5 +1,5 @@
 from pathlib import Path
-from pydantic import Field, model_validator
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -22,9 +22,17 @@ class Settings(BaseSettings):
     allow_password_auth: bool = True
     device_enrollment_enabled: bool = True
     smtp_config_file: Path = Path('private/smtp.json')
+    # Independent of client accounts; blank disables the internal statistics UI.
+    analytics_admin_username: str = Field(default='admin', min_length=1, max_length=80)
+    analytics_admin_password: SecretStr | None = None
+    release_directory: Path = Path('../web/public/downloads')
 
     @model_validator(mode='after')
     def production_secret(self):
+        if self.analytics_admin_password:
+            value = self.analytics_admin_password.get_secret_value()
+            if value and len(value) < 16:
+                raise ValueError('Analytics admin password must contain at least 16 characters')
         if self.app_env == 'production' and self.jwt_private_secret.startswith(('development', 'CHANGE_')):
             raise ValueError('Production requires a random JWT secret')
         return self

@@ -39,7 +39,10 @@ def prepare(output: Path, password: str, domain='world-workshop.cn',
         'ALLOW_PASSWORD_AUTH=true',
         'DEVICE_ENROLLMENT_ENABLED=true',
         'SMTP_CONFIG_FILE=/opt/fly-sync/server/private/smtp.json',
-        'FILE_SYNC_ALLOWED_EMAILS=', '',
+        'FILE_SYNC_ALLOWED_EMAILS=',
+        'ANALYTICS_ADMIN_USERNAME=admin',
+        'ANALYTICS_ADMIN_PASSWORD=',
+        'RELEASE_DIRECTORY=/var/www/fly/public/downloads', '',
     ])
     descriptor = os.open(output, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(descriptor, 'w', encoding='utf-8', newline='\n') as stream:

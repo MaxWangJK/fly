@@ -5,9 +5,14 @@ import 'package:excel/excel.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../shared/domain/priority.dart';
+import '../data/drift_customer_repository.dart';
+import '../domain/customer_lifecycle.dart';
+import '../domain/customer_name.dart';
 
 enum CustomerImportField {
   name,
+  category,
   company,
   country,
   city,
@@ -15,6 +20,7 @@ enum CustomerImportField {
   email,
   phone,
   facebook,
+  wechat,
   status,
   source,
   priority,
@@ -26,6 +32,7 @@ enum CustomerImportField {
 extension CustomerImportFieldX on CustomerImportField {
   String get label => switch (this) {
     CustomerImportField.name => '客户名称',
+    CustomerImportField.category => '客户级别',
     CustomerImportField.company => '公司',
     CustomerImportField.country => '国家',
     CustomerImportField.city => '城市',
@@ -33,6 +40,7 @@ extension CustomerImportFieldX on CustomerImportField {
     CustomerImportField.email => 'Email',
     CustomerImportField.phone => 'Phone',
     CustomerImportField.facebook => 'Facebook',
+    CustomerImportField.wechat => 'WeChat',
     CustomerImportField.status => '客户状态',
     CustomerImportField.source => '客户来源',
     CustomerImportField.priority => '优先级',
@@ -73,11 +81,13 @@ class CustomerImportResult {
     required this.updated,
     required this.skipped,
     required this.failedReasons,
+    this.firstCustomerId,
   });
   final int created;
   final int updated;
   final int skipped;
   final List<String> failedReasons;
+  final String? firstCustomerId;
 }
 
 class CustomerImportService {
@@ -116,6 +126,7 @@ class CustomerImportService {
     required String path,
     required String sheetName,
     required Map<int, CustomerImportField> mapping,
+    bool requireProfile = false,
   }) async {
     final book = Excel.decodeBytes(await File(path).readAsBytes());
     final sheet = book.tables[sheetName];
@@ -124,6 +135,7 @@ class CustomerImportService {
       _db.customers,
     )..where((row) => row.deletedAt.isNull())).get();
     final result = <CustomerImportRow>[];
+    final seen = <Map<CustomerImportField, String>>[];
     for (var index = 1; index < sheet.rows.length; index++) {
       final row = sheet.rows[index];
       final values = <CustomerImportField, String>{};
@@ -157,20 +169,41 @@ class CustomerImportService {
         );
         continue;
       }
+      try {
+        await _validateProfile(values, required: requireProfile);
+      } on Object catch (error) {
+        result.add(
+          CustomerImportRow(
+            rowNumber: index + 1,
+            values: values,
+            status: CustomerImportRowStatus.invalid,
+            reason: '$error',
+          ),
+        );
+        continue;
+      }
       final duplicate = existing
           .where((customer) => _isDuplicate(customer, values))
           .firstOrNull;
+      final duplicateInFile = seen.any(
+        (previous) => _sameIncoming(previous, values),
+      );
       result.add(
         CustomerImportRow(
           rowNumber: index + 1,
           values: values,
-          status: duplicate == null
+          status: duplicate == null && !duplicateInFile
               ? CustomerImportRowStatus.ready
               : CustomerImportRowStatus.duplicate,
           duplicateCustomerId: duplicate?.id,
-          reason: duplicate == null ? null : 'Email / WhatsApp / Phone 重复',
+          reason: duplicate != null
+              ? '客户名称或联系方式重复'
+              : duplicateInFile
+              ? '当前文件中有重复客户'
+              : null,
         ),
       );
+      seen.add(values);
     }
     return result;
   }
@@ -178,38 +211,50 @@ class CustomerImportService {
   Future<CustomerImportResult> import({
     required List<CustomerImportRow> rows,
     DuplicateImportAction duplicateAction = DuplicateImportAction.skip,
+    bool requireProfile = false,
   }) async {
     var created = 0;
     var updated = 0;
     var skipped = 0;
     final failed = <String>[];
+    String? firstCustomerId;
     await _db.transaction(() async {
       for (final row in rows) {
         if (row.status == CustomerImportRowStatus.invalid) {
           failed.add('第 ${row.rowNumber} 行：${row.reason}');
           continue;
         }
-        if (row.status == CustomerImportRowStatus.duplicate &&
-            duplicateAction == DuplicateImportAction.skip) {
-          skipped += 1;
-          continue;
-        }
         try {
+          await _validateProfile(row.values, required: requireProfile);
+          // Recheck against current data, including earlier rows in this file.
+          final existing = await (_db.select(
+            _db.customers,
+          )..where((r) => r.deletedAt.isNull())).get();
+          final duplicate = existing
+              .where((r) => _isDuplicate(r, row.values))
+              .firstOrNull;
+          if (duplicate != null &&
+              duplicateAction == DuplicateImportAction.skip) {
+            skipped += 1;
+            continue;
+          }
           final overwriteId =
-              row.status == CustomerImportRowStatus.duplicate &&
+              duplicate != null &&
                   duplicateAction == DuplicateImportAction.overwrite
-              ? row.duplicateCustomerId
+              ? duplicate.id
               : null;
-          final customerId = overwriteId ?? _uuid.v7();
-          await _saveCustomer(
-            customerId,
-            row.values,
-            overwrite: overwriteId != null,
-          );
-          await _saveTags(
-            customerId,
-            row.values[CustomerImportField.tags] ?? '',
-          );
+          final savedId = await _db.transaction(() async {
+            final customerId = await _saveCustomer(
+              row.values,
+              overwriteId: overwriteId,
+            );
+            await _saveTags(
+              customerId,
+              row.values[CustomerImportField.tags] ?? '',
+            );
+            return customerId;
+          });
+          firstCustomerId ??= savedId;
           overwriteId == null ? created += 1 : updated += 1;
         } on Object catch (error) {
           failed.add('第 ${row.rowNumber} 行：$error');
@@ -221,6 +266,7 @@ class CustomerImportService {
       updated: updated,
       skipped: skipped,
       failedReasons: failed,
+      firstCustomerId: firstCustomerId,
     );
   }
 
@@ -229,27 +275,34 @@ class CustomerImportService {
     final book = Excel.createExcel();
     book.rename('Sheet1', 'Customers');
     final sheet = book['Customers'];
+    const columns = [
+      CustomerImportField.name,
+      CustomerImportField.country,
+      CustomerImportField.category,
+      CustomerImportField.status,
+      CustomerImportField.source,
+      CustomerImportField.company,
+      CustomerImportField.email,
+      CustomerImportField.phone,
+      CustomerImportField.wechat,
+      CustomerImportField.whatsapp,
+      CustomerImportField.notes,
+    ];
+    const required = {
+      CustomerImportField.name,
+      CustomerImportField.country,
+      CustomerImportField.category,
+      CustomerImportField.status,
+    };
     sheet.appendRow(
-      CustomerImportField.values
-          .map((field) => TextCellValue(copy(field.label)))
+      columns
+          .map(
+            (field) => TextCellValue(
+              '${copy(field.label)}${required.contains(field) ? ' *' : ''}',
+            ),
+          )
           .toList(),
     );
-    sheet.appendRow([
-      TextCellValue('Jack'),
-      TextCellValue('Jack Trading'),
-      TextCellValue('Philippines'),
-      TextCellValue('Manila'),
-      TextCellValue('+63 900 000 0000'),
-      TextCellValue('jack@example.com'),
-      TextCellValue('+63 2 8000 0000'),
-      TextCellValue('jack.trading'),
-      TextCellValue(copy('意向客户')),
-      TextCellValue('Alibaba'),
-      TextCellValue(copy('高')),
-      TextCellValue('2026-09-10'),
-      TextCellValue(copy('客户偏好 WPC')),
-      TextCellValue(copy('菲律宾,WPC,A级')),
-    ]);
     for (var index = 0; index < sheet.maxColumns; index++) {
       sheet.setColumnWidth(index, 18);
       sheet
@@ -263,126 +316,115 @@ class CustomerImportService {
     return Uint8List.fromList(bytes);
   }
 
-  Future<void> _saveCustomer(
-    String id,
+  Future<void> _validateProfile(
     Map<CustomerImportField, String> values, {
-    required bool overwrite,
+    required bool required,
   }) async {
-    final now = DateTime.now();
-    final name = values[CustomerImportField.name]!.trim();
-    final email = values[CustomerImportField.email]?.trim() ?? '';
-    final whatsapp = values[CustomerImportField.whatsapp]?.trim() ?? '';
-    final phone = values[CustomerImportField.phone]?.trim() ?? '';
-    final statusId = await _findOrCreateStatus(
-      values[CustomerImportField.status]?.trim() ?? '',
-      now,
+    String value(CustomerImportField field) => values[field]?.trim() ?? '';
+    if (required &&
+        [
+          CustomerImportField.name,
+          CustomerImportField.country,
+          CustomerImportField.category,
+          CustomerImportField.status,
+        ].any((field) => value(field).isEmpty)) {
+      throw const FormatException('客户名称、国家、级别、状态为必填项');
+    }
+    if (value(CustomerImportField.name).length > 240) {
+      throw const FormatException('客户名称最多240字');
+    }
+    if (value(CustomerImportField.status).isNotEmpty) {
+      _statusId(value(CustomerImportField.status));
+    }
+    if (value(CustomerImportField.category).isNotEmpty) {
+      await _categoryId(value(CustomerImportField.category));
+    }
+  }
+
+  String _statusId(String raw) {
+    final key = raw.trim().toLowerCase();
+    final match = CustomerLifecycle.stages
+        .where((s) => [s.$1, s.$2, s.$3.toLowerCase()].contains(key))
+        .firstOrNull;
+    if (match == null) {
+      throw const FormatException('客户状态只支持新客户、开发中、意向客户、成交客户、复购客户');
+    }
+    return match.$1;
+  }
+
+  Future<String?> _categoryId(String raw) async {
+    if (raw.trim().isEmpty) return null;
+    String normalize(String value) =>
+        value.toLowerCase().replaceAll(RegExp(r'\s|级|grade|level'), '');
+    final categories = await (_db.select(
+      _db.customerCategories,
+    )..where((r) => r.deletedAt.isNull() & r.isActive.equals(true))).get();
+    final category = categories
+        .where(
+          (r) =>
+              r.id.toLowerCase() == raw.toLowerCase() ||
+              normalize(r.name) == normalize(raw),
+        )
+        .firstOrNull;
+    if (category == null) throw const FormatException('客户级别不存在或已停用');
+    return category.id;
+  }
+
+  Future<String> _saveCustomer(
+    Map<CustomerImportField, String> values, {
+    String? overwriteId,
+  }) async {
+    String? optional(CustomerImportField field) {
+      final text = values[field]?.trim() ?? '';
+      return text.isEmpty ? null : text;
+    }
+
+    final repository = DriftCustomerRepository(_db);
+    final category = await _categoryId(
+      optional(CustomerImportField.category) ?? '',
     );
-    final sourceId = await _findOrCreateSource(
-      values[CustomerImportField.source]?.trim() ?? '',
-      now,
-    );
-    final notes = values[CustomerImportField.notes]?.trim() ?? '';
-    final companion = CustomersCompanion(
-      id: Value(id),
-      name: Value(name),
-      companyName: Value(values[CustomerImportField.company]?.trim() ?? ''),
-      country: Value(values[CustomerImportField.country]?.trim() ?? ''),
-      city: Value(values[CustomerImportField.city]?.trim() ?? ''),
-      whatsapp: Value(whatsapp),
-      email: Value(email),
-      phone: Value(phone),
-      facebook: Value(values[CustomerImportField.facebook]?.trim() ?? ''),
-      emailNormalized: Value(_normalizeEmail(email)),
-      whatsappNormalized: Value(_normalizePhone(whatsapp)),
-      phoneNormalized: Value(_normalizePhone(phone)),
-      statusId: Value(statusId),
-      sourceId: Value(sourceId),
-      priority: Value(_priority(values[CustomerImportField.priority] ?? '')),
-      notes: Value(notes),
-      nextFollowUpDate: Value(
-        DateTime.tryParse(values[CustomerImportField.nextFollowUp] ?? ''),
+    final status = optional(CustomerImportField.status);
+    final customer = overwriteId == null
+        ? await repository.createCustomer(
+            name: values[CustomerImportField.name]!,
+            country: optional(CustomerImportField.country) ?? '',
+            categoryId: category,
+            statusId: status == null ? null : _statusId(status),
+          )
+        : await repository.watchCustomer(overwriteId).first;
+    if (customer == null) throw StateError('需要覆盖的客户不存在');
+    final notes = optional(CustomerImportField.notes);
+    await repository.saveCustomer(
+      customer.copyWith(
+        name: values[CustomerImportField.name]!.trim(),
+        country: optional(CustomerImportField.country),
+        categoryId: category ?? customer.categoryId,
+        statusId: status == null ? customer.statusId : _statusId(status),
+        companyName: optional(CustomerImportField.company),
+        city: optional(CustomerImportField.city),
+        email: optional(CustomerImportField.email),
+        phone: optional(CustomerImportField.phone),
+        whatsapp: optional(CustomerImportField.whatsapp),
+        facebook: optional(CustomerImportField.facebook),
+        wechat: optional(CustomerImportField.wechat),
+        notes: notes,
+        priority: optional(CustomerImportField.priority) == null
+            ? customer.priority
+            : PriorityLevel.values.firstWhere(
+                (v) =>
+                    v.name == _priority(values[CustomerImportField.priority]!),
+              ),
+        nextFollowUpDate: optional(CustomerImportField.nextFollowUp) == null
+            ? customer.nextFollowUpDate
+            : DateTime.parse(values[CustomerImportField.nextFollowUp]!),
       ),
-      sortOrder: Value(now.microsecondsSinceEpoch),
-      createdAt: Value(now),
-      updatedAt: Value(now),
-      deletedAt: const Value(null),
-      version: const Value(1),
     );
-    if (overwrite) {
-      await (_db.update(
-        _db.customers,
-      )..where((row) => row.id.equals(id))).write(
-        companion.copyWith(
-          id: const Value.absent(),
-          createdAt: const Value.absent(),
-        ),
-      );
-    } else {
-      await _db.into(_db.customers).insert(companion);
+    final source = optional(CustomerImportField.source);
+    if (source != null) {
+      await repository.setCustomerSourceText(customer.id, source);
     }
-    if (notes.isNotEmpty) {
-      await _db
-          .into(_db.customerNotes)
-          .insert(
-            CustomerNotesCompanion.insert(
-              id: _uuid.v7(),
-              customerId: id,
-              content: Value(notes),
-              createdAt: now,
-              updatedAt: now,
-            ),
-          );
-    }
-  }
-
-  Future<String?> _findOrCreateStatus(String name, DateTime now) async {
-    if (name.isEmpty) return null;
-    final existing =
-        await (_db.select(_db.customerStatuses)..where(
-              (row) =>
-                  row.name.lower().equals(name.toLowerCase()) &
-                  row.deletedAt.isNull(),
-            ))
-            .getSingleOrNull();
-    if (existing != null) return existing.id;
-    final id = _uuid.v7();
-    await _db
-        .into(_db.customerStatuses)
-        .insert(
-          CustomerStatusesCompanion.insert(
-            id: id,
-            name: name,
-            sortOrder: now.microsecondsSinceEpoch,
-            createdAt: now,
-            updatedAt: now,
-          ),
-        );
-    return id;
-  }
-
-  Future<String?> _findOrCreateSource(String name, DateTime now) async {
-    if (name.isEmpty) return null;
-    final existing =
-        await (_db.select(_db.customerSources)..where(
-              (row) =>
-                  row.name.lower().equals(name.toLowerCase()) &
-                  row.deletedAt.isNull(),
-            ))
-            .getSingleOrNull();
-    if (existing != null) return existing.id;
-    final id = _uuid.v7();
-    await _db
-        .into(_db.customerSources)
-        .insert(
-          CustomerSourcesCompanion.insert(
-            id: id,
-            name: name,
-            sortOrder: now.microsecondsSinceEpoch,
-            createdAt: now,
-            updatedAt: now,
-          ),
-        );
-    return id;
+    if (notes != null) await repository.addNote(customer.id, content: notes);
+    return customer.id;
   }
 
   Future<void> _saveTags(String customerId, String raw) async {
@@ -435,14 +477,36 @@ class CustomerImportService {
       values[CustomerImportField.whatsapp] ?? '',
     );
     final phone = _normalizePhone(values[CustomerImportField.phone] ?? '');
-    return (email.isNotEmpty && customer.emailNormalized == email) ||
+    return normalizeCustomerName(customer.name) ==
+            normalizeCustomerName(values[CustomerImportField.name] ?? '') ||
+        (email.isNotEmpty && customer.emailNormalized == email) ||
         (whatsapp.isNotEmpty && customer.whatsappNormalized == whatsapp) ||
         (phone.isNotEmpty && customer.phoneNormalized == phone);
   }
 
+  bool _sameIncoming(
+    Map<CustomerImportField, String> a,
+    Map<CustomerImportField, String> b,
+  ) =>
+      normalizeCustomerName(a[CustomerImportField.name] ?? '') ==
+          normalizeCustomerName(b[CustomerImportField.name] ?? '') ||
+      [
+        CustomerImportField.email,
+        CustomerImportField.phone,
+        CustomerImportField.whatsapp,
+      ].any((field) {
+        final left = field == CustomerImportField.email
+            ? _normalizeEmail(a[field] ?? '')
+            : _normalizePhone(a[field] ?? '');
+        final right = field == CustomerImportField.email
+            ? _normalizeEmail(b[field] ?? '')
+            : _normalizePhone(b[field] ?? '');
+        return left.isNotEmpty && left == right;
+      });
+
   static String _cellText(Data? data) => data?.value?.toString().trim() ?? '';
   static String _normalizeHeader(String value) =>
-      value.toLowerCase().replaceAll(RegExp(r'[\s_\-]'), '');
+      value.toLowerCase().replaceAll(RegExp(r'[\s_\-*＊]'), '');
   static String _normalizeEmail(String value) => value.trim().toLowerCase();
   static String _normalizePhone(String value) =>
       value.replaceAll(RegExp(r'\D'), '');
@@ -453,14 +517,39 @@ class CustomerImportService {
   };
 
   static const Map<CustomerImportField, Set<String>> _aliases = {
-    CustomerImportField.name: {'name', 'customername', '客户名称', '客户名'},
-    CustomerImportField.company: {'company', 'companyname', '公司', '公司名称'},
+    CustomerImportField.name: {
+      'name',
+      'customername',
+      '客户名称',
+      '客户名',
+      '客户',
+      '客户姓名',
+    },
+    CustomerImportField.category: {
+      'category',
+      'level',
+      'grade',
+      'customercategory',
+      'customercategories',
+      'customerlevel',
+      '客户级别',
+      '级别',
+      '等级',
+    },
+    CustomerImportField.company: {
+      'company',
+      'companyname',
+      '公司',
+      '公司名称',
+      '公司名字',
+    },
     CustomerImportField.country: {'country', '国家'},
     CustomerImportField.city: {'city', '城市'},
     CustomerImportField.whatsapp: {'whatsapp', 'wa'},
     CustomerImportField.email: {'email', '邮箱'},
     CustomerImportField.phone: {'phone', '电话', '手机'},
     CustomerImportField.facebook: {'facebook', 'fb'},
+    CustomerImportField.wechat: {'wechat', '微信', '通讯账号'},
     CustomerImportField.status: {'status', 'customerstatus', '客户状态', '状态'},
     CustomerImportField.source: {'source', 'customersource', '客户来源', '来源'},
     CustomerImportField.priority: {'priority', '优先级'},

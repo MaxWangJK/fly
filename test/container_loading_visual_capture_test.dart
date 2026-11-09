@@ -205,7 +205,10 @@ void main() {
           .firstWhere(
             (s) => s.parentId == initialSpaces[0].id && s.name.contains('上方'),
           );
-      await tester.ensureVisible(find.text(extra.name).first);
+      // Space labels are now A/B zones; stable identity is independent of copy.
+      await tester.ensureVisible(
+        find.byKey(ValueKey('loading-space-${extra.id}')),
+      );
       await shot('v5_remaining_spaces');
       editor.addCargo(partialSection, pvc, spaceId: extra.id);
       editor.updateEntry(

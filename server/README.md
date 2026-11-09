@@ -1,5 +1,7 @@
 # Fly 2.0 Sync Backend
 
+2026-11-09，当前迁移 **0005**：在同一个后台加入匿名安装/每日活跃统计、受保护的简单管理页和官网下载目录的 Windows/Android 更新查询。没有增加业务行为统计，没有第二套数据库。部署步骤见 [统计与更新升级](deploy/analytics-updates.md)，协议见 [统计](../docs/analytics.md) / [更新](../docs/app_updates.md)。最新原生包为 Fly-Sync-2.0.21-build57-ubuntu-native-20261109.tar.gz。以下 0004 等段落是历史能力说明，不代表当前迁移版本。
+
 **当前推荐部署：**[Ubuntu 原生简化部署](deploy/ubuntu-native.md)。PostgreSQL 单独安装，Python 使用虚拟环境与 systemd；上传代码和私有发件配置后执行 `sudo bash deploy/install-native.sh`。无需 Docker，继续使用现有 Nginx、PHP 官网及 `127.0.0.1:18766`。下文容器部署保留为历史可选方式。
 
 2026-11-01 当前源码：邮箱注册、登录、找回/修改密码和注销云账号已加入，支持图形验证、六位邮箱码，以及临时空间绑定邮箱保留数据。迁移已到 `0004`，新增注销后的持久文件清理任务。build43 成品只含到 `0003`，本轮源码尚未重新打包。密码登录默认开启，云端仍不传图片/文件内容。真实发件参数仅存被忽略的 `private/smtp.json`，运行时只读挂载，见 [邮箱配置](../docs/release/email_cloud_auth_20261101.md)、[账号生命周期](../docs/release/cloud_account_lifecycle_20261101.md)。已有官网请使用 [共存部署](deploy/cloud_sync_20261101.md)，后面的旧“设备码阶段/邮箱关闭”说明以本段及新文档为准。

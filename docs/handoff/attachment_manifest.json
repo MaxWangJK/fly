@@ -226,5 +226,17 @@
     "originalSha256": "70581CE68639B987ED0902FA151D42008F31F7EA400F714CFE048C6A461B9C08",
     "copyStatus": "original-copy",
     "sha256Scope": "current portable copy bytes"
+  },
+  {
+    "sourceId": "A20",
+    "originalPath": "C:\\Users\\Administrator\\.codex\\attachments\\9c581475-03a1-442a-aed8-785c24cb3ecb\\已粘贴的文本.txt",
+    "copyPath": "sources/prompt-9c581475-03a1-442a-aed8-785c24cb3ecb.txt",
+    "available": true,
+    "title": "Fly 极简匿名统计、客户批量导入与更新检测",
+    "sha256": "99EEB7A2D5F621D2D0EE6E53E2145EC47EEDEB5B472AF80A72771E953D1E4546",
+    "lines": 1608,
+    "originalSha256": "23681780E47B63C4DC088584EEDD3C50D60F9B628CACA7AD2988B7B2AD665B38",
+    "copyStatus": "brand-neutralized",
+    "sha256Scope": "current portable copy bytes"
   }
 ]

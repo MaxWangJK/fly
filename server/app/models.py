@@ -1,6 +1,6 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from uuid import uuid4
-from sqlalchemy import BigInteger, DateTime, ForeignKey, Integer, JSON, String, UniqueConstraint
+from sqlalchemy import BigInteger, Date, DateTime, ForeignKey, Integer, JSON, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -15,6 +15,24 @@ def uid():
 
 class Base(DeclarativeBase):
     pass
+
+
+class AnalyticsDevice(Base):
+    """An anonymous installation, deliberately unrelated to users/devices."""
+    __tablename__ = 'analytics_devices'
+    device_code: Mapped[str] = mapped_column(String(32), primary_key=True)
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class AnalyticsDailyActive(Base):
+    __tablename__ = 'analytics_daily_active'
+    id: Mapped[int] = mapped_column(BigInteger().with_variant(Integer, 'sqlite'), primary_key=True, autoincrement=True)
+    device_code: Mapped[str] = mapped_column(ForeignKey('analytics_devices.device_code'), index=True)
+    active_date: Mapped[date] = mapped_column(Date, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (UniqueConstraint('device_code', 'active_date', name='uq_analytics_daily_device_date'),)
 
 
 json_type = JSON().with_variant(JSONB(), 'postgresql')

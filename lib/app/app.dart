@@ -32,6 +32,7 @@ import 'shell/app_shell.dart';
 import 'shell/my_page.dart';
 import '../shared/design_system/responsive_layout.dart';
 import 'settings/navigation_settings.dart';
+import '../core/updates/update_widgets.dart';
 
 const _initialLocation = String.fromEnvironment(
   'FLY_INITIAL_ROUTE',
@@ -309,9 +310,10 @@ class FlyApp extends ConsumerWidget {
       ],
       routerConfig: ref.watch(appRouterProvider),
       builder: (context, child) {
-        final content = enableLocalLicense
+        final routedContent = enableLocalLicense
             ? LocalLicenseGate(child: child ?? const SizedBox.shrink())
             : child ?? const SizedBox.shrink();
+        final content = AppUpdateNotice(child: routedContent);
         final dark = Theme.of(context).brightness == Brightness.dark;
         return AnnotatedRegion<SystemUiOverlayStyle>(
           value: SystemUiOverlayStyle(

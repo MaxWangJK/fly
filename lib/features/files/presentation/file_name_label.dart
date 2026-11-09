@@ -10,6 +10,8 @@ class FileNameLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Tooltip(
     message: name,
+    // Keep hover help without stealing a file tile's touch long-press menu.
+    triggerMode: TooltipTriggerMode.manual,
     child: Semantics(
       label: name,
       child: ExcludeSemantics(

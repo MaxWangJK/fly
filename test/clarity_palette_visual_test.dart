@@ -125,7 +125,8 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('primary-files')));
     await _pumpUi(tester);
-    expect(find.text('WPC-price-list.pdf'), findsWidgets);
+    // Compact file names keep the complete name in their tooltip.
+    expect(find.byTooltip('WPC-price-list.pdf'), findsWidgets);
     await tester.runAsync(
       () =>
           _capture(boundaryKey, 'artifacts/$captureFolder/files.png', capture),

@@ -1,7 +1,9 @@
 import 'dart:convert';
 
+import '../../../config/service_endpoints.dart';
+
 class SyncServerConfig {
-  static const defaultBaseUrl = 'https://world-workshop.cn/api';
+  static const defaultBaseUrl = FlyServiceEndpoints.officialApiBaseUrl;
   static bool isOfficial(String input) =>
       validate(input).host.toLowerCase().replaceFirst(RegExp(r'\.$'), '') ==
       'world-workshop.cn';

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +8,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app/app.dart';
+import 'app/startup_services_runtime.dart';
+import 'core/analytics/analytics_service.dart';
+import 'core/analytics/analytics_storage.dart';
 import 'core/database/app_database.dart';
 import 'core/storage/data_root_providers.dart';
 import 'core/storage/data_root_service.dart';
@@ -195,7 +199,19 @@ class _FlyBootstrapState extends State<FlyBootstrap> {
               (ref) => captured.orderExtension!,
             ),
         ],
-        child: app,
+        child: StartupServicesRuntime(
+          analyticsFactory: () async {
+            final directory =
+                await widget.dataRootService.localConfigurationDirectory;
+            return AnalyticsService(
+              storage: FileAnalyticsStorage(
+                File.fromUri(directory.uri.resolve('anonymous-analytics.json')),
+              ),
+              transport: HttpAnalyticsTransport(),
+            );
+          },
+          child: app,
+        ),
       );
       if (!mounted) {
         await database.close();

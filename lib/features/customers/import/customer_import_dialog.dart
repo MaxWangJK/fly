@@ -2,19 +2,16 @@ import '../../../l10n/service_error_copy.dart';
 import '../../../l10n/crm_copy.dart';
 import '../../../l10n/fly_localizations.dart';
 
-import 'dart:io';
+import 'dart:math' as math;
 
-import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../shared/design_system/design_tokens.dart';
-import '../../tasks/presentation/task_providers.dart';
 import 'customer_import_service.dart';
-
-final customerImportServiceProvider = Provider<CustomerImportService>(
-  (ref) => CustomerImportService(ref.watch(databaseProvider)),
-);
+import 'customer_import_providers.dart';
+import 'customer_template_export.dart';
+export 'customer_import_providers.dart' show customerImportServiceProvider;
 
 class CustomerImportDialog extends ConsumerStatefulWidget {
   const CustomerImportDialog({super.key});
@@ -37,11 +34,7 @@ class _CustomerImportDialogState extends ConsumerState<CustomerImportDialog> {
   String? _error;
 
   Future<void> _chooseFile() async {
-    final group = XTypeGroup(
-      label: context.crmCopy('Excel 工作簿'),
-      extensions: ['xlsx'],
-    );
-    final file = await openFile(acceptedTypeGroups: [group]);
+    final file = await ref.read(customerImportFilePickerProvider)();
     if (file == null || !mounted) return;
     setState(() {
       _busy = true;
@@ -61,6 +54,18 @@ class _CustomerImportDialogState extends ConsumerState<CustomerImportDialog> {
           _sheetName = sheets.first.name;
           _step = 1;
         });
+        final mapping = ref
+            .read(customerImportServiceProvider)
+            .autoMap(sheets.first.headers);
+        if ([
+          CustomerImportField.name,
+          CustomerImportField.country,
+          CustomerImportField.category,
+          CustomerImportField.status,
+        ].every(mapping.containsValue)) {
+          _mapping = mapping;
+          await _buildPreview();
+        }
       }
     } on Object catch (error) {
       if (mounted) setState(() => _error = context.flyError(error));
@@ -70,27 +75,32 @@ class _CustomerImportDialogState extends ConsumerState<CustomerImportDialog> {
   }
 
   Future<void> _downloadTemplate() async {
-    final location = await getSaveLocation(
-      suggestedName: 'Fly-Customer-Import-Template.xlsx',
-      acceptedTypeGroups: [
-        XTypeGroup(label: context.crmCopy('Excel 工作簿'), extensions: ['xlsx']),
-      ],
-    );
-    if (location == null || !mounted) return;
-    final bytes = ref
-        .read(customerImportServiceProvider)
-        .buildTemplate(
-          translate: context.l10n.isZh
-              ? null
-              : (value) => crmEnglish[value] ?? value,
+    if (_busy) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final bytes = ref
+          .read(customerImportServiceProvider)
+          .buildTemplate(
+            translate: context.l10n.isZh
+                ? null
+                : (value) => crmEnglish[value] ?? value,
+          );
+      final box = context.findRenderObject() as RenderBox;
+      final result = await ref
+          .read(customerTemplateExporterProvider)
+          .save(bytes, shareOrigin: box.localToGlobal(Offset.zero) & box.size);
+      if (mounted && result != TemplateExportResult.cancelled) {
+        setState(
+          () => _error = context.l10n.isZh ? '模板已生成。姓名、国家、级别和状态为必填项。' : 'Template ready. Name, country, category and status are required.',
         );
-    await File(location.path).writeAsBytes(bytes, flush: true);
-    if (mounted) {
-      setState(
-        () => _error = (context.l10n.isZh
-            ? '模板已保存：${location.path}'
-            : 'Template saved: ${location.path}'),
-      );
+      }
+    } on Object catch (error) {
+      if (mounted) setState(() => _error = context.flyError(error));
+    } finally {
+      if (mounted) setState(() => _busy = false);
     }
   }
 
@@ -103,8 +113,17 @@ class _CustomerImportDialogState extends ConsumerState<CustomerImportDialog> {
   }
 
   Future<void> _buildPreview() async {
-    if (!_mapping.containsValue(CustomerImportField.name)) {
-      setState(() => _error = context.crmCopy('请至少映射“客户名称”。'));
+    if (![
+      CustomerImportField.name,
+      CustomerImportField.country,
+      CustomerImportField.category,
+      CustomerImportField.status,
+    ].every(_mapping.containsValue)) {
+      setState(
+        () => _error = context.l10n.isZh
+            ? '请映射客户名称、国家、级别和状态。'
+            : 'Map name, country, category and status.',
+      );
       return;
     }
     setState(() {
@@ -114,7 +133,13 @@ class _CustomerImportDialogState extends ConsumerState<CustomerImportDialog> {
     try {
       final rows = await ref
           .read(customerImportServiceProvider)
-          .preview(path: _path!, sheetName: _sheetName!, mapping: _mapping);
+          .preview(
+            path: _path!,
+            sheetName: _sheetName!,
+            mapping: _mapping,
+            requireProfile: true,
+          );
+      if (rows.isEmpty) throw const FormatException('表格没有客户数据，请先填写模板');
       if (mounted) {
         setState(() {
           _preview = rows;
@@ -136,7 +161,11 @@ class _CustomerImportDialogState extends ConsumerState<CustomerImportDialog> {
     try {
       final result = await ref
           .read(customerImportServiceProvider)
-          .import(rows: _preview, duplicateAction: _duplicateAction);
+          .import(
+            rows: _preview,
+            duplicateAction: _duplicateAction,
+            requireProfile: true,
+          );
       if (mounted) {
         setState(() {
           _result = result;
@@ -152,6 +181,7 @@ class _CustomerImportDialogState extends ConsumerState<CustomerImportDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
+    insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
     title: Row(
       children: [
         Expanded(child: Text(context.crmCopy('导入客户'))),
@@ -165,8 +195,11 @@ class _CustomerImportDialogState extends ConsumerState<CustomerImportDialog> {
       ],
     ),
     content: SizedBox(
-      width: 680,
-      height: 470,
+      width: math.min(680, MediaQuery.sizeOf(context).width - 64),
+      height: math.max(
+        120,
+        math.min(470, MediaQuery.sizeOf(context).height - 210),
+      ),
       child: Column(
         children: [
           LinearProgressIndicator(value: (_step + 1) / 5),
@@ -192,7 +225,7 @@ class _CustomerImportDialogState extends ConsumerState<CustomerImportDialog> {
           child: Text(context.crmCopy('上一步')),
         ),
       TextButton(
-        onPressed: _busy ? null : () => Navigator.pop(context),
+        onPressed: _busy ? null : () => Navigator.pop(context, _result),
         child: Text(_step == 4 ? context.crmCopy('完成') : context.crmCopy('取消')),
       ),
       if (_step == 1)
@@ -295,7 +328,7 @@ class _CustomerImportDialogState extends ConsumerState<CustomerImportDialog> {
           const Icon(Icons.arrow_forward_rounded, size: 15),
           const SizedBox(width: 10),
           SizedBox(
-            width: 220,
+            width: MediaQuery.sizeOf(context).width < 600 ? 146 : 220,
             child: DropdownButton<CustomerImportField?>(
               value: _mapping[index],
               isExpanded: true,

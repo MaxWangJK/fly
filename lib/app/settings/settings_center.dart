@@ -11,6 +11,7 @@ import 'package:path/path.dart' as p;
 import '../../core/database/app_database.dart';
 import '../../config/feature_flags.dart';
 import '../../config/app_version.dart';
+import '../../core/updates/update_widgets.dart';
 import '../../l10n/fly_localizations.dart';
 import '../../l10n/settings_copy.dart';
 import '../../core/storage/data_root_providers.dart';
@@ -453,7 +454,7 @@ class _SettingsCenterState extends ConsumerState<SettingsCenter> {
             '客户导入',
             '选择工作簿、预览与处理重复客户',
             control: TextButton(
-              onPressed: () => showDialog<void>(
+              onPressed: () => showDialog<Object?>(
                 context: context,
                 builder: (_) => const CustomerImportDialog(),
               ),
@@ -482,6 +483,7 @@ class _SettingsCenterState extends ConsumerState<SettingsCenter> {
         return [
           _heading('Fly'),
           _row('版本', appVersion),
+          const UpdateSettingsPanel(),
           _row('数据版本', '${ref.read(databaseProvider).schemaVersion}'),
           const Divider(),
           _row(

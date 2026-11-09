@@ -1,6 +1,6 @@
 # Ubuntu 简单部署：PostgreSQL + Python
 
-2026-11-01。这是当前推荐方式，不需要 Docker，也不改变现有 PHP 官网。按 Ubuntu 24.04（系统 Python 3.12）编写；后台是普通 Python 服务，PostgreSQL 单独安装。部署由你在服务器执行，开发电脑没有操作真实 Ubuntu。
+2026-11-09。这是当前推荐方式，不需要 Docker，也不改变现有 PHP 官网。按 Ubuntu 24.04（系统 Python 3.12）编写；后台是普通 Python 服务，PostgreSQL 单独安装。部署由你在服务器执行，开发电脑没有操作真实 Ubuntu。新增匿名统计、管理页和安装包更新检测请同时阅读 [本轮升级步骤](analytics-updates.md)。
 
 最终结构：**现有 Nginx → `127.0.0.1:18766` Python 服务 → 本机 PostgreSQL**。客户端“我的”中自建地址留空即使用系统默认服务，无需填写官网域名；部署接口仍为 `world-workshop.cn/api`。支持邮箱注册、登录、找回密码和注销；只同步业务数据，不同步文件或图片内容。
 
@@ -19,10 +19,10 @@ sudo mkdir -p /opt/fly-sync
 
 `createuser` 会要求输入并确认数据库用户 `fly` 的密码，输入时不显示；记住它，第 2 步还要填写。已有可用的用户/数据库就保留，不重复创建。不要将数据库的 5432 端口开放给公网。
 
-推荐上传本次 `Fly-Sync-2.0.8-build44-ubuntu-native-20261101.tar.gz` 原生后台包，在服务器执行：
+推荐上传本次 `Fly-Sync-2.0.21-build57-ubuntu-native-20261109.tar.gz` 原生后台包，在服务器执行：
 
 ```bash
-sudo tar -xzf /tmp/Fly-Sync-2.0.8-build44-ubuntu-native-20261101.tar.gz -C /opt/fly-sync
+sudo tar -xzf /tmp/Fly-Sync-2.0.21-build57-ubuntu-native-20261109.tar.gz -C /opt/fly-sync
 ```
 
 上例假设把压缩包上传到了 `/tmp`。也可手动上传最新后台源码到 `/opt/fly-sync/server`，但不上传 Windows `.venv`、缓存和测试数据库。目录应有 `app/`、`alembic/`、`requirements.lock`、`alembic.ini` 和 `deploy/`。旧 build43 后台包不包含找回/注销和本部署配置。若是更新已有后台，先按下方“日常更新与备份”停止服务和备份，再解压覆盖公开代码。
@@ -47,7 +47,7 @@ sudo systemctl status fly-sync --no-pager
 curl --fail http://127.0.0.1:18766/api/health
 ```
 
-启动时会自动执行数据库增量迁移到 `0004`，不需要手动创建业务表。Python 使用独立系统用户运行，开机自启，异常退出后自动重启，日志由系统保存。
+启动时会自动执行数据库增量迁移到 `0005`，不需要手动创建业务表。Python 使用独立系统用户运行，开机自启，异常退出后自动重启，日志由系统保存；统计路由访问日志被过滤。
 
 健康接口应返回 `status: ok`，能力包含 `emailRegistration: true`、`passwordReset: true`、`deleteAccount: true`、`fileContents: false`。检查迁移或查看错误：
 
@@ -60,7 +60,7 @@ sudo journalctl -u fly-sync -n 80 --no-pager
 
 ## 3. Nginx 接入现有网站
 
-已经按之前文档配置了 `/api/` 转发到 `127.0.0.1:18766`，则不需要修改。还没有添加时，将 [nginx-existing-site.locations.conf](nginx-existing-site.locations.conf) 中的 location 内容放进你现有域名的 HTTPS `server` 块内，然后执行：
+已经按之前文档配置了 `/api/` 转发到 `127.0.0.1:18766`，保留该规则并补入 [本轮升级步骤](analytics-updates.md) 中更精确的 `/api/stats/` 日志关闭块。还没有添加时，将 [nginx-existing-site.locations.conf](nginx-existing-site.locations.conf) 中的 location 内容放进你现有域名的 HTTPS `server` 块内，然后执行：
 
 ```bash
 sudo nginx -t

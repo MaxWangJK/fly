@@ -337,7 +337,7 @@ class _CustomerListPageState extends ConsumerState<CustomerListPage> {
                     IconButton(
                       key: const ValueKey('import-customers'),
                       tooltip: context.crmCopy('导入 Excel'),
-                      onPressed: () => showDialog<void>(
+                      onPressed: () => showDialog<Object?>(
                         context: context,
                         builder: (context) => const CustomerImportDialog(),
                       ),

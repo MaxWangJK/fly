@@ -1,3 +1,7 @@
+# 2026-11-09 更新说明
+
+当前后台迁移为 0005；无法使用 Docker 的服务器继续按 [Ubuntu 原生部署](ubuntu-native.md) 操作。匿名统计、管理员凭据、下载目录和 Nginx 日志排除见 [新增功能部署](analytics-updates.md)。下文保留旧容器部署作为可选参考，不能替代本轮更新步骤。
+
 # Ubuntu 部署：保留 PHP 官网，增加 Fly 云同步
 
 **最新选择：**服务器无法下载 Docker 时，直接使用 [PostgreSQL + Python 简化部署](ubuntu-native.md)。安装、开机自启和 Nginx 接入均已提供，业务接口和数据库模型相同。本文下面保留容器方式；原生部署不需要执行这些 Docker 命令。

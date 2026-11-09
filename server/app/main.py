@@ -26,6 +26,8 @@ from .email_registration import EmailRegistration
 from .verification_mail import VerificationMailer
 from .storage import LocalDiskBlobStorage
 from .sync import accept, record_json
+from .analytics import create_analytics_router
+from .updates import create_update_router
 
 WS_POLL_SECONDS = 2
 WS_HEARTBEAT_SECONDS = 30
@@ -100,6 +102,8 @@ def create_app(settings=None, engine=None, mailer=None):
                 await cleanup
 
     app = FastAPI(title='Fly Sync', version='2.0.0', lifespan=lifespan)
+    app.include_router(create_analytics_router(settings, sessions))
+    app.include_router(create_update_router(settings))
     app.state.engine, app.state.settings = engine, settings
     app.state.email_registration = registration
     app.state.storage = storage
