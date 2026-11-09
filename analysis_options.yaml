@@ -16,6 +16,8 @@ analyzer:
     - ios/**
     - windows/**
     - macos/**
+    # The standalone book authoring project uses its own analysis context.
+    - fly-foreign-trade-book/**
 
 linter:
   # The lint rules applied to this project can be customized in the
