@@ -1,8 +1,14 @@
 # Fly：新电脑 / 新对话接续入口
 
+## 当前版本：Windows build57 / 后台0005 / Android仍build50
+
+2026-11-09：源码/Windows **2.0.21+57**，构建源码`2cb533947d9318065c7a79fb897e229177c32586`。新增极简匿名安装1/每日启动2、客户创建框简单Excel导入/模板、官方Windows/Android更新检测。没有其他统计事件，不关联账号或业务资料，局域网/自建同步不接收官方统计。后台沿用现有PostgreSQL，迁移0005；Ubuntu仍推荐Python原生部署，管理页和更新目录配置见[详细命令](server/deploy/analytics-updates.md)。客户端全量539通过、3跳过，后台86通过，应用静态检查、Windows构建和包核验通过。修复文件名提示抢手机长按，未改原网站和书稿。
+
+Android源码包含新功能，现有2.0.14+50 APK不包含本轮改动，本轮未重打。Docker、Nginx、生产PostgreSQL、真实Ubuntu以及Apple平台未验证。原书籍配置、客户端SQLite20、正式签名和1.0基线保留。[本轮交付与包](docs/release/anonymous_import_updates_20261109.md)。
+
 最后整理：2026-11-07。请先阅读本文件，再阅读 [完整产品需求](docs/handoff/FLY_REQUIREMENTS.md)。这是已开发的软件，不是从零创建的项目。
 
-## 现在的Git与版本（Windows build56 / Android build50）
+## 历史Windows build56 / 当前Android build50
 
 2026-11-07：源码/Windows **2.0.20+56**，构建源码`952aa3f3c877fb47cd74047d0fd8ea54c6bf8b91`；Android仍2.0.14+50。修复鼠标轻移误触原生拖出及自身文件落回导入；明确拖动才交给系统，松开后的平台调用取消，查看器覆盖时不接收后台拖入。补回扁平文件夹接收内部长按拖动，保留右键/批量移动及PDF/Office系统打开。60项相关回归、静态检查、Windows构建和包核验通过；OLE实际拖出到接收软件仍待用户验收。[交付与建议](docs/release/file_click_drag_20261107.md)。
 
@@ -95,7 +101,7 @@ Android最新仍为2.0.10+46（手机隐藏工具），SQLite20、后台0004不�
 1. [FLY_REQUIREMENTS.md](docs/handoff/FLY_REQUIREMENTS.md)：产品定位、全部模块、最新有效规则、历史替代、商业与同步、未完成及验收。
 2. [MAC_TRANSFER.md](docs/handoff/MAC_TRANSFER.md)：完整目录转移、真实 FlyData 区分、Mac 工具/缓存/平台验收。
 3. [SOURCES.md](docs/handoff/SOURCES.md)：跨对话来源、19 份需求附件、代码/报告入口、完整性边界。
-4. [USER_REQUIREMENTS_ARCHIVE.md](docs/handoff/USER_REQUIREMENTS_ARCHIVE.md)：127 条历史用户消息及 41 条续补，共 168 条整理摘录；不是待逐条执行的任务单。
+4. [USER_REQUIREMENTS_ARCHIVE.md](docs/handoff/USER_REQUIREMENTS_ARCHIVE.md)：127 条历史用户消息及 42 条续补，共 169 条整理摘录；不是待逐条执行的任务单。
 5. [attachment_manifest.json](docs/handoff/attachment_manifest.json)：19 份需求文本的可迁移副本、来源及原始/当前副本 SHA-256；副本在 `docs/handoff/sources/`。
 6. [CURRENT_STATE.json](docs/handoff/CURRENT_STATE.json)：整理时的版本、Git 和验证快照；继续开发后应重新核对实际状态。
 7. [APK_RELEASES.md](docs/handoff/APK_RELEASES.md)：正式/测试 APK 区分、备案字段、包校验值、公开证书及跨电脑签名迁移；小体积公开材料已随 Git 保存，APK 本体仍在忽略的 `dist/`。
@@ -147,7 +153,7 @@ Android最新仍为2.0.10+46（手机隐藏工具），SQLite20、后台0004不�
 
 ## 给新对话的接续提示
 
-> 这是已有的Fly项目，先读FLY_PROJECT_HANDOFF.md、docs/handoff/FLY_REQUIREMENTS.md和APK_RELEASES.md。当前codex/fly-2-sync，源码/Windows2.0.20+56、Android2.0.14+50、SQLite20、后台0004。FILE-26修复单击轻移误触拖放、托管实体回落与覆盖路由接收，并补回扁平文件夹内部拖动；保留图片浏览、视频播放、文件路径/设置/移动、多选、客户PI弹框、装柜整组越界/A-B区/XYZ和输入连续性。iOS转换代码有但尚未Mac编译/iPhone实测，Live为两份文件。Windows构建自动校验固定播放SDK及许可。保留1.0，不重置、不清理、不从零重做；网站和书稿另有未提交内容。私有配置、原密钥及真实数据不在Git，不能重建原密钥。后续建议不自动执行，按用户新要求继续。
+> 这是已有的Fly项目，先读本交接文档、完整需求和APK台账。当前codex/fly-2-sync，源码/Windows2.0.21+57、后台0005、SQLite20；Android仍2.0.14+50且不含本轮客户端新增。已实现匿名安装1/日活2、简单客户Excel导入与官方更新检查，没有其他统计事件或业务关联，详见docs/analytics.md和server/deploy/analytics-updates.md。保留原客户/订单/任务/复盘/文件/媒体/装柜功能，iOS转换和Apple构建仍待真机验收。原1.0、私有密钥、SMTP、正式签名、书籍配置和真实数据不得重置或重建；原网站/独立书稿工作区修改另行保留。生产服务器未部署，后续建议不自动执行。
 
 文档、官网及后续新增资料均使用品牌中性表述，不出现中国品牌名称。之后每次完成开发应同步更新版本/交付状态，不把旧 `dist` 当作新结果。
 

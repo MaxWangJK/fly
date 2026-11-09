@@ -1,12 +1,12 @@
 {
-  "capturedAtUtc": "2026-11-07T15:40:00.397357+00:00",
+  "capturedAtUtc": "2026-11-09T02:55:35.708504+00:00",
   "documentationOnly": false,
   "branch": "codex/fly-2-sync",
-  "releaseCommitSource": "Windows build56 952aa3f3c877fb47cd74047d0fd8ea54c6bf8b91; Android remains build50",
+  "releaseCommitSource": "Windows build57 and backend0005 2cb533947d9318065c7a79fb897e229177c32586; Android remains build50",
   "developmentBaseCommit": "8a5cbc58994ef817b5898aaaf979ff676363091a",
   "master": "94efdc2d9ac34feb2f3d1b635302278b4671a414",
   "gitDirectoryIsLocalFolder": true,
-  "appVersion": "2.0.20+56",
+  "appVersion": "2.0.21+57",
   "databaseSchemaVersion": 20,
   "originalSdk": {
     "frameworkVersion": "3.47.7",
@@ -23,20 +23,20 @@
     "flutterVersion": "3.47.7"
   },
   "buildStatus": "Windows installer and portable ZIP verified; Android not rebuilt per prior request",
-  "releaseReport": "../release/file_click_drag_20261107.md",
+  "releaseReport": "../release/anonymous_import_updates_20261109.md",
   "currentFeaturesIncludeUncommittedFiles": false,
-  "latestPublishedTestBundle": "Windows2.0.20+56; Android2.0.14+50 unchanged",
-  "verifiedClientTests": 60,
-  "clientTestsEvidence": "60 scoped click/drag/media/file/mobile/input cases; full client suite not rerun",
-  "verifiedServerTests": 61,
-  "websiteCoreAndHttpTests": "passed",
-  "analyze": "No issues found in application lib/test",
+  "latestPublishedTestBundle": "Windows2.0.21+57; Android2.0.14+50 unchanged",
+  "verifiedClientTests": 539,
+  "clientTestsEvidence": "Full client suite: 539 passed, 3 skipped; new feature cases28",
+  "verifiedServerTests": 86,
+  "websiteCoreAndHttpTests": "Not rerun this release; original website work excluded",
+  "analyze": "No issues found; standalone book excluded from Fly analysis context",
   "appleBuildAndDeviceAcceptance": "not performed",
   "latestSourceNotRepackaged": false,
   "noDeploymentPerformed": true,
   "remotePushPerformed": true,
-  "historicalUserMessagesArchived": 168,
-  "textAttachmentsCopied": 19,
+  "historicalUserMessagesArchived": 169,
+  "textAttachmentsCopied": 20,
   "inlinePromptCopies": 2,
   "historicalTextNormalization": "Brand-neutral portable copies; SHA-256 entries refer to current bytes, with original digest retained separately.",
   "brandNeutralDocumentsAndWebsite": true,
@@ -47,14 +47,19 @@
   "expectedWorkingTreeAfterReleaseCommit": "Only pre-existing unrelated web/src/site.php and fly-foreign-trade-book/ changes remain",
   "artifacts": [
     {
-      "name": "Fly-Setup-2.0.20-build56-testing.exe",
-      "bytes": 19085641,
-      "sha256": "C4F9008B1AE3EA8FD9CA88BDDB93A2B1EC0E64D02DDCB344B74C12EC33A8CF9B"
+      "name": "Fly-Setup-2.0.21-build57-testing.exe",
+      "bytes": 19099258,
+      "sha256": "3F96289157B0D1813059DA2CADB43D5E96E8688128C7C62C8DBBA2A0592BA7ED"
     },
     {
-      "name": "Fly-2.0.20-build56-windows-test-20261107.zip",
-      "bytes": 24048312,
-      "sha256": "F7D60F3F95E807C7745F2B8F60C5FA882DC00E1A398E3EED9298FB0EEA143590"
+      "name": "Fly-2.0.21-build57-windows-test-20261109.zip",
+      "bytes": 24064140,
+      "sha256": "A1483362132CC1623D71F1902D3958DCA07EE5EC20060C59690DC0349BDA7B2E"
+    },
+    {
+      "name": "Fly-Sync-2.0.21-build57-ubuntu-native-20261109.tar.gz",
+      "bytes": 80400,
+      "sha256": "40D9AE7DEFFE2554EC6F6A4FF3AD7E480763C845604ECA4494E21C82D8AD662B"
     },
     {
       "name": "Fly-2.0.14-build50-android-release-signed-20261107.apk",
@@ -103,7 +108,7 @@
   "bookChapters": 16,
   "bookReaderDesktopOnly": true,
   "bookReadingStateCloudSync": false,
-  "additionalCurrentUserRequests": 41,
+  "additionalCurrentUserRequests": 42,
   "formalAndroidSigning": {
     "date": "2026-10-16",
     "appVersion": "2.0.14+50",
@@ -145,8 +150,8 @@
     "appleBuildAndDeviceAcceptance": "not performed"
   },
   "latestSourceNotRepackagedExplanation": "Windows current source packaged; Android intentionally retained at build50",
-  "localReleaseCommitHash": "952aa3f3c877fb47cd74047d0fd8ea54c6bf8b91",
-  "workingTreeStatusAtCapture": "Scoped file-click repair and delivery docs committed; original web/book work excluded",
+  "localReleaseCommitHash": "2cb533947d9318065c7a79fb897e229177c32586",
+  "workingTreeStatusAtCapture": "This feature and delivery docs committed; pre-existing web/book changes excluded",
   "portableInternalIssuer": {
     "version": "1.0.0",
     "date": "2026-10-17",
@@ -183,7 +188,7 @@
   },
   "latestAndroidTestingUpgradePackage": "Fly-2.0.14-build50-android-test-20261107.apk",
   "temporaryBackendStopped": true,
-  "latestWindowsPackageVersion": "2.0.20+56",
+  "latestWindowsPackageVersion": "2.0.21+57",
   "windowsRebuiltThisTurn": true,
   "mobileUiLatestVerification": {
     "date": "2026-10-17",
@@ -312,7 +317,7 @@
   "cloudSyncDefaultMode": "local",
   "cloudBinaryContentsEnabled": false,
   "temporaryCloudIdentity": "Operator-issued one-use device codes remain a test entry; verified-email registration/login implemented, with in-place binding of temporary user ID and data",
-  "serverMigrationRevision": "0004",
+  "serverMigrationRevision": "0005",
   "lanTlsImplemented": false,
   "sourceRegressionStatus": "Build43 clean full client run:405 passed; backend full run:41 passed; static analysis clean; native Windows/Android builds and artifact checks passed",
   "localSendIntegrated": false,
@@ -469,7 +474,7 @@
   ],
   "unrelatedWorkingTreePathsRetained": [],
   "websiteHasIndependentUncommittedChanges": false,
-  "sourceCommitScope": "File click/drag separation, managed drop guard and flat-folder internal movement",
+  "sourceCommitScope": "Anonymous install/day-open, simple customer XLSX import, official update checks and mobile file-label long press",
   "reviewProgramIncludedInBuild43": true,
   "emailAuthIncludedInBuild43": true,
   "packagedBuild43Verification": {
@@ -507,14 +512,16 @@
     "testLog": ".buildlog/native-deploy-tests.log"
   },
   "nativeBackendBundle": {
-    "name": "Fly-Sync-2.0.8-build44-ubuntu-native-20261101.tar.gz",
-    "bytes": 35614,
-    "sha256": "0A6D53A4CF79CC67080454A7C13E26D0460674BC7B8DEFB4AFDF4F964C0072AE",
-    "sourceCommit": "404aea37047a01d24e29569fbbc2fb21a2995595",
+    "name": "Fly-Sync-2.0.21-build57-ubuntu-native-20261109.tar.gz",
+    "bytes": 80400,
+    "sha256": "40D9AE7DEFFE2554EC6F6A4FF3AD7E480763C845604ECA4494E21C82D8AD662B",
+    "sourceCommit": "2cb533947d9318065c7a79fb897e229177c32586",
     "uncommittedSource": false,
-    "containsMigration0004": true,
+    "backendMigration": "0005",
     "smtpSecretsIncluded": false,
-    "archiveFilesVerified": 32
+    "archiveFilesVerified": 66,
+    "dockerBuildVerified": false,
+    "ubuntuDeploymentPerformed": false
   },
   "accountLifecycleInitialVerification": {
     "date": "2026-11-01",
@@ -550,12 +557,11 @@
     ]
   },
   "clientRegression": {
-    "distinctPassingCases": 60,
-    "scopedRegressionPassed": 60,
-    "newClickDragCasesPassed": 10,
-    "fullSuiteRerun": false,
+    "distinctPassingCases": 539,
+    "skippedCases": 3,
+    "fullSuiteRerun": true,
     "logs": [
-      ".buildlog/file-click-regression.log"
+      ".buildlog/anonymous-client-full-final.log"
     ]
   },
   "previouslyIndependentWebsiteChangesCommitted": true,
@@ -604,9 +610,9 @@
     },
     "verifiedServerTests": 61
   },
-  "backendTestsRerunThisRelease": false,
-  "backendUnchangedSinceBuild44": true,
-  "remoteVerifiedSourceCommit": "952aa3f3c877fb47cd74047d0fd8ea54c6bf8b91",
+  "backendTestsRerunThisRelease": true,
+  "backendUnchangedSinceBuild44": false,
+  "remoteVerifiedSourceCommit": "2cb533947d9318065c7a79fb897e229177c32586",
   "remotePushBranch": "codex/fly-2-sync",
   "build45Features": [
     "customer context PI order dialog",
@@ -634,7 +640,7 @@
     "Counts and snapshots follow quantity edits and removal",
     "Manual intent retained in compatible layoutV3 metadata"
   ],
-  "publicWindowsMetadataPath": "windows/20261107-build56/",
+  "publicWindowsMetadataPath": "windows/20261109-build57/",
   "build49Features": [
     "First cargo may enter an empty section; later cargo must target a remaining area",
     "A/B area names shared by cross section and cards; area selection and drag/drop use actual coordinates",
@@ -673,14 +679,13 @@
     "Uncropped aspect ratio for images; selection and file actions retained"
   ],
   "latestHandoffUpdate": {
-    "date": "2026-11-07",
+    "date": "2026-11-09",
     "documentationOnly": false,
-    "requirement": "FILE-26",
-    "status": "implemented-windows-packaged-native-manual-drag-pending",
-    "document": "../release/file_click_drag_20261107.md",
+    "requirement": "ANALYTICS-01/02; CRM-IMPORT-01; UPDATE-01",
+    "status": "implemented-windows-packaged-ubuntu-deployment-pending",
+    "document": "../release/anonymous_import_updates_20261109.md",
     "appCodeChanged": true,
-    "packagesRebuilt": "Windows only",
-    "productSuggestionsAreConfirmedRequirements": false
+    "packagesRebuilt": "Windows and native backend only"
   },
   "iosMediaImportCompatibility": {
     "requirement": "FILE-24/25",
@@ -728,5 +733,16 @@
   ],
   "windowsNativeVideoVerificationLastRunVersion": "2.0.19+55",
   "windowsNativeOleButtonGuardCompiled": true,
-  "windowsNativeOleManualDragVerified": false
+  "windowsNativeOleManualDragVerified": false,
+  "backendMigration": "0005",
+  "build57Features": [
+    "Only anonymous installation 1 and daily open 2; no account or business linkage",
+    "Simple customer XLSX template and batch import in create dialog footer",
+    "Windows/Android release lookup and user-initiated browser download",
+    "File name hover no longer consumes the mobile long-press menu"
+  ],
+  "latestAndroidContainsCurrentClientFeatures": false,
+  "dockerBuildVerified": false,
+  "productionPostgresqlExecutionVerified": false,
+  "nginxSyntaxCommandExecuted": false
 }

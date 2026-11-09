@@ -1,6 +1,10 @@
 # Fly 安装包、安卓备案与迁移台账
 
-## 最新Windows build56（2026-11-07，仅Windows）
+## 最新Windows build57（2026-11-09）
+
+Windows2.0.21+57新增匿名统计、简单客户Excel导入和更新检测；后台0005原生包同步交付。客户端全量539通过/3跳过、后台86通过，应用静态检查及Windows构建和包核验通过。Android仍build50及原签名，不含本轮新客户端功能，Apple未编译。[安装包与验证](../release/anonymous_import_updates_20261109.md)。
+
+## 历史Windows build56（2026-11-07，仅Windows）
 
 Windows2.0.20+56修复文件单击轻移误触拖放与自身回落导入，并补回扁平文件夹内部移动。60项相关回归及静态检查、Windows构建/包核验通过；实际OLE接收软件待用户验收。Android仍build50及原两种签名，Apple未编译。[下载与验证](../release/file_click_drag_20261107.md)。
 

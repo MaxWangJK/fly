@@ -1,0 +1,63 @@
+{
+  "version": "2.0.21+57",
+  "sourceCommit": "2cb533947d9318065c7a79fb897e229177c32586",
+  "sourceIncludesUncommittedAppChanges": false,
+  "branch": "codex/fly-2-sync",
+  "platform": "windows-x64",
+  "releaseDate": "2026-11-09",
+  "builtAtUtc": "2026-11-09T02:55:35.677501+00:00",
+  "databaseSchemaVersion": 20,
+  "backendMigration": "0005",
+  "artifacts": [
+    {
+      "name": "Fly-Setup-2.0.21-build57-testing.exe",
+      "bytes": 19099258,
+      "sha256": "3F96289157B0D1813059DA2CADB43D5E96E8688128C7C62C8DBBA2A0592BA7ED"
+    },
+    {
+      "name": "Fly-2.0.21-build57-windows-test-20261109.zip",
+      "bytes": 24064140,
+      "sha256": "A1483362132CC1623D71F1902D3958DCA07EE5EC20060C59690DC0349BDA7B2E"
+    },
+    {
+      "name": "Fly-Sync-2.0.21-build57-ubuntu-native-20261109.tar.gz",
+      "bytes": 80400,
+      "sha256": "40D9AE7DEFFE2554EC6F6A4FF3AD7E480763C845604ECA4494E21C82D8AD662B"
+    }
+  ],
+  "fullClientSuitePassing": 539,
+  "fullClientSuiteSkipped": 3,
+  "clientNewFeatureCases": 28,
+  "fullClientSuiteRerun": true,
+  "backendTestsPassing": 86,
+  "backendMigrationSQLiteAndPostgresqlOfflineSqlVerified": true,
+  "productionPostgresqlExecutionVerified": false,
+  "appLibTestToolAnalyze": "No issues found",
+  "rootAnalyze": "No issues found",
+  "standaloneBookExcludedFromFlyAnalyzer": true,
+  "dashboardLayoutFixtureCheckedWidths": [
+    1280,
+    390
+  ],
+  "dashboardPreviewDataIsIllustrative": true,
+  "dockerBuildVerified": false,
+  "nginxSyntaxCommandExecuted": false,
+  "ubuntuDeploymentPerformed": false,
+  "analyticsRequestsSentToProduction": false,
+  "backendBundleFiles": 66,
+  "smtpSecretsIncluded": false,
+  "originalBookReaderConfigurationVerified": true,
+  "ENABLE_LOCAL_LICENSE": false,
+  "windowsDistributionCodeSigned": false,
+  "androidRebuilt": false,
+  "latestAndroidVersion": "2.0.14+50",
+  "latestAndroidContainsThisReleaseClientFeatures": false,
+  "iosCompiled": false,
+  "nativeMediaPlaybackLastVerifiedVersion": "2.0.19+55",
+  "features": [
+    "Only anonymous installation 1 and daily open 2; no account or business linkage",
+    "Simple customer XLSX template and batch import in create dialog footer",
+    "Windows/Android release lookup and user-initiated browser download",
+    "File name hover no longer consumes the mobile long-press menu"
+  ]
+}
