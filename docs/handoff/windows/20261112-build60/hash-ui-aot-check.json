@@ -1,0 +1,21 @@
+{
+  "bytes": 67108864,
+  "checksPerPhase": 4,
+  "backgroundFullReads": 1,
+  "before": {
+    "phase": "old repeated UI-isolate hashing",
+    "elapsedMs": 4105,
+    "uiTimerTicks": 293,
+    "maxUiTimerGapUs": 39992,
+    "digest": "77c13b56bc34aa04567b503cb11c68fde418a933e2c02b02b3c912961f400cdb"
+  },
+  "after": {
+    "phase": "cached background hashing",
+    "elapsedMs": 1012,
+    "uiTimerTicks": 72,
+    "maxUiTimerGapUs": 17010,
+    "digest": "77c13b56bc34aa04567b503cb11c68fde418a933e2c02b02b3c912961f400cdb"
+  },
+  "syntheticData": true,
+  "businessDatabaseOpened": false
+}

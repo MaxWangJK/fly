@@ -1,0 +1,63 @@
+{
+  "samples": [
+    {
+      "phase": "before",
+      "cpuOneCorePercent": 62.43325317660392,
+      "rssBytes": 374022144,
+      "frames": 57,
+      "maxBuildUs": 66434,
+      "maxUiTimerGapMs": 105
+    },
+    {
+      "phase": "playing-0",
+      "cpuOneCorePercent": 74.9746585654049,
+      "rssBytes": 431460352,
+      "frames": 54,
+      "maxBuildUs": 135456,
+      "maxUiTimerGapMs": 147
+    },
+    {
+      "phase": "closed-0",
+      "cpuOneCorePercent": 36.446342486655226,
+      "rssBytes": 458686464,
+      "frames": 61,
+      "maxBuildUs": 39316,
+      "maxUiTimerGapMs": 51
+    },
+    {
+      "phase": "playing-1",
+      "cpuOneCorePercent": 76.95133614140545,
+      "rssBytes": 450723840,
+      "frames": 57,
+      "maxBuildUs": 111094,
+      "maxUiTimerGapMs": 114
+    },
+    {
+      "phase": "closed-1",
+      "cpuOneCorePercent": 17.69628805992721,
+      "rssBytes": 483201024,
+      "frames": 60,
+      "maxBuildUs": 12092,
+      "maxUiTimerGapMs": 51
+    },
+    {
+      "phase": "playing-2",
+      "cpuOneCorePercent": 87.39730816290859,
+      "rssBytes": 477696000,
+      "frames": 73,
+      "maxBuildUs": 59548,
+      "maxUiTimerGapMs": 64
+    },
+    {
+      "phase": "closed-2",
+      "cpuOneCorePercent": 23.42156552825228,
+      "rssBytes": 491630592,
+      "frames": 59,
+      "maxBuildUs": 9645,
+      "maxUiTimerGapMs": 51
+    }
+  ],
+  "databaseOpened": false,
+  "officialFixture": true,
+  "mode": "debug"
+}
