@@ -8,14 +8,19 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fly/features/files/presentation/image_file_viewer.dart';
 import 'package:fly/features/files/presentation/video_file_viewer.dart';
+import 'package:fly/features/files/data/video_cleanup_platform.dart';
 import 'package:video_player_platform_interface/video_player_platform_interface.dart';
+import 'package:video_player/video_player.dart';
 
 import 'input_continuity_widget_test.dart' as ui;
 
 class _Videos extends VideoPlayerPlatform {
-  _Videos({this.emptyMetadata = false});
+  _Videos({this.emptyMetadata = false, this.creationGate, this.disposalGate});
   final bool emptyMetadata;
+  final Completer<void>? creationGate, disposalGate;
   int created = 0, plays = 0, pauses = 0, disposed = 0;
+  int surfaceBuilds = 0, unpausedDisposals = 0;
+  final playing = <int, bool>{};
   double volume = 1;
   Duration position = Duration.zero;
   final events = <int, StreamController<VideoEvent>>{};
@@ -23,6 +28,7 @@ class _Videos extends VideoPlayerPlatform {
   Future<void> init() async {}
   @override
   Future<int?> createWithOptions(VideoCreationOptions options) async {
+    await creationGate?.future;
     final id = ++created;
     events[id] = StreamController.broadcast();
     return id;
@@ -39,10 +45,16 @@ class _Videos extends VideoPlayerPlatform {
   }
 
   @override
-  Widget buildViewWithOptions(VideoViewOptions options) => const ColoredBox(
-    color: Color(0xFF355D53),
-    child: Center(child: Icon(Icons.landscape, color: Colors.white, size: 72)),
-  );
+  Widget buildViewWithOptions(VideoViewOptions options) {
+    surfaceBuilds++;
+    return const ColoredBox(
+      color: Color(0xFF355D53),
+      child: Center(
+        child: Icon(Icons.landscape, color: Colors.white, size: 72),
+      ),
+    );
+  }
+
   @override
   Future<void> setLooping(int playerId, bool looping) async {}
   @override
@@ -55,11 +67,13 @@ class _Videos extends VideoPlayerPlatform {
   @override
   Future<void> play(int playerId) async {
     plays++;
+    playing[playerId] = true;
   }
 
   @override
   Future<void> pause(int playerId) async {
     pauses++;
+    playing[playerId] = false;
   }
 
   @override
@@ -72,6 +86,8 @@ class _Videos extends VideoPlayerPlatform {
   @override
   Future<void> dispose(int playerId) async {
     disposed++;
+    if (playing.remove(playerId) == true) unpausedDisposals++;
+    await disposalGate?.future;
     await events.remove(playerId)?.close();
   }
 }
@@ -107,12 +123,165 @@ Future<void> _photo(File file, {bool portrait = false}) async {
 
 void main() {
   testWidgets(
+    'close during native creation cancels the initialization deadline and releases later',
+    (tester) async {
+      ui.viewport(tester, false);
+      final original = VideoPlayerPlatform.instance;
+      final gate = Completer<void>();
+      final fake = _Videos(creationGate: gate);
+      VideoPlayerPlatform.instance = VideoCleanupPlatform(fake);
+      final root = (await tester.runAsync(
+        () => Directory.systemTemp.createTemp('fly-video-close-pending-'),
+      ))!;
+      try {
+        await tester.runAsync(
+          () => File('${root.path}/sample.mp4').writeAsBytes([1]),
+        );
+        await tester.pumpWidget(
+          ui.app(
+            VideoFileViewer(
+              path: '${root.path}/sample.mp4',
+              name: 'sample.mp4',
+            ),
+          ),
+        );
+        await ui.settle(tester);
+        expect(find.byKey(const ValueKey('video-loading')), findsOneWidget);
+        await tester.pumpWidget(const SizedBox.shrink());
+        gate.complete();
+        await ui.settle(tester);
+        expect(fake.disposed, 1);
+        expect(fake.unpausedDisposals, 0);
+        expect(tester.takeException(), isNull);
+      } finally {
+        if (!gate.isCompleted) gate.complete();
+        await tester.pumpWidget(const SizedBox.shrink());
+        await ui.settle(tester);
+        VideoPlayerPlatform.instance = original;
+        await tester.runAsync(() => root.delete(recursive: true));
+        debugDefaultTargetPlatformOverride = null;
+      }
+    },
+  );
+
+  testWidgets(
+    'playback failure releases immediately and retry waits for native disposal',
+    (tester) async {
+      ui.viewport(tester, false);
+      final original = VideoPlayerPlatform.instance;
+      final gate = Completer<void>();
+      final fake = _Videos(disposalGate: gate);
+      VideoPlayerPlatform.instance = VideoCleanupPlatform(fake);
+      final root = (await tester.runAsync(
+        () => Directory.systemTemp.createTemp('fly-video-retry-release-'),
+      ))!;
+      try {
+        await tester.runAsync(
+          () => File('${root.path}/sample.mp4').writeAsBytes([1]),
+        );
+        await tester.pumpWidget(
+          ui.app(
+            VideoFileViewer(
+              path: '${root.path}/sample.mp4',
+              name: 'sample.mp4',
+            ),
+          ),
+        );
+        await ui.settle(tester);
+        await tester.tap(find.byKey(const ValueKey('video-play-pause')));
+        fake.events.values.single.addError(
+          PlatformException(
+            code: 'VideoError',
+            message: 'Fixture decode failure',
+          ),
+        );
+        await ui.settle(tester);
+        expect(find.byKey(const ValueKey('video-error')), findsOneWidget);
+        expect(fake.disposed, 1);
+        expect(fake.unpausedDisposals, 0);
+        await tester.tap(find.byKey(const ValueKey('video-retry')));
+        await ui.settle(tester);
+        expect(fake.created, 1);
+        expect(find.byKey(const ValueKey('video-loading')), findsOneWidget);
+        gate.complete();
+        await ui.settle(tester);
+        expect(fake.created, 2);
+        expect(find.byKey(const ValueKey('video-error')), findsNothing);
+      } finally {
+        if (!gate.isCompleted) gate.complete();
+        await tester.pumpWidget(const SizedBox.shrink());
+        await ui.settle(tester);
+        VideoPlayerPlatform.instance = original;
+        await tester.runAsync(() => root.delete(recursive: true));
+        debugDefaultTargetPlatformOverride = null;
+      }
+    },
+  );
+
+  testWidgets(
+    'video position updates retain the native surface and close pauses before disposal',
+    (tester) async {
+      ui.viewport(tester, false);
+      final original = VideoPlayerPlatform.instance;
+      final fake = _Videos();
+      VideoPlayerPlatform.instance = VideoCleanupPlatform(fake);
+      final root = (await tester.runAsync(
+        () => Directory.systemTemp.createTemp('fly-video-refresh-'),
+      ))!;
+      VideoPlayerController? controller;
+      try {
+        await tester.runAsync(
+          () => File('${root.path}/sample.mp4').writeAsBytes([1]),
+        );
+        await tester.pumpWidget(
+          ui.app(
+            VideoFileViewer(
+              path: '${root.path}/sample.mp4',
+              name: 'sample.mp4',
+              controllerFactory: (file) =>
+                  controller = VideoPlayerController.file(file),
+            ),
+          ),
+        );
+        await ui.settle(tester);
+        final surfaces = fake.surfaceBuilds;
+        for (var i = 0; i < 100; i++) {
+          controller!.value = controller!.value.copyWith(
+            position: Duration(milliseconds: i * 10),
+          );
+          await tester.pump(const Duration(milliseconds: 10));
+        }
+        expect(
+          fake.surfaceBuilds,
+          surfaces,
+          reason: 'Progress updates must not rebuild the video texture subtree',
+        );
+        await controller!.play();
+        await tester.pumpWidget(const SizedBox.shrink());
+        await ui.settle(tester);
+        expect(fake.disposed, fake.created);
+        expect(
+          fake.unpausedDisposals,
+          0,
+          reason: 'Stop native decoding before asynchronous texture release',
+        );
+      } finally {
+        await tester.pumpWidget(const SizedBox.shrink());
+        await ui.settle(tester);
+        VideoPlayerPlatform.instance = original;
+        await tester.runAsync(() => root.delete(recursive: true));
+        debugDefaultTargetPlatformOverride = null;
+      }
+    },
+  );
+
+  testWidgets(
     'zero video metadata is an error rather than a blank successful player',
     (tester) async {
       ui.viewport(tester, false);
       final original = VideoPlayerPlatform.instance;
       final fake = _Videos(emptyMetadata: true);
-      VideoPlayerPlatform.instance = fake;
+      VideoPlayerPlatform.instance = VideoCleanupPlatform(fake);
       final root = (await tester.runAsync(
         () => Directory.systemTemp.createTemp('fly-video-empty-'),
       ))!;
@@ -267,7 +436,7 @@ void main() {
       tester.view.physicalSize = size;
       final original = VideoPlayerPlatform.instance;
       final fake = _Videos();
-      VideoPlayerPlatform.instance = fake;
+      VideoPlayerPlatform.instance = VideoCleanupPlatform(fake);
       final root = (await tester.runAsync(
         () => Directory.systemTemp.createTemp('fly-video-viewer-'),
       ))!;
@@ -354,7 +523,7 @@ void main() {
       ui.viewport(tester, true);
       final original = VideoPlayerPlatform.instance;
       final fake = _Videos();
-      VideoPlayerPlatform.instance = fake;
+      VideoPlayerPlatform.instance = VideoCleanupPlatform(fake);
       final root = (await tester.runAsync(
         () => Directory.systemTemp.createTemp('fly-video-errors-'),
       ))!;

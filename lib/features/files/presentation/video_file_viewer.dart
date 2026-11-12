@@ -35,6 +35,10 @@ class _VideoFileViewerState extends State<VideoFileViewer>
   double? _dragPosition;
   double _audibleVolume = 1;
   int _generation = 0;
+  Widget? _videoSurface;
+  VideoPlayerValue? _paintedValue;
+  Future<void>? _releasing;
+  Completer<void>? _abortInitialization;
   String text(String zh, String en) => context.l10n.isZh ? zh : en;
   bool get _ready => _controller?.value.isInitialized == true && _error == null;
 
@@ -46,17 +50,25 @@ class _VideoFileViewerState extends State<VideoFileViewer>
   }
 
   Future<void> _initialize() async {
+    _cancelInitialization();
+    final abort = Completer<void>();
+    _abortInitialization = abort;
     final generation = ++_generation;
     final previous = _controller;
     _controller = null;
     previous?.removeListener(_changed);
-    if (previous != null) unawaited(_release(previous));
+    if (previous != null) _releasing = _release(previous);
     setState(() {
       _loading = true;
       _error = null;
       _dragPosition = null;
+      _videoSurface = null;
+      _paintedValue = null;
     });
     try {
+      // Retrying must not overlap two decoders or their native textures.
+      if (_releasing != null) await _releasing;
+      if (!mounted || generation != _generation) return;
       final file = File(widget.path);
       if (!await file.exists()) throw StateError('文件内容尚未下载，请检查同步状态');
       if (!mounted || generation != _generation) return;
@@ -65,44 +77,109 @@ class _VideoFileViewerState extends State<VideoFileViewer>
           VideoPlayerController.file(file);
       _controller = controller;
       controller.addListener(_changed);
-      await controller.initialize().timeout(const Duration(seconds: 30));
-      if (!mounted || generation != _generation) return;
+      await Future.any([controller.initialize(), abort.future])
+          .timeout(const Duration(seconds: 30));
+      if (!mounted ||
+          generation != _generation ||
+          !identical(_controller, controller)) {
+        return;
+      }
       if (!controller.value.isInitialized ||
           controller.value.size.isEmpty ||
           controller.value.duration <= Duration.zero) {
         throw StateError('无法识别此视频的画面或时长，请检查文件或使用其他应用打开');
       }
-      setState(() => _loading = false);
+      setState(() {
+        _loading = false;
+        _videoSurface = _surface(controller);
+      });
       // Start only on an explicit play action, including after resume.
     } catch (error) {
       if (mounted && generation == _generation) {
-        setState(() {
-          _loading = false;
-          _error = context.flyError(error);
-        });
+        _failed(context.flyError(error));
       }
     }
   }
 
   void _changed() {
-    if (!mounted) return;
-    setState(() {
-      if (_controller?.value.hasError == true) {
-        _loading = false;
-        _error = text(
+    final controller = _controller;
+    if (!mounted || controller == null) return;
+    final next = controller.value;
+    if (next.hasError) {
+      _failed(
+        text(
           '无法播放此视频，请检查文件完整性或使用其他应用打开。',
           'Unable to play this video. Check the file or open it in another app.',
-        );
-      }
+        ),
+      );
+      return;
+    }
+    final previous = _paintedValue;
+    if (previous != null &&
+        next.position.inMilliseconds ~/ 250 ==
+            previous.position.inMilliseconds ~/ 250 &&
+        next.duration == previous.duration &&
+        next.isPlaying == previous.isPlaying &&
+        next.isCompleted == previous.isCompleted &&
+        next.isInitialized == previous.isInitialized &&
+        next.size == previous.size &&
+        next.volume == previous.volume) {
+      return;
+    }
+    _paintedValue = next;
+    if (_videoSurface != null && previous?.size != next.size) {
+      _videoSurface = _surface(controller);
+    }
+    setState(() {});
+  }
+
+  Widget _surface(VideoPlayerController controller) => RepaintBoundary(
+    child: AspectRatio(
+      aspectRatio: controller.value.aspectRatio > 0
+          ? controller.value.aspectRatio
+          : 16 / 9,
+      child: VideoPlayer(controller),
+    ),
+  );
+
+  void _failed(String message) {
+    _cancelInitialization();
+    final controller = _controller;
+    _controller = null;
+    controller?.removeListener(_changed);
+    if (controller != null) _releasing = _release(controller);
+    setState(() {
+      _loading = false;
+      _error = message;
+      _videoSurface = null;
+      _paintedValue = null;
     });
   }
 
   Future<void> _release(VideoPlayerController controller) async {
+    // Native texture destruction is asynchronous on desktop. Stop decoding and
+    // the position timer first, even if releasing that texture takes longer.
+    try {
+      await controller.pause();
+    } catch (_) {
+      // Continue releasing an already failed controller.
+    }
     try {
       await controller.dispose();
     } catch (_) {
       /* Native player already released. */
     }
+  }
+
+  Future<void> _pause() async {
+    final controller = _controller;
+    if (controller?.value.isInitialized == true) await controller!.pause();
+  }
+
+  void _cancelInitialization() {
+    final abort = _abortInitialization;
+    _abortInitialization = null;
+    if (abort != null && !abort.isCompleted) abort.complete();
   }
 
   Future<void> _run(Future<void> Function() action) async {
@@ -154,10 +231,12 @@ class _VideoFileViewerState extends State<VideoFileViewer>
   @override
   void dispose() {
     _generation++;
+    _cancelInitialization();
     WidgetsBinding.instance.removeObserver(this);
     final controller = _controller;
+    _controller = null;
     controller?.removeListener(_changed);
-    if (controller != null) unawaited(_release(controller));
+    if (controller != null) _releasing = _release(controller);
     super.dispose();
   }
 
@@ -178,7 +257,11 @@ class _VideoFileViewerState extends State<VideoFileViewer>
     final content = PopScope(
       canPop: !_fullscreen,
       onPopInvokedWithResult: (popped, _) {
-        if (!popped && mounted) setState(() => _fullscreen = false);
+        if (popped) {
+          unawaited(_run(_pause));
+        } else if (mounted) {
+          setState(() => _fullscreen = false);
+        }
       },
       child: CallbackShortcuts(
         bindings: {
@@ -217,22 +300,24 @@ class _VideoFileViewerState extends State<VideoFileViewer>
                   builder: (button) => IconButton(
                     tooltip: text('分享', 'Share'),
                     icon: const Icon(Icons.share_outlined),
-                    onPressed: () => _run(
-                      () =>
-                          widget.onShare?.call() ??
-                          shareViewerFile(button, widget.path, widget.name),
-                    ),
+                    onPressed: () => _run(() async {
+                      await _pause();
+                      if (!mounted || !button.mounted) return;
+                      await (widget.onShare?.call() ??
+                          shareViewerFile(button, widget.path, widget.name));
+                    }),
                   ),
                 ),
                 IconButton(
                   key: const ValueKey('video-open-external'),
                   tooltip: text('使用其他应用打开', 'Open in another app'),
                   icon: const Icon(Icons.open_in_new),
-                  onPressed: () => _run(
-                    () =>
-                        widget.onExternal?.call() ??
-                        PlatformAttachmentOpener().open(widget.path),
-                  ),
+                  onPressed: () => _run(() async {
+                    await _pause();
+                    if (!mounted) return;
+                    await (widget.onExternal?.call() ??
+                        PlatformAttachmentOpener().open(widget.path));
+                  }),
                 ),
               ],
             ),
@@ -274,14 +359,7 @@ class _VideoFileViewerState extends State<VideoFileViewer>
                                 ),
                               ),
                             )
-                          : Center(
-                              child: AspectRatio(
-                                aspectRatio: value!.aspectRatio > 0
-                                    ? value.aspectRatio
-                                    : 16 / 9,
-                                child: VideoPlayer(_controller!),
-                              ),
-                            ),
+                          : Center(child: _videoSurface),
                     ),
                   ),
                 ),

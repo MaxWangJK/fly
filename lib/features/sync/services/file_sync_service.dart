@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:crypto/crypto.dart';
 import 'package:drift/drift.dart';
 
 import '../../../core/database/app_database.dart';
+import '../../../core/storage/file_digest_cache.dart';
 import '../../files/data/managed_file_storage.dart';
 import '../data/sync_outbox_repository.dart';
 import '../data/cloud_sync_transport.dart';
@@ -12,7 +12,13 @@ import '../domain/sync_protocol.dart';
 import 'file_transfer_inventory.dart';
 
 class FileSyncService {
-  FileSyncService(this.db, this.root, this.transport);
+  FileSyncService(
+    this.db,
+    this.root,
+    this.transport, {
+    FileDigestCache? digests,
+  }) : _digests = digests ?? FileDigestCache();
+  final FileDigestCache _digests;
   final AppDatabase db;
   final String root;
   final SyncTransport transport;
@@ -70,7 +76,7 @@ class FileSyncService {
         var expected = record.sha256;
         var size = record.fileSize;
         if (await local.exists()) {
-          final actual = (await sha256.bind(local.openRead()).first).toString();
+          final actual = await _digests.digest(local);
           final known = await outbox.state('localBlob:${record.id}');
           if (uploadOnly &&
               uploadEnabled &&
@@ -126,7 +132,7 @@ class FileSyncService {
           } else {
             await transport.download('/files/$id/download', partial.path);
           }
-          final hash = (await sha256.bind(partial.openRead()).first).toString();
+          final hash = await _digests.digest(partial, refresh: true);
           if (hash != expected || await partial.length() != size) {
             await partial.delete();
             throw StateError('下载文件校验失败');

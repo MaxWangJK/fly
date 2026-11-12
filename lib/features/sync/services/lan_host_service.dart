@@ -4,6 +4,9 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:crypto/crypto.dart';
+
+import '../../../core/storage/file_digest_cache.dart';
+
 import 'package:uuid/uuid.dart';
 
 import '../../files/data/managed_file_storage.dart';
@@ -600,7 +603,7 @@ class LanHostService {
         if (size == 0 && !await partial.exists()) await partial.create();
         if (!await partial.exists() ||
             await partial.length() != size ||
-            (await sha256.bind(partial.openRead()).first).toString() != hash) {
+            await sha256FileInBackground(partial.path) != hash) {
           throw const _LanError(422, '文件校验失败');
         }
         await partial.rename(blob.path);
