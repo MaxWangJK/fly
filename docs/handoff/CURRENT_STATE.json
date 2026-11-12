@@ -1,12 +1,12 @@
 {
-  "capturedAtUtc": "2026-11-12T00:56:38.850894+00:00",
+  "capturedAtUtc": "2026-11-12T03:31:55.833967+00:00",
   "documentationOnly": false,
   "branch": "codex/fly-2-sync",
-  "releaseCommitSource": "8660efcbf450a266ffb85c8e3c5bd46f3a84c591",
-  "developmentBaseCommit": "8a5cbc58994ef817b5898aaaf979ff676363091a",
+  "releaseCommitSource": "980f23ea3774b2a4c1e64b816270e7e52599e387",
+  "developmentBaseCommit": "40eeba9ec186a16dc18510598c05ed613f26b7b3",
   "master": "94efdc2d9ac34feb2f3d1b635302278b4671a414",
   "gitDirectoryIsLocalFolder": true,
-  "appVersion": "2.0.22+58",
+  "appVersion": "2.0.23+59",
   "databaseSchemaVersion": 20,
   "originalSdk": {
     "frameworkVersion": "3.47.7",
@@ -23,11 +23,11 @@
     "flutterVersion": "3.47.7"
   },
   "buildStatus": "Windows10+ installer/ZIP and both original-signature Android APKs verified",
-  "releaseReport": "../release/fly_2_0_22_build58.md",
+  "releaseReport": "../release/fly_2_0_23_build59.md",
   "currentFeaturesIncludeUncommittedFiles": false,
-  "latestPublishedTestBundle": "Windows/Android 2.0.22+58 (2026-11-12)",
-  "verifiedClientTests": 48,
-  "clientTestsEvidence": "48 distinct related cases passed; no new full-suite or backend rerun",
+  "latestPublishedTestBundle": "Windows/Android 2.0.23+59 (2026-11-12)",
+  "verifiedClientTests": 40,
+  "clientTestsEvidence": "40 distinct related cases passed; 7 source-commit release smoke cases passed again; no full-suite or backend rerun",
   "verifiedServerTests": 86,
   "websiteCoreAndHttpTests": "Not rerun this release; original website work excluded",
   "analyze": "No issues found in project; final modified test also checked",
@@ -35,41 +35,40 @@
   "latestSourceNotRepackaged": false,
   "noDeploymentPerformed": true,
   "remotePushPerformed": true,
-  "historicalUserMessagesArchived": 172,
+  "historicalUserMessagesArchived": 174,
   "textAttachmentsCopied": 20,
   "inlinePromptCopies": 2,
   "historicalTextNormalization": "Brand-neutral portable copies; SHA-256 entries refer to current bytes, with original digest retained separately.",
   "brandNeutralDocumentsAndWebsite": true,
-  "screenshotsCopied": 92,
+  "screenshotsCopied": 93,
   "developmentSkillsCopied": 4,
   "workingTreeStatusSource": "git status --short",
   "localReleaseCommitCompleted": true,
-  "expectedWorkingTreeAfterReleaseCommit": "Only pre-existing unrelated web/src/site.php and fly-foreign-trade-book/ changes remain",
   "artifacts": [
     {
-      "name": "Fly-Setup-2.0.22-build58-testing.exe",
-      "bytes": 19099385,
-      "sha256": "ABE55AC5DF303A5CE34A97EDF5FA3D42D7D1F812B06E92536A3B5240A96DFA75"
+      "name": "Fly-Setup-2.0.23-build59-testing.exe",
+      "bytes": 19111178,
+      "sha256": "DB30E7FE9AAFCC880EB363886BC4E721B1DBBB9AF8C54071FF66DBF351525CF5"
     },
     {
-      "name": "Fly-2.0.22-build58-windows-test-20261112.zip",
-      "bytes": 24064960,
-      "sha256": "D85DAE148140D8D82305DA5BC7A77E0D52D58C423CC46E00CD667D3616716316"
+      "name": "Fly-2.0.23-build59-windows-test-20261112.zip",
+      "bytes": 24081182,
+      "sha256": "826EACA636654C7C85DC3F0119EDB106C6DCB54F993D35981466989003E0231B"
     },
     {
-      "name": "Fly-2.0.22-build58-android-release-signed-20261112.apk",
-      "bytes": 134414511,
-      "sha256": "3F435F77EE7D2937FEEC5626A4658B231E34969F471F3FC19878A7A50DBE6DB1"
+      "name": "Fly-2.0.23-build59-android-release-signed-20261112.apk",
+      "bytes": 134430999,
+      "sha256": "20BF2593CBAE547E2036736A2C7F8603C5517B6C7176ACBDD0D5E2BE2F3C1673"
     },
     {
-      "name": "Fly-2.0.22-build58-android-test-20261112.apk",
-      "bytes": 134407471,
-      "sha256": "517DA63151124CE5ABC6DFA317B3389A1712CE0EFA25188D74F1072E485DF221"
+      "name": "Fly-2.0.23-build59-android-test-20261112.apk",
+      "bytes": 134423855,
+      "sha256": "D968ABCB7B8C76D2E768B7F0DD3ED1A655AF8984705C64789306B1743400FC38"
     }
   ],
   "android": {
     "minSdk": 24,
-    "versionCode": 58,
+    "versionCode": 59,
     "abis": [
       "arm64-v8a",
       "armeabi-v7a",
@@ -81,7 +80,7 @@
     "signatureMatchesBuild39": true,
     "packageName": "com.flyproduct.fly",
     "targetSdk": 36,
-    "signatureMatchFieldsApplyTo": "Original testing identity through build58; formal identity pinned separately",
+    "signatureMatchFieldsApplyTo": "Original testing identity through build59; formal identity pinned separately",
     "signatureMatchesBuild40": true,
     "debuggable": false,
     "aligned16KB": true,
@@ -90,9 +89,10 @@
     "signatureMatchesBuild43": true,
     "signatureMatchesBuild44": true,
     "signatureMatchesBuild45": true,
-    "appVersion": "2.0.22+58",
+    "appVersion": "2.0.23+59",
     "signatureMatchesBuild50": true,
-    "signatureMatchesBuild58": true
+    "signatureMatchesBuild58": true,
+    "signatureMatchesBuild59": true
   },
   "buildFlags": {
     "ENABLE_LOCAL_LICENSE": false,
@@ -104,12 +104,12 @@
   "bookChapters": 16,
   "bookReaderDesktopOnly": true,
   "bookReadingStateCloudSync": false,
-  "additionalCurrentUserRequests": 45,
+  "additionalCurrentUserRequests": 47,
   "formalAndroidSigning": {
     "date": "2026-10-16",
-    "appVersion": "2.0.22+58",
-    "apk": "Fly-2.0.22-build58-android-release-signed-20261112.apk",
-    "apkSHA256": "3F435F77EE7D2937FEEC5626A4658B231E34969F471F3FC19878A7A50DBE6DB1",
+    "appVersion": "2.0.23+59",
+    "apk": "Fly-2.0.23-build59-android-release-signed-20261112.apk",
+    "apkSHA256": "20BF2593CBAE547E2036736A2C7F8603C5517B6C7176ACBDD0D5E2BE2F3C1673",
     "certificateMD5": "5E96E7B982BF8DB94FEF71F148BC0859",
     "certificateSHA1": "9E8BC6EFA12D280843F92FD7E1DCAE22AD70008F",
     "certificateSHA256": "5240E834C4F5800EC22E9B882526A9CCBFE3366E334857CAE0154A0B66079EB2",
@@ -121,7 +121,7 @@
     "filingApplicationSubmitted": false,
     "privateIdentityDirectory": "license_tools/private/android",
     "report": "../release/android_release_signing_20261016.md",
-    "publicMetadataPath": "apk/20261112-build58/",
+    "publicMetadataPath": "apk/20261112-build59/",
     "privateKeyIndependentOfflineBackupVerified": false,
     "privateKeyLocalBackupScope": "same-disk initial backup only; owner must retain independent secure backup",
     "identityEstablishedDate": "2026-10-16",
@@ -131,12 +131,13 @@
     "actualApkCertificateVerifiedForBuild45": true,
     "actualApkCertificateVerifiedForBuild46": true,
     "actualApkCertificateVerifiedForBuild50": true,
-    "actualApkCertificateVerifiedForBuild58": true
+    "actualApkCertificateVerifiedForBuild58": true,
+    "actualApkCertificateVerifiedForBuild59": true
   },
   "clientTestsLastRunDate": "2026-11-12",
   "analyzeLastRunDate": "2026-11-12",
-  "latestPreferredAndroidPackage": "Fly-2.0.22-build58-android-release-signed-20261112.apk",
-  "publicApkMetadataPath": "apk/20261112-build58/",
+  "latestPreferredAndroidPackage": "Fly-2.0.23-build59-android-release-signed-20261112.apk",
+  "publicApkMetadataPath": "apk/20261112-build59/",
   "releaseArtifactFilesTracked": false,
   "privateSigningFilesTracked": false,
   "handoffPackageLedger": "APK_RELEASES.md",
@@ -146,9 +147,9 @@
     "filingPublicKeyAndSHA1Available": false,
     "appleBuildAndDeviceAcceptance": "not performed"
   },
-  "latestSourceNotRepackagedExplanation": "Final source packaged for Windows/Android build58; Apple not built",
+  "latestSourceNotRepackagedExplanation": "Current client source packaged as Windows/Android build59; Apple not built",
   "localReleaseCommitHash": "2cb533947d9318065c7a79fb897e229177c32586",
-  "workingTreeStatusAtCapture": "Build58 feature source committed and pushed; delivery records contain final package verification; unrelated website/book changes excluded",
+  "workingTreeStatusAtCapture": "Final delivery commit prepared; source and packages verified; unrelated website/book work excluded",
   "portableInternalIssuer": {
     "version": "1.0.0",
     "date": "2026-10-17",
@@ -185,7 +186,7 @@
   },
   "latestAndroidTestingUpgradePackage": "Fly-2.0.14-build50-android-test-20261107.apk",
   "temporaryBackendStopped": true,
-  "latestWindowsPackageVersion": "2.0.22+58",
+  "latestWindowsPackageVersion": "2.0.23+59",
   "windowsRebuiltThisTurn": true,
   "mobileUiLatestVerification": {
     "date": "2026-10-17",
@@ -305,7 +306,7 @@
   "githubDevelopmentBranch": "codex/fly-2-sync",
   "githubMasterBaseline": "94efdc2d9ac34feb2f3d1b635302278b4671a414",
   "githubLatestDocumentationRef": "main / codex/fly-2-sync HEAD; verify git ls-remote",
-  "latestPackagedReleaseReport": "../release/fly_2_0_22_build58.md",
+  "latestPackagedReleaseReport": "../release/fly_2_0_23_build59.md",
   "serverTestsEvidence": "61 passed in build44; backend unchanged and not rerun for build46",
   "latestSyncChangesPushed": false,
   "currentSourceRequiresWorkingTree": false,
@@ -471,7 +472,7 @@
   ],
   "unrelatedWorkingTreePathsRetained": [],
   "websiteHasIndependentUncommittedChanges": true,
-  "sourceCommitScope": "Mobile data import/export visibility, desktop primary navigation/root folder shortcuts, tests, version and documentation",
+  "sourceCommitScope": "Library default visibility, responsive desktop folder action, file view/sort/paste context menu, regression fixtures and version",
   "reviewProgramIncludedInBuild43": true,
   "emailAuthIncludedInBuild43": true,
   "packagedBuild43Verification": {
@@ -554,10 +555,8 @@
     ]
   },
   "clientRegression": {
-    "distinctPassingCases": 48,
-    "completedBeforeInterruption": 13,
-    "passedOnResume": 33,
-    "passedAfterScopedGridAssertionFix": 2,
+    "distinctPassingCases": 40,
+    "releaseSmokeCases": 7,
     "fullSuiteRerun": false
   },
   "previouslyIndependentWebsiteChangesCommitted": true,
@@ -623,7 +622,7 @@
   ],
   "deviceEnrollmentUserInterfaceAvailable": false,
   "legacyEnrollmentProtocolPreserved": true,
-  "latestAndroidPackageVersion": "2.0.22+58",
+  "latestAndroidPackageVersion": "2.0.23+59",
   "build47Features": [
     "Actual remaining spaces for manual and ordinary cargo",
     "Consistent section diagram and space cards",
@@ -636,7 +635,7 @@
     "Counts and snapshots follow quantity edits and removal",
     "Manual intent retained in compatible layoutV3 metadata"
   ],
-  "publicWindowsMetadataPath": "windows/20261112-build58/",
+  "publicWindowsMetadataPath": "windows/20261112-build59/",
   "build49Features": [
     "First cargo may enter an empty section; later cargo must target a remaining area",
     "A/B area names shared by cross section and cards; area selection and drag/drop use actual coordinates",
@@ -741,15 +740,16 @@
   "dockerBuildVerified": false,
   "productionPostgresqlExecutionVerified": false,
   "nginxSyntaxCommandExecuted": false,
-  "sourceChangeReport": "../release/navigation_folder_shortcuts_20261109.md",
+  "sourceChangeReport": "../release/desktop_files_context_20261112.md",
   "fullClientSuiteLastRunFor": "Windows build57 source 2cb533947d9318065c7a79fb897e229177c32586; see releaseReport for 539 passed / 3 skipped",
   "latestSourceChanges": [
-    "Android/iOS data import/export hidden; file/photo/camera/share retained",
-    "Desktop primary search entry removed; Ctrl+K retained",
-    "My Files sidebar follows root folders without a nested tree"
+    "Library hidden by default, desktop navigation opt-in retained; existing books/notes preserved",
+    "Responsive desktop lower-right plus creates a folder at the current location",
+    "Blank-area context menu adds shared view/sort, clipboard file paste and refresh",
+    "Clipboard file import keeps duplicate confirmation and internal cut/move; recursive external folder paste not implemented"
   ],
   "lastVerifiedLocalDate": "2026-11-12",
-  "latestScopedClientTests": 48,
+  "latestScopedClientTests": 40,
   "navigationUpdateVerification": {
     "date": "2026-11-12",
     "distinctPassingCases": 48,
@@ -776,5 +776,36 @@
     "Desktop primary global-search icon removed; Ctrl+K retained",
     "My Files sidebar follows only root folders",
     "Android includes current media/file/analytics/update code since build50"
+  ],
+  "bookReaderDefaultVisible": false,
+  "bookReaderCanEnableFromNavigationSettings": true,
+  "workingTreeNote": "Build59 source and public delivery records committed on codex/fly-2-sync; only original unrelated website/book changes remain",
+  "fileActionsVerification": {
+    "date": "2026-11-12",
+    "distinctPassingCases": 40,
+    "fullClientSuiteRerun": false,
+    "backendChanged": false,
+    "backendTestsRerun": false,
+    "renderedViewports": [
+      "1264x850 light",
+      "900x600 dark 1.3x text",
+      "640x480 dark 1.3x text"
+    ],
+    "systemClipboardInputMocked": true,
+    "temporaryDiskFilesReal": true,
+    "nativeClipboardDeviceVerification": false,
+    "businessDatabaseOpened": false,
+    "committed": true,
+    "pushed": true,
+    "repackaged": true,
+    "report": "../release/desktop_files_context_20261112.md",
+    "sourceCommit": "980f23ea3774b2a4c1e64b816270e7e52599e387",
+    "releaseSmokeCases": 7,
+    "releaseReport": "../release/fly_2_0_23_build59.md"
+  },
+  "build59Features": [
+    "Library hidden by default; desktop navigation setting restores access without deleting content",
+    "Responsive lower-right desktop plus creates folders at the current location",
+    "Blank-area context menu shares views/sorting and adds clipboard file paste/refresh"
   ]
 }

@@ -1,5 +1,7 @@
 # Fly
 
+2026-11-12最新：Windows/Android2.0.23+59已打包，资料库默认隐藏、电脑文件新建按钮及查看/排序/粘贴/刷新右键菜单已包含。40项相关用例、7项发布复验、静态检查、两端构建和安装包核验通过。[交付与下载](docs/release/fly_2_0_23_build59.md) / [接续入口](FLY_PROJECT_HANDOFF.md)。以下保留历史记录。
+
 2026-11-09当前：源码/Windows **2.0.21+57**、SQLite20、后台迁移0005。新增[极简匿名安装/日活统计](docs/analytics.md)、[客户创建框Excel导入及模板](docs/customer_import.md)、[Windows/Android更新检测](docs/app_updates.md)，没有其他统计事件或业务关联。客户端全量539通过/3跳过、后台86通过，应用静态检查与Windows构建/包核验通过。[交付与安装包](docs/release/anonymous_import_updates_20261109.md) / [Ubuntu原生升级命令](server/deploy/analytics-updates.md)。Android现有build50不含本轮新增，Apple平台及真实服务器未验证。接续开发以[项目交接](FLY_PROJECT_HANDOFF.md)为准，以下保留历史交付记录。
 
 2026-11-01 本轮交付：[2.0.7 build43 记录](docs/release/fly_2_0_7_build43.md)、[云同步调度与 API](docs/architecture/cloud_sync_runtime_20261101.md)、[已有 PHP 官网的详细 Ubuntu 部署](server/deploy/cloud_sync_20261101.md)。采用启动/修改立即同步、WebSocket 提醒和每五分钟补查；系统后台推送留作下一阶段。实际交付结果与校验值见本轮报告和包台账。
