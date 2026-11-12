@@ -5,6 +5,7 @@ import 'package:flutter/rendering.dart';
 
 import 'package:drift/native.dart';
 import 'package:fly/app/app.dart';
+import 'package:fly/app/settings/navigation_settings.dart';
 import 'package:fly/core/database/app_database.dart';
 import 'package:fly/core/storage/data_root_providers.dart';
 import 'package:fly/features/tasks/presentation/task_providers.dart';
@@ -69,6 +70,11 @@ void main() {
       final container = ProviderContainer(
         overrides: [databaseProvider.overrideWithValue(db)],
       );
+      await tester.runAsync(() async {
+        final nav = container.read(navigationSettingsProvider);
+        await nav.ready;
+        await nav.update(nav.value.copyWith(knowledgeVisible: true));
+      });
       await tester.pumpWidget(
         UncontrolledProviderScope(container: container, child: const FlyApp()),
       );
@@ -239,6 +245,11 @@ void main() {
         dataRootPathProvider.overrideWithValue(root),
       ],
     );
+    await tester.runAsync(() async {
+      final nav = container.read(navigationSettingsProvider);
+      await nav.ready;
+      await nav.update(nav.value.copyWith(knowledgeVisible: true));
+    });
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,

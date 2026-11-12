@@ -79,6 +79,183 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
   bool _pickingMedia = false;
   String? _importStage;
   bool _nativeDragActive = false;
+  final _desktopMenu = MenuController();
+  List<String> _clipboardFiles = const [];
+  bool _pasting = false;
+
+  bool get _writableLocation =>
+      collection != FileCollection.deleted && locateId == null;
+  bool get _fileActionBusy =>
+      importing || _pickingMedia || _batchBusy || _nativeDragActive || _pasting;
+
+  Future<void> _newFolderHere() async {
+    if (!_writableLocation || _fileActionBusy || _selecting) return;
+    _desktopMenu.close();
+    await createFolder(
+      collection == FileCollection.folder ? folderId : null,
+      customerCollection: collection == FileCollection.customers,
+    );
+  }
+
+  Future<void> _openDesktopMenu(Offset position) async {
+    final currentCollection = collection;
+    final currentFolder = folderId;
+    List<String> files = const [];
+    try {
+      files = await ref.read(fileClipboardProvider).readFiles();
+    } on MissingPluginException {
+      // The file clipboard is not available on every desktop/test host.
+    } on PlatformException {
+      // A locked clipboard can be retried by reopening the context menu.
+    }
+    if (!mounted ||
+        collection != currentCollection ||
+        folderId != currentFolder) {
+      return;
+    }
+    setState(() => _clipboardFiles = files);
+    _desktopMenu.open(position: position);
+  }
+
+  Future<void> _pasteFiles() async {
+    if (!_writableLocation || _fileActionBusy || _selecting) return;
+    final currentCollection = collection;
+    final currentFolder = folderId;
+    final cut = cutId;
+    setState(() => _pasting = true);
+    try {
+      if (cut != null) {
+        final destination = currentCollection == FileCollection.customers
+            ? await _customerFilesDestination()
+            : currentCollection == FileCollection.folder
+            ? currentFolder
+            : null;
+        if (!mounted) return;
+        await ref.read(managedFileRepositoryProvider).move(cut, destination);
+        if (mounted) setState(() => cutId = null);
+      } else {
+        final candidates = await ref.read(fileClipboardProvider).readFiles();
+        final files = <String>[];
+        for (final path in candidates.toSet()) {
+          if (await FileSystemEntity.type(path, followLinks: false) ==
+              FileSystemEntityType.file) {
+            files.add(path);
+          }
+        }
+        if (!mounted ||
+            collection != currentCollection ||
+            folderId != currentFolder) {
+          return;
+        }
+        if (files.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                context.l10n.t(
+                  candidates.isEmpty
+                      ? 'filesClipboardEmpty'
+                      : 'filesPasteFilesOnly',
+                ),
+              ),
+            ),
+          );
+          return;
+        }
+        await importPaths(files);
+        if (mounted && files.length < candidates.toSet().length) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(context.l10n.t('filesPasteFilesOnly'))),
+          );
+        }
+      }
+    } finally {
+      if (mounted) setState(() => _pasting = false);
+    }
+  }
+
+  List<Widget> _desktopContextItems() => [
+    if (_writableLocation)
+      MenuItemButton(
+        key: const ValueKey('files-context-new-folder'),
+        leadingIcon: const Icon(Icons.create_new_folder_outlined),
+        onPressed: _fileActionBusy || _selecting ? null : _newFolderHere,
+        child: Text(context.l10n.t('filesNewFolder')),
+      ),
+    SubmenuButton(
+      key: const ValueKey('files-context-view'),
+      leadingIcon: const Icon(Icons.grid_view_outlined),
+      menuChildren: [
+        for (final mode in FileViewMode.values)
+          CheckboxMenuButton(
+            key: ValueKey('files-context-view-${mode.name}'),
+            value: viewMode == mode,
+            onChanged: (_) => _applyDesktopOption(mode),
+            child: Text(context.l10n.t('fileView_${mode.name}')),
+          ),
+      ],
+      child: Text(context.l10n.t('filesView')),
+    ),
+    SubmenuButton(
+      key: const ValueKey('files-context-sort'),
+      leadingIcon: const Icon(Icons.sort),
+      menuChildren: [
+        for (final option in FileSort.values)
+          CheckboxMenuButton(
+            key: ValueKey('files-context-sort-${option.name}'),
+            value: sort == option,
+            onChanged: (_) => _applyDesktopOption(option),
+            child: Text(_sortLabel(option)),
+          ),
+      ],
+      child: Text(context.l10n.t('filesSort')),
+    ),
+    const Divider(height: 8),
+    if (_writableLocation)
+      MenuItemButton(
+        key: const ValueKey('files-context-paste'),
+        leadingIcon: const Icon(Icons.content_paste),
+        onPressed:
+            !_fileActionBusy &&
+                !_selecting &&
+                (cutId != null || _clipboardFiles.isNotEmpty)
+            ? () => attempt(_pasteFiles)
+            : null,
+        child: Text(context.l10n.t('filesPaste')),
+      ),
+    MenuItemButton(
+      key: const ValueKey('files-context-refresh'),
+      leadingIcon: const Icon(Icons.refresh),
+      onPressed: () {
+        ref.invalidate(fileFoldersProvider);
+        reload();
+      },
+      child: Text(context.l10n.t('filesRefresh')),
+    ),
+  ];
+
+  String _sortLabel(FileSort option) => context.l10n.t(switch (option) {
+    FileSort.modified => 'fileModified',
+    FileSort.created => 'filesCreated',
+    FileSort.name => 'filesName',
+    FileSort.type => 'filesType',
+    FileSort.size => 'filesSize',
+  });
+
+  int _compareFolders(WorkspaceFolder a, WorkspaceFolder b) {
+    final byTime = switch (sort) {
+      FileSort.modified =>
+        (b.updatedAt?.millisecondsSinceEpoch ?? b.sortOrder).compareTo(
+          a.updatedAt?.millisecondsSinceEpoch ?? a.sortOrder,
+        ),
+      FileSort.created =>
+        (b.createdAt?.millisecondsSinceEpoch ?? b.sortOrder).compareTo(
+          a.createdAt?.millisecondsSinceEpoch ?? a.sortOrder,
+        ),
+      _ => 0,
+    };
+    if (byTime != 0) return byTime;
+    return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+  }
 
   Future<void> _addOnPhone() async {
     final action = await showModalBottomSheet<String>(
@@ -1341,34 +1518,10 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
         ),
       ),
     );
-    final browser = GestureDetector(
+    final browserContent = GestureDetector(
       key: const ValueKey('desktop-files-blank'),
       behavior: HitTestBehavior.opaque,
-      onSecondaryTapUp: collection == FileCollection.folder && locateId == null
-          ? (details) async {
-              final overlay =
-                  Overlay.of(context).context.findRenderObject() as RenderBox;
-              final action = await showMenu<String>(
-                context: context,
-                position: RelativeRect.fromRect(
-                  Rect.fromLTWH(
-                    details.globalPosition.dx,
-                    details.globalPosition.dy,
-                    0,
-                    0,
-                  ),
-                  Offset.zero & overlay.size,
-                ),
-                items: [
-                  PopupMenuItem(
-                    value: 'folder',
-                    child: Text(context.l10n.t('filesNewFolder')),
-                  ),
-                ],
-              );
-              if (action == 'folder' && mounted) await createFolder(folderId);
-            }
-          : null,
+      onSecondaryTapUp: (details) => _openDesktopMenu(details.localPosition),
       child: ColoredBox(
         key: const ValueKey('file-browser-background'),
         color: context.flyColors.surface,
@@ -1391,12 +1544,9 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
                     ),
                     if (cutId != null && collection == FileCollection.folder)
                       TextButton(
-                        onPressed: () => attempt(() async {
-                          await ref
-                              .read(managedFileRepositoryProvider)
-                              .move(cutId!, folderId);
-                          if (mounted) setState(() => cutId = null);
-                        }),
+                        onPressed: _fileActionBusy
+                            ? null
+                            : () => attempt(_pasteFiles),
                         child: Text(context.l10n.t('filesPaste')),
                       ),
                     if (collection == FileCollection.folder ||
@@ -1546,6 +1696,34 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
                 ),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+    final browser = LayoutBuilder(
+      builder: (context, bounds) => MenuAnchor(
+        controller: _desktopMenu,
+        menuChildren: _desktopContextItems(),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            browserContent,
+            if (!isMobilePlatform && _writableLocation && !_selecting)
+              PositionedDirectional(
+                end: bounds.maxWidth < 700 ? 16 : 24,
+                bottom: bounds.maxHeight < 520 ? 16 : 24,
+                child: SafeArea(
+                  top: false,
+                  left: false,
+                  child: FloatingActionButton(
+                    key: const ValueKey('desktop-new-folder'),
+                    heroTag: 'desktop-new-folder',
+                    tooltip: context.l10n.t('filesNewFolder'),
+                    onPressed: _fileActionBusy ? null : _newFolderHere,
+                    child: const Icon(Icons.add),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -1848,19 +2026,7 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
           f.parentId == folderId &&
           (term.isEmpty || FuzzyMatch.matches(term, [f.name]));
     }).toList();
-    children.sort(
-      (a, b) => switch (sort) {
-        FileSort.modified =>
-          (b.updatedAt?.millisecondsSinceEpoch ?? b.sortOrder).compareTo(
-            a.updatedAt?.millisecondsSinceEpoch ?? a.sortOrder,
-          ),
-        FileSort.created =>
-          (b.createdAt?.millisecondsSinceEpoch ?? b.sortOrder).compareTo(
-            a.createdAt?.millisecondsSinceEpoch ?? a.sortOrder,
-          ),
-        _ => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
-      },
-    );
+    children.sort(_compareFolders);
     final customerTitle = context.l10n.t('filesCustomers');
     return [
       if (_mobileHome &&
@@ -2073,26 +2239,28 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
         ],
       );
 
+  Future<void> _applyDesktopOption(Object value) async {
+    if (value is FileViewMode) {
+      setState(() => viewMode = value);
+    } else if (value is FileSort) {
+      sort = value;
+      reload();
+    } else if (value == 'tags') {
+      await attempt(filters);
+    } else if (value == 'clear') {
+      tags.clear();
+      customerTags.clear();
+      _selectedFiles.clear();
+      reload();
+    }
+    if (mounted) _savePreferences();
+  }
+
   Widget _desktopSettings() => PopupMenuButton<Object>(
     key: const ValueKey('files-settings'),
     tooltip: context.l10n.t('settings'),
     icon: const Icon(Icons.more_vert),
-    onSelected: (value) async {
-      if (value is FileViewMode) {
-        setState(() => viewMode = value);
-      } else if (value is FileSort) {
-        sort = value;
-        reload();
-      } else if (value == 'tags') {
-        await attempt(filters);
-      } else if (value == 'clear') {
-        tags.clear();
-        customerTags.clear();
-        _selectedFiles.clear();
-        reload();
-      }
-      if (mounted) _savePreferences();
-    },
+    onSelected: _applyDesktopOption,
     itemBuilder: (_) => [
       PopupMenuItem<Object>(
         enabled: false,
@@ -2115,15 +2283,7 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
           key: ValueKey('files-settings-sort-${option.name}'),
           value: option,
           checked: sort == option,
-          child: Text(
-            context.l10n.t(switch (option) {
-              FileSort.modified => 'fileModified',
-              FileSort.created => 'filesCreated',
-              FileSort.name => 'filesName',
-              FileSort.type => 'filesType',
-              FileSort.size => 'filesSize',
-            }),
-          ),
+          child: Text(_sortLabel(option)),
         ),
       const PopupMenuDivider(),
       PopupMenuItem<Object>(
@@ -2189,81 +2349,84 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
     ).showSnackBar(SnackBar(content: Text(context.l10n.t('filesFolderMoved'))));
   }
 
-  Widget _desktopFolderShortcuts(AsyncValue<List<WorkspaceFolder>> folders) =>
-      folders.when(
-        data: (items) {
-          final roots = items
+  Widget _desktopFolderShortcuts(
+    AsyncValue<List<WorkspaceFolder>> folders,
+  ) => folders.when(
+    data: (items) {
+      final roots =
+          items
               .where(
                 (folder) =>
                     folder.parentId == null &&
                     folder.id != WorkspaceFolderRepository.customerFilesRootId,
               )
-              .toList();
-          return ListView.builder(
-            key: const ValueKey('file-folder-shortcuts'),
-            padding: EdgeInsets.zero,
-            itemCount: roots.length,
-            itemBuilder: (context, index) {
-              final folder = roots[index];
-              return GestureDetector(
-                onSecondaryTapUp: (details) =>
-                    _desktopFolderMenu(folder, details.globalPosition),
-                child: ListTile(
-                  key: ValueKey('file-folder-shortcut-${folder.id}'),
-                  dense: true,
-                  contentPadding: const EdgeInsets.only(left: 24, right: 12),
-                  minLeadingWidth: 20,
-                  horizontalTitleGap: 10,
-                  leading: SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: FileFolderVisual(seed: folder.id, compact: true),
-                  ),
-                  title: Tooltip(
-                    message: folder.name,
-                    triggerMode: TooltipTriggerMode.manual,
-                    child: Text(
-                      folder.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  selected:
-                      collection == FileCollection.folder &&
-                      folderId == folder.id,
-                  onTap: () => select(FileCollection.folder, folder.id),
+              .toList()
+            ..sort(_compareFolders);
+      return ListView.builder(
+        key: const ValueKey('file-folder-shortcuts'),
+        padding: EdgeInsets.zero,
+        itemCount: roots.length,
+        itemBuilder: (context, index) {
+          final folder = roots[index];
+          return GestureDetector(
+            onSecondaryTapUp: (details) =>
+                _desktopFolderMenu(folder, details.globalPosition),
+            child: ListTile(
+              key: ValueKey('file-folder-shortcut-${folder.id}'),
+              dense: true,
+              contentPadding: const EdgeInsets.only(left: 24, right: 12),
+              minLeadingWidth: 20,
+              horizontalTitleGap: 10,
+              leading: SizedBox(
+                width: 24,
+                height: 24,
+                child: FileFolderVisual(seed: folder.id, compact: true),
+              ),
+              title: Tooltip(
+                message: folder.name,
+                triggerMode: TooltipTriggerMode.manual,
+                child: Text(
+                  folder.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              );
-            },
+              ),
+              selected:
+                  collection == FileCollection.folder && folderId == folder.id,
+              onTap: () => select(FileCollection.folder, folder.id),
+            ),
           );
         },
-        loading: () => const Center(
-          child: SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-        ),
-        error: (_, _) => Center(
-          child: IconButton(
-            tooltip: context.l10n.t('licenseRetryShort'),
-            onPressed: () => ref.invalidate(fileFoldersProvider),
-            icon: const Icon(Icons.refresh),
-          ),
-        ),
       );
+    },
+    loading: () => const Center(
+      child: SizedBox(
+        width: 20,
+        height: 20,
+        child: CircularProgressIndicator(strokeWidth: 2),
+      ),
+    ),
+    error: (_, _) => Center(
+      child: IconButton(
+        tooltip: context.l10n.t('licenseRetryShort'),
+        onPressed: () => ref.invalidate(fileFoldersProvider),
+        icon: const Icon(Icons.refresh),
+      ),
+    ),
+  );
 
-  List<WorkspaceFolder> _desktopDirectories(List<WorkspaceFolder> items) =>
-      collection != FileCollection.folder || locateId != null
-      ? []
-      : items
-            .where(
-              (folder) =>
-                  folder.parentId == folderId &&
-                  (search.trim().isEmpty ||
-                      FuzzyMatch.matches(search, [folder.name])),
-            )
-            .toList();
+  List<WorkspaceFolder> _desktopDirectories(List<WorkspaceFolder> items) {
+    if (collection != FileCollection.folder || locateId != null) return [];
+    return items
+        .where(
+          (folder) =>
+              folder.parentId == folderId &&
+              (search.trim().isEmpty ||
+                  FuzzyMatch.matches(search, [folder.name])),
+        )
+        .toList()
+      ..sort(_compareFolders);
+  }
 
   Future<void> _desktopFolderMenu(WorkspaceFolder folder, Offset point) async {
     final overlay = Overlay.of(context).context.findRenderObject() as RenderBox;
@@ -2411,6 +2574,8 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
               itemBuilder: (_, i) => tile(entries[i]),
             ),
           ),
+        if (!isMobilePlatform && collection != FileCollection.deleted)
+          const SliverToBoxAdapter(child: SizedBox(height: 88)),
       ],
     );
   }

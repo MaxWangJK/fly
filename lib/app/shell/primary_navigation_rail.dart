@@ -136,14 +136,18 @@ class PrimaryNavigationRail extends ConsumerWidget {
                         onTap: () => onSelected(PrimaryModule.files),
                       ),
                       const SizedBox(height: FlySpacing.xs),
-                      NavigationRailItem(
-                        module: PrimaryModule.notes,
-                        icon: Icons.menu_book_outlined,
-                        selectedIcon: Icons.menu_book_rounded,
-                        tooltip: context.l10n.t('navNotes'),
-                        selected: selectedModule == PrimaryModule.notes,
-                        onTap: () => onSelected(PrimaryModule.notes),
-                      ),
+                      if (ref
+                          .watch(navigationSettingsProvider)
+                          .value
+                          .knowledgeVisible)
+                        NavigationRailItem(
+                          module: PrimaryModule.notes,
+                          icon: Icons.menu_book_outlined,
+                          selectedIcon: Icons.menu_book_rounded,
+                          tooltip: context.l10n.t('navNotes'),
+                          selected: selectedModule == PrimaryModule.notes,
+                          onTap: () => onSelected(PrimaryModule.notes),
+                        ),
                     ],
                   ),
                 ),

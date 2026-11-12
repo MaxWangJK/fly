@@ -12,9 +12,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fly/app/app.dart';
 import 'package:fly/core/database/app_database.dart';
 import 'package:fly/core/storage/data_root_providers.dart';
+import 'package:fly/features/files/data/file_clipboard.dart';
 import 'package:fly/features/files/data/managed_file_repository.dart';
 import 'package:fly/features/files/data/managed_file_storage.dart';
 import 'package:fly/features/files/presentation/file_entry_content.dart';
+import 'package:fly/features/files/presentation/file_providers.dart';
 import 'package:fly/features/tasks/presentation/task_providers.dart';
 import 'package:fly/shared/data/workspace_folder_repository.dart';
 import 'package:fly/shared/attachments/attachment_providers.dart';
@@ -24,6 +26,11 @@ class _Opener extends PlatformAttachmentOpener {
   final paths = <String>[];
   @override
   Future<void> open(String path) async => paths.add(path);
+}
+
+class _EmptyClipboard extends FileClipboard {
+  @override
+  Future<List<String>> readFiles() async => [];
 }
 
 Future<void> settle(WidgetTester tester) async {
@@ -120,6 +127,7 @@ void main() {
           databaseProvider.overrideWithValue(db),
           attachmentOpenerProvider.overrideWithValue(opener),
           dataRootPathProvider.overrideWithValue(root.path),
+          fileClipboardProvider.overrideWithValue(_EmptyClipboard()),
         ],
       );
       await tester.pumpWidget(
@@ -167,7 +175,8 @@ void main() {
       await settle(tester);
       expect(find.byTooltip('产品价格表.pdf'), findsOneWidget);
       await tester.tapAt(
-        tester.getBottomRight(browser) - const Offset(24, 24),
+        // Target blank space outside the lower-right folder action.
+        tester.getBottomRight(browser) - const Offset(160, 130),
         kind: PointerDeviceKind.mouse,
         buttons: kSecondaryMouseButton,
       );

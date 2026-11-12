@@ -41,10 +41,15 @@ class FlySearchResult {
 }
 
 class GlobalSearchService {
-  GlobalSearchService(this._db, {this.knowledge});
+  GlobalSearchService(
+    this._db, {
+    this.knowledge,
+    this.includeWorkspaceNotes = true,
+  });
 
   final AppDatabase _db;
   final KnowledgeRepository? knowledge;
+  final bool includeWorkspaceNotes;
 
   static String _tagName(String name) =>
       name.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
@@ -75,6 +80,9 @@ class GlobalSearchService {
     for (final row in rows) {
       final name = row.read<String>('tag_name');
       final kind = SearchResultType.values.byName(row.read<String>('kind'));
+      if (kind == SearchResultType.workspaceNote && !includeWorkspaceNotes) {
+        continue;
+      }
       final id = row.read<String>('id');
       groups.putIfAbsent(
         '${kind.name}:${_tagName(name)}',
@@ -315,58 +323,60 @@ class GlobalSearchService {
         ),
       );
     }
-    final workspaceNotes = await (_db.select(
-      _db.workspaceNotes,
-    )..where((r) => r.deletedAt.isNull())).get();
-    final noteIds = workspaceNotes.map((n) => n.id).toSet();
-    final blockTerms = <String, List<String>>{};
-    final noteTags = await _db.select(_db.noteTagLinks).join([
-      innerJoin(
-        _db.tags,
-        _db.tags.id.equalsExp(_db.noteTagLinks.tagId) &
-            _db.tags.deletedAt.isNull(),
-      ),
-    ]).get();
-    for (final row in noteTags) {
-      final link = row.readTable(_db.noteTagLinks);
-      if (noteIds.contains(link.noteId)) {
-        blockTerms
-            .putIfAbsent(link.noteId, () => [])
-            .add(row.readTable(_db.tags).name);
-      }
-    }
-    for (final block in await _db.select(_db.noteBlocks).get()) {
-      if (!noteIds.contains(block.noteId)) continue;
-      try {
-        final content = jsonDecode(block.contentJson);
-        if (content is! Map) continue;
-        final values = blockTerms.putIfAbsent(block.noteId, () => []);
-        for (final key in ['text', 'caption']) {
-          if (content[key] is String) values.add(content[key] as String);
+    if (includeWorkspaceNotes) {
+      final workspaceNotes = await (_db.select(
+        _db.workspaceNotes,
+      )..where((r) => r.deletedAt.isNull())).get();
+      final noteIds = workspaceNotes.map((n) => n.id).toSet();
+      final blockTerms = <String, List<String>>{};
+      final noteTags = await _db.select(_db.noteTagLinks).join([
+        innerJoin(
+          _db.tags,
+          _db.tags.id.equalsExp(_db.noteTagLinks.tagId) &
+              _db.tags.deletedAt.isNull(),
+        ),
+      ]).get();
+      for (final row in noteTags) {
+        final link = row.readTable(_db.noteTagLinks);
+        if (noteIds.contains(link.noteId)) {
+          blockTerms
+              .putIfAbsent(link.noteId, () => [])
+              .add(row.readTable(_db.tags).name);
         }
-        final rows = content['rows'];
-        if (rows is List) {
-          for (final row in rows.whereType<List>()) {
-            values.addAll(row.whereType<String>());
+      }
+      for (final block in await _db.select(_db.noteBlocks).get()) {
+        if (!noteIds.contains(block.noteId)) continue;
+        try {
+          final content = jsonDecode(block.contentJson);
+          if (content is! Map) continue;
+          final values = blockTerms.putIfAbsent(block.noteId, () => []);
+          for (final key in ['text', 'caption']) {
+            if (content[key] is String) values.add(content[key] as String);
           }
+          final rows = content['rows'];
+          if (rows is List) {
+            for (final row in rows.whereType<List>()) {
+              values.addAll(row.whereType<String>());
+            }
+          }
+        } on FormatException {
+          // An unreadable legacy block must not prevent searching other notes.
         }
-      } on FormatException {
-        // An unreadable legacy block must not prevent searching other notes.
       }
-    }
-    for (final note in workspaceNotes) {
-      final match = _bestMatch(term, [note.title, ...?blockTerms[note.id]]);
-      if (match != null) {
-        results.add(
-          FlySearchResult(
-            type: SearchResultType.workspaceNote,
-            entityId: note.id,
-            title: note.title,
-            subtitle: copy('笔记'),
-            matchedText: match.value,
-            score: 240 + match.score,
-          ),
-        );
+      for (final note in workspaceNotes) {
+        final match = _bestMatch(term, [note.title, ...?blockTerms[note.id]]);
+        if (match != null) {
+          results.add(
+            FlySearchResult(
+              type: SearchResultType.workspaceNote,
+              entityId: note.id,
+              title: note.title,
+              subtitle: copy('笔记'),
+              matchedText: match.value,
+              score: 240 + match.score,
+            ),
+          );
+        }
       }
     }
     if (knowledge != null) {

@@ -47,6 +47,7 @@ class AppShell extends ConsumerWidget {
           (m) =>
               (m != PrimaryModule.dashboard || visibility.dashboardVisible) &&
               (m != PrimaryModule.tools || visibility.toolsVisible) &&
+              (m != PrimaryModule.notes || visibility.knowledgeVisible) &&
               ((m != PrimaryModule.customers && m != PrimaryModule.orders) ||
                   visibility.crmVisible),
         )

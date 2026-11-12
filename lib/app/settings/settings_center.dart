@@ -59,7 +59,14 @@ class _SettingsCenterState extends ConsumerState<SettingsCenter> {
   void initState() {
     super.initState();
     final initial = categories.indexOf(widget.initialCategory ?? '');
-    if (initial >= 0 && !(isMobilePlatform && categories[initial] == '导入与导出')) {
+    if (initial >= 0 &&
+        !(isMobilePlatform && categories[initial] == '导入与导出') &&
+        !(categories[initial] == '资料库' &&
+            (isMobilePlatform ||
+                !ref
+                    .read(navigationSettingsProvider)
+                    .value
+                    .knowledgeVisible))) {
       selected = initial;
       mobileCategoryOpen = true;
     }
@@ -199,7 +206,12 @@ class _SettingsCenterState extends ConsumerState<SettingsCenter> {
                 padding: const EdgeInsets.all(12),
                 children: [
                   for (var i = 0; i < categories.length; i++)
-                    if ((categories[i] != '资料库' || !isPhoneLayout(context)) &&
+                    if ((categories[i] != '资料库' ||
+                            (!isMobilePlatform &&
+                                ref
+                                    .watch(navigationSettingsProvider)
+                                    .value
+                                    .knowledgeVisible)) &&
                         (categories[i] != '导入与导出' || !isMobilePlatform))
                       ListTile(
                         key: ValueKey('settings-category-$i'),
@@ -375,6 +387,19 @@ class _SettingsCenterState extends ConsumerState<SettingsCenter> {
                 ? null
                 : (v) => nav.update(nav.value.copyWith(toolsVisible: v)),
           ),
+          if (!isMobilePlatform)
+            SwitchListTile(
+              key: const ValueKey('knowledge-visible'),
+              contentPadding: EdgeInsets.zero,
+              title: Text(context.l10n.isZh ? '显示资料库' : 'Show library'),
+              subtitle: Text(
+                context.l10n.isZh ? '默认隐藏，开启后显示已有书籍和阅读记录' : 'Hidden by default; enable to access your books and reading history',
+              ),
+              value: nav.value.knowledgeVisible,
+              onChanged: nav.saving || !nav.loaded
+                  ? null
+                  : (v) => nav.update(nav.value.copyWith(knowledgeVisible: v)),
+            ),
           if (nav.error != null)
             Text(
               nav.error!,
@@ -384,8 +409,8 @@ class _SettingsCenterState extends ConsumerState<SettingsCenter> {
           _row(
             '始终显示',
             context.l10n.isZh
-                ? '任务、日历、四象限、文件、笔记与设置'
-                : 'Tasks, Calendar, Matrix, Files, Notes and Settings',
+                ? '任务、日历、四象限、文件与设置'
+                : 'Tasks, Calendar, Matrix, Files and Settings',
           ),
           _heading('启动页面'),
           _row('当前默认', _startupLabel(nav.value)),

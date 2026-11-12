@@ -1,3 +1,5 @@
+import 'package:fly/app/settings/navigation_settings.dart';
+
 import 'dart:io';
 
 import 'package:drift/native.dart';
@@ -35,6 +37,11 @@ void main() {
         dataRootPathProvider.overrideWithValue(root.path),
       ],
     );
+    await tester.runAsync(() async {
+      final nav = container.read(navigationSettingsProvider);
+      await nav.ready;
+      await nav.update(nav.value.copyWith(knowledgeVisible: true));
+    });
     await tester.pumpWidget(
       UncontrolledProviderScope(container: container, child: const FlyApp()),
     );

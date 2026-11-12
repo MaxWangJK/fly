@@ -11,16 +11,19 @@ class NavigationSettings {
     this.dashboardVisible = false,
     this.crmVisible = true,
     this.toolsVisible = true,
+    this.knowledgeVisible = false,
   });
-  final bool dashboardVisible, crmVisible, toolsVisible;
+  final bool dashboardVisible, crmVisible, toolsVisible, knowledgeVisible;
   NavigationSettings copyWith({
     bool? dashboardVisible,
     bool? crmVisible,
     bool? toolsVisible,
+    bool? knowledgeVisible,
   }) => NavigationSettings(
     dashboardVisible: dashboardVisible ?? this.dashboardVisible,
     crmVisible: crmVisible ?? this.crmVisible,
     toolsVisible: toolsVisible ?? this.toolsVisible,
+    knowledgeVisible: knowledgeVisible ?? this.knowledgeVisible,
   );
 }
 
@@ -34,6 +37,8 @@ abstract final class StartupWorkspaceResolver {
   static bool allowed(String path, NavigationSettings settings) =>
       !(path.startsWith('/dashboard') && !settings.dashboardVisible) &&
       !(path.startsWith('/tools') && !settings.toolsVisible) &&
+      !((path.startsWith('/knowledge') || path.startsWith('/notes')) &&
+          !settings.knowledgeVisible) &&
       !((path.startsWith('/customers') || path.startsWith('/orders')) &&
           !settings.crmVisible);
 }
@@ -72,10 +77,11 @@ class NavigationSettingsController extends ChangeNotifier {
           dashboardVisible: data['dashboardVisible'] == true,
           crmVisible: data['crmVisible'] != false,
           toolsVisible: data['toolsVisible'] != false,
+          knowledgeVisible: data['knowledgeVisible'] == true,
         );
       }
     } catch (_) {
-      error = '导航设置读取失败，暂时显示全部模块';
+      error = '导航设置读取失败，已使用默认显示设置';
     }
     loaded = true;
     notifyListeners();
@@ -97,6 +103,7 @@ class NavigationSettingsController extends ChangeNotifier {
                 'dashboardVisible': next.dashboardVisible,
                 'crmVisible': next.crmVisible,
                 'toolsVisible': next.toolsVisible,
+                'knowledgeVisible': next.knowledgeVisible,
               }),
               updatedAt: DateTime.now(),
             ),

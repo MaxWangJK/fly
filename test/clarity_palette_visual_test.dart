@@ -68,7 +68,12 @@ void main() {
           );
       final navigation = NavigationSettingsController(database);
       await navigation.ready;
-      await navigation.update(const NavigationSettings(dashboardVisible: true));
+      await navigation.update(
+        const NavigationSettings(
+          dashboardVisible: true,
+          knowledgeVisible: true,
+        ),
+      );
       navigation.dispose();
     });
     await tester.pumpWidget(
