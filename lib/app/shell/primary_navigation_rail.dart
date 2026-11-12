@@ -5,7 +5,6 @@ import '../../features/account/presentation/local_profile_avatar.dart';
 import '../../l10n/fly_localizations.dart';
 import '../../shared/design_system/design_tokens.dart';
 import '../../shared/design_system/fly_color_scheme.dart';
-import '../../shared/search/global_search_palette.dart';
 import '../settings/navigation_settings.dart';
 import '../settings/settings_center.dart';
 
@@ -57,12 +56,6 @@ class PrimaryNavigationRail extends ConsumerWidget {
             children: [
               const LocalProfileAvatar(),
               const SizedBox(height: FlySpacing.sm),
-              IconButton(
-                key: const ValueKey('primary-global-search'),
-                tooltip: '${context.l10n.t('globalSearch')}\nCtrl+K',
-                onPressed: () => showGlobalSearchPalette(context),
-                icon: const Icon(Icons.search, size: 21),
-              ),
               Expanded(
                 child: SingleChildScrollView(
                   child: Column(

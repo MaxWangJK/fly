@@ -11,6 +11,7 @@ import '../import/customer_import_providers.dart';
 import '../import/customer_import_service.dart';
 import '../import/customer_template_export.dart';
 import '../../../l10n/crm_copy.dart';
+import '../../../shared/design_system/responsive_layout.dart';
 
 class CustomerCreateDialog extends ConsumerStatefulWidget {
   const CustomerCreateDialog({this.categoryId, super.key});
@@ -284,25 +285,30 @@ class _CustomerCreateDialogState extends ConsumerState<CustomerCreateDialog> {
                         ),
                       ),
                     ),
-                  const Divider(height: 28),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 4,
-                    children: [
-                      TextButton.icon(
-                        key: const ValueKey('customer-batch-import'),
-                        onPressed: busy ? null : _batchImport,
-                        icon: const Icon(Icons.upload_file_outlined, size: 18),
-                        label: Text(t('批量导入', 'Batch import')),
-                      ),
-                      TextButton.icon(
-                        key: const ValueKey('customer-import-template'),
-                        onPressed: busy ? null : _template,
-                        icon: const Icon(Icons.download_outlined, size: 18),
-                        label: Text(t('Excel模板', 'Excel template')),
-                      ),
-                    ],
-                  ),
+                  if (!isMobilePlatform) ...[
+                    const Divider(height: 28),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: [
+                        TextButton.icon(
+                          key: const ValueKey('customer-batch-import'),
+                          onPressed: busy ? null : _batchImport,
+                          icon: const Icon(
+                            Icons.upload_file_outlined,
+                            size: 18,
+                          ),
+                          label: Text(t('批量导入', 'Batch import')),
+                        ),
+                        TextButton.icon(
+                          key: const ValueKey('customer-import-template'),
+                          onPressed: busy ? null : _template,
+                          icon: const Icon(Icons.download_outlined, size: 18),
+                          label: Text(t('Excel模板', 'Excel template')),
+                        ),
+                      ],
+                    ),
+                  ],
                   if (busy) const LinearProgressIndicator(),
                   if (error != null)
                     Padding(

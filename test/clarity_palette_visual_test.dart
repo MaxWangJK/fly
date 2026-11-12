@@ -87,10 +87,15 @@ void main() {
     );
     await _pumpUi(tester);
     final avatar = find.byKey(const ValueKey('primary-profile-avatar'));
-    final search = find.byKey(const ValueKey('primary-global-search'));
+    expect(find.byKey(const ValueKey('primary-global-search')), findsNothing);
+    final firstModule = find.byKey(const ValueKey('primary-dashboard'));
     expect(
-      tester.getTopLeft(search).dy - tester.getBottomLeft(avatar).dy,
+      tester.getTopLeft(firstModule).dy - tester.getBottomLeft(avatar).dy,
       greaterThanOrEqualTo(FlySpacing.sm),
+    );
+    expect(
+      tester.getTopLeft(firstModule).dy - tester.getBottomLeft(avatar).dy,
+      lessThanOrEqualTo(FlySpacing.lg + FlySpacing.sm * 2),
     );
 
     await tester.tap(find.byKey(const ValueKey('primary-dashboard')));

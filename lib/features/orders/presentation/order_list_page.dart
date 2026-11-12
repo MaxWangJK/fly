@@ -206,21 +206,25 @@ class _OrderListPageState extends ConsumerState<OrderListPage> {
                             ?.copyWith(fontWeight: FontWeight.w700),
                       ),
                     ),
-                    IconButton(
-                      key: const ValueKey('export-orders'),
-                      tooltip: context.crmCopy('导出 Excel'),
-                      onPressed: () => showFlyExcelExport(
-                        context,
-                        ref,
-                        origin: FlyExportOrigin.orders,
-                        currentIds:
-                            orders.valueOrNull
-                                ?.map((item) => item.id)
-                                .toSet() ??
-                            <String>{},
+                    if (!isMobilePlatform)
+                      IconButton(
+                        key: const ValueKey('export-orders'),
+                        tooltip: context.crmCopy('导出 Excel'),
+                        onPressed: () => showFlyExcelExport(
+                          context,
+                          ref,
+                          origin: FlyExportOrigin.orders,
+                          currentIds:
+                              orders.valueOrNull
+                                  ?.map((item) => item.id)
+                                  .toSet() ??
+                              <String>{},
+                        ),
+                        icon: const Icon(
+                          Icons.file_download_outlined,
+                          size: 18,
+                        ),
                       ),
-                      icon: const Icon(Icons.file_download_outlined, size: 18),
-                    ),
                     _OrderSortButton(
                       value: ref.watch(orderSortProvider),
                       onChanged: (value) =>

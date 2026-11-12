@@ -292,7 +292,13 @@ void main() {
             lessThanOrEqualTo(dark ? 114 : 100),
           );
           expect(tester.getSize(folderTile).width, lessThanOrEqualTo(112));
-          expect(find.byType(FileFolderVisual), findsNWidgets(3));
+          expect(
+            find.descendant(
+              of: find.byKey(const ValueKey('desktop-files-blank')),
+              matching: find.byType(FileFolderVisual),
+            ),
+            findsNWidgets(3),
+          );
           final photoArea = find.byKey(const ValueKey('file-grid-visual-door'));
           expect(tester.getSize(photoArea).width, greaterThan(85));
           expect(tester.getSize(photoArea).height, greaterThan(85));

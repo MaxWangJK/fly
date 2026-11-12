@@ -1,5 +1,5 @@
 {
-  "capturedAtUtc": "2026-11-09T02:55:35.708504+00:00",
+  "capturedAtUtc": "2026-11-12T00:40:18.532841+00:00",
   "documentationOnly": false,
   "branch": "codex/fly-2-sync",
   "releaseCommitSource": "Windows build57 and backend0005 2cb533947d9318065c7a79fb897e229177c32586; Android remains build50",
@@ -22,29 +22,29 @@
     "devToolsVersion": "2.60.0",
     "flutterVersion": "3.47.7"
   },
-  "buildStatus": "Windows installer and portable ZIP verified; Android not rebuilt per prior request",
+  "buildStatus": "Source navigation/import update after build57; not repackaged. Windows build57 and Android build50 do not include this update.",
   "releaseReport": "../release/anonymous_import_updates_20261109.md",
-  "currentFeaturesIncludeUncommittedFiles": false,
+  "currentFeaturesIncludeUncommittedFiles": true,
   "latestPublishedTestBundle": "Windows2.0.21+57; Android2.0.14+50 unchanged",
   "verifiedClientTests": 539,
-  "clientTestsEvidence": "Full client suite: 539 passed, 3 skipped; new feature cases28",
+  "clientTestsEvidence": "Historical full build57 suite: 539 passed / 3 skipped. Latest navigation/import source: 48 distinct scoped cases passed; no new full-suite/backend rerun.",
   "verifiedServerTests": 86,
   "websiteCoreAndHttpTests": "Not rerun this release; original website work excluded",
-  "analyze": "No issues found; standalone book excluded from Fly analysis context",
+  "analyze": "No issues found; 2026-11-12 full Flutter analyze and final modified test-file check passed",
   "appleBuildAndDeviceAcceptance": "not performed",
-  "latestSourceNotRepackaged": false,
+  "latestSourceNotRepackaged": true,
   "noDeploymentPerformed": true,
   "remotePushPerformed": true,
-  "historicalUserMessagesArchived": 169,
+  "historicalUserMessagesArchived": 171,
   "textAttachmentsCopied": 20,
   "inlinePromptCopies": 2,
   "historicalTextNormalization": "Brand-neutral portable copies; SHA-256 entries refer to current bytes, with original digest retained separately.",
   "brandNeutralDocumentsAndWebsite": true,
-  "screenshotsCopied": 88,
+  "screenshotsCopied": 92,
   "developmentSkillsCopied": 4,
-  "workingTreeStatusSource": "git status --short",
+  "workingTreeStatusSource": "git status --short; current source/doc update remains uncommitted, unrelated original website/book changes retained",
   "localReleaseCommitCompleted": true,
-  "expectedWorkingTreeAfterReleaseCommit": "Only pre-existing unrelated web/src/site.php and fly-foreign-trade-book/ changes remain",
+  "expectedWorkingTreeAfterReleaseCommit": "Historical build57 release already committed; current navigation/import source update is not committed or repackaged",
   "artifacts": [
     {
       "name": "Fly-Setup-2.0.21-build57-testing.exe",
@@ -149,7 +149,7 @@
     "filingPublicKeyAndSHA1Available": false,
     "appleBuildAndDeviceAcceptance": "not performed"
   },
-  "latestSourceNotRepackagedExplanation": "Windows current source packaged; Android intentionally retained at build50",
+  "latestSourceNotRepackagedExplanation": "Navigation/import source update after build57 is not packaged; Windows remains build57, Android remains build50",
   "localReleaseCommitHash": "2cb533947d9318065c7a79fb897e229177c32586",
   "workingTreeStatusAtCapture": "This feature and delivery docs committed; pre-existing web/book changes excluded",
   "portableInternalIssuer": {
@@ -308,7 +308,7 @@
   "githubDevelopmentBranch": "codex/fly-2-sync",
   "githubMasterBaseline": "94efdc2d9ac34feb2f3d1b635302278b4671a414",
   "githubLatestDocumentationRef": "main / codex/fly-2-sync HEAD; verify git ls-remote",
-  "latestPackagedReleaseReport": "../release/fly_2_0_7_build43.md",
+  "latestPackagedReleaseReport": "../release/anonymous_import_updates_20261109.md",
   "serverTestsEvidence": "61 passed in build44; backend unchanged and not rerun for build46",
   "latestSyncChangesPushed": false,
   "currentSourceRequiresWorkingTree": false,
@@ -473,7 +473,7 @@
     "/api/activate"
   ],
   "unrelatedWorkingTreePathsRetained": [],
-  "websiteHasIndependentUncommittedChanges": false,
+  "websiteHasIndependentUncommittedChanges": true,
   "sourceCommitScope": "Anonymous install/day-open, simple customer XLSX import, official update checks and mobile file-label long press",
   "reviewProgramIncludedInBuild43": true,
   "emailAuthIncludedInBuild43": true,
@@ -744,5 +744,33 @@
   "latestAndroidContainsCurrentClientFeatures": false,
   "dockerBuildVerified": false,
   "productionPostgresqlExecutionVerified": false,
-  "nginxSyntaxCommandExecuted": false
+  "nginxSyntaxCommandExecuted": false,
+  "sourceChangeReport": "../release/navigation_folder_shortcuts_20261109.md",
+  "fullClientSuiteLastRunFor": "Windows build57 source 2cb533947d9318065c7a79fb897e229177c32586; see releaseReport for 539 passed / 3 skipped",
+  "latestSourceChanges": [
+    "Android/iOS data import/export hidden; file/photo/camera/share retained",
+    "Desktop primary search entry removed; Ctrl+K retained",
+    "My Files sidebar follows root folders without a nested tree"
+  ],
+  "lastVerifiedLocalDate": "2026-11-12",
+  "latestScopedClientTests": 48,
+  "navigationUpdateVerification": {
+    "date": "2026-11-12",
+    "distinctPassingCases": 48,
+    "completedBeforeInterruption": 13,
+    "passedOnResume": 33,
+    "passedAfterNarrowingOldGridAssertions": 2,
+    "platformLayouts": [
+      "Windows desktop",
+      "Android phone/tablet",
+      "iOS phone/tablet"
+    ],
+    "nativeDeviceVerification": false,
+    "fullClientSuiteRerun": false,
+    "backendChanged": false,
+    "committed": false,
+    "pushed": false,
+    "repackaged": false,
+    "report": "../release/navigation_folder_shortcuts_20261109.md"
+  }
 }

@@ -1,12 +1,18 @@
 # Fly：新电脑 / 新对话接续入口
 
-## 当前版本：Windows build57 / 后台0005 / Android仍build50
+## 最新源码续补：手机导入导出与根目录快捷入口
+
+2026-11-09，build57之后：Android/iOS隐藏客户批量导入、模板、客户/订单导出和设置中的导入导出，保留单个客户创建、文件添加/图片/拍照/分享及正常同步。电脑一级导航移除全局搜索图标，模块上移，Ctrl+K保留；“我的文件”侧栏仅列根目录文件夹，不展开子目录，目录变化实时更新。见[本轮说明](docs/release/navigation_folder_shortcuts_20261109.md)。本轮未重新打包，以下build57及build50成品不包含本次源码调整。
+
+2026-11-12验证收尾：48项相关回归通过，静态检查无问题；本轮源码/文档尚未提交、推送或打包，原网站与独立书稿修改保留。
+
+## 最近成品：Windows build57 / 后台0005 / Android仍build50
 
 2026-11-09：源码/Windows **2.0.21+57**，构建源码`2cb533947d9318065c7a79fb897e229177c32586`。新增极简匿名安装1/每日启动2、客户创建框简单Excel导入/模板、官方Windows/Android更新检测。没有其他统计事件，不关联账号或业务资料，局域网/自建同步不接收官方统计。后台沿用现有PostgreSQL，迁移0005；Ubuntu仍推荐Python原生部署，管理页和更新目录配置见[详细命令](server/deploy/analytics-updates.md)。客户端全量539通过、3跳过，后台86通过，应用静态检查、Windows构建和包核验通过。修复文件名提示抢手机长按，未改原网站和书稿。
 
 Android源码包含新功能，现有2.0.14+50 APK不包含本轮改动，本轮未重打。Docker、Nginx、生产PostgreSQL、真实Ubuntu以及Apple平台未验证。原书籍配置、客户端SQLite20、正式签名和1.0基线保留。[本轮交付与包](docs/release/anonymous_import_updates_20261109.md)。
 
-最后整理：2026-11-07。请先阅读本文件，再阅读 [完整产品需求](docs/handoff/FLY_REQUIREMENTS.md)。这是已开发的软件，不是从零创建的项目。
+最后整理：2026-11-12。请先阅读本文件，再阅读 [完整产品需求](docs/handoff/FLY_REQUIREMENTS.md)。这是已开发的软件，不是从零创建的项目。
 
 ## 历史Windows build56 / 当前Android build50
 

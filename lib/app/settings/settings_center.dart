@@ -59,7 +59,7 @@ class _SettingsCenterState extends ConsumerState<SettingsCenter> {
   void initState() {
     super.initState();
     final initial = categories.indexOf(widget.initialCategory ?? '');
-    if (initial >= 0) {
+    if (initial >= 0 && !(isMobilePlatform && categories[initial] == '导入与导出')) {
       selected = initial;
       mobileCategoryOpen = true;
     }
@@ -199,7 +199,8 @@ class _SettingsCenterState extends ConsumerState<SettingsCenter> {
                 padding: const EdgeInsets.all(12),
                 children: [
                   for (var i = 0; i < categories.length; i++)
-                    if (categories[i] != '资料库' || !isPhoneLayout(context))
+                    if ((categories[i] != '资料库' || !isPhoneLayout(context)) &&
+                        (categories[i] != '导入与导出' || !isMobilePlatform))
                       ListTile(
                         key: ValueKey('settings-category-$i'),
                         leading: Icon(_categoryIcon(categories[i])),

@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 
 import 'design_tokens.dart';
 
+bool get isMobilePlatform =>
+    defaultTargetPlatform == TargetPlatform.android ||
+    defaultTargetPlatform == TargetPlatform.iOS;
+
 bool isPhoneLayout(BuildContext context) =>
-    (defaultTargetPlatform == TargetPlatform.android ||
-        defaultTargetPlatform == TargetPlatform.iOS) &&
-    MediaQuery.sizeOf(context).shortestSide < 600;
+    isMobilePlatform && MediaQuery.sizeOf(context).shortestSide < 600;
 
 bool useCompactLayout(BuildContext context) {
   final size = MediaQuery.sizeOf(context);

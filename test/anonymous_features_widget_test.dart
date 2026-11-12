@@ -205,7 +205,7 @@ void main() {
     );
 
     testWidgets(
-      'new-customer footer template and batch import complete without creating draft at $size',
+      'customer creation keeps import on desktop and hides it on mobile at $size',
       (tester) async {
         final phone = size.width < 1000;
         ui.viewport(tester, phone);
@@ -215,6 +215,7 @@ void main() {
           () => Directory.systemTemp.createTemp('fly-import-widget-'),
         ))!;
         final exporter = _Exporter();
+        var filePicks = 0;
         late File workbook;
         await tester.runAsync(() async {
           await db.ensureBuiltInData();
@@ -240,9 +241,10 @@ void main() {
           overrides: [
             databaseProvider.overrideWithValue(db),
             customerTemplateExporterProvider.overrideWithValue(exporter),
-            customerImportFilePickerProvider.overrideWithValue(
-              () async => XFile(workbook.path),
-            ),
+            customerImportFilePickerProvider.overrideWithValue(() async {
+              filePicks++;
+              return XFile(workbook.path);
+            }),
           ],
         );
         final capture = GlobalKey();
@@ -279,6 +281,45 @@ void main() {
             'Unsaved draft',
           );
           await ui.settle(tester);
+          if (phone) {
+            expect(
+              find.byKey(const ValueKey('customer-batch-import')),
+              findsNothing,
+            );
+            expect(
+              find.byKey(const ValueKey('customer-import-template')),
+              findsNothing,
+            );
+            final country = find.byKey(
+              const ValueKey('customer-create-country'),
+            );
+            await ui.reveal(tester, country);
+            await tester.enterText(country, 'Australia');
+            for (final key in [
+              'customer-create-category-category-a',
+              'customer-create-status-customer-new',
+            ]) {
+              final choice = find.byKey(ValueKey(key));
+              await ui.reveal(tester, choice);
+              await tester.tap(choice);
+            }
+            await ui.settle(tester);
+            await ui.capture(
+              tester,
+              capture,
+              'mobile-create-no-import-${size.width.toInt()}',
+            );
+            await tester.tap(
+              find.byKey(const ValueKey('phone-create-customer')),
+            );
+            await ui.settle(tester);
+            expect(find.byType(CustomerCreateDialog), findsNothing);
+            expect(selected?.name, 'Unsaved draft');
+            expect(exporter.saved, isEmpty);
+            expect(filePicks, 0);
+            expect(tester.takeException(), isNull);
+            return;
+          }
           final template = find.byKey(
             const ValueKey('customer-import-template'),
           );

@@ -334,30 +334,35 @@ class _CustomerListPageState extends ConsumerState<CustomerListPage> {
                             ?.copyWith(fontWeight: FontWeight.w700),
                       ),
                     ),
-                    IconButton(
-                      key: const ValueKey('import-customers'),
-                      tooltip: context.crmCopy('导入 Excel'),
-                      onPressed: () => showDialog<Object?>(
-                        context: context,
-                        builder: (context) => const CustomerImportDialog(),
+                    if (!isMobilePlatform) ...[
+                      IconButton(
+                        key: const ValueKey('import-customers'),
+                        tooltip: context.crmCopy('导入 Excel'),
+                        onPressed: () => showDialog<Object?>(
+                          context: context,
+                          builder: (context) => const CustomerImportDialog(),
+                        ),
+                        icon: const Icon(Icons.table_view_outlined, size: 18),
                       ),
-                      icon: const Icon(Icons.table_view_outlined, size: 18),
-                    ),
-                    IconButton(
-                      key: const ValueKey('export-customers'),
-                      tooltip: context.crmCopy('导出 Excel'),
-                      onPressed: () => showFlyExcelExport(
-                        context,
-                        ref,
-                        origin: FlyExportOrigin.customers,
-                        currentIds:
-                            customers.valueOrNull
-                                ?.map((item) => item.id)
-                                .toSet() ??
-                            <String>{},
+                      IconButton(
+                        key: const ValueKey('export-customers'),
+                        tooltip: context.crmCopy('导出 Excel'),
+                        onPressed: () => showFlyExcelExport(
+                          context,
+                          ref,
+                          origin: FlyExportOrigin.customers,
+                          currentIds:
+                              customers.valueOrNull
+                                  ?.map((item) => item.id)
+                                  .toSet() ??
+                              <String>{},
+                        ),
+                        icon: const Icon(
+                          Icons.file_download_outlined,
+                          size: 18,
+                        ),
                       ),
-                      icon: const Icon(Icons.file_download_outlined, size: 18),
-                    ),
+                    ],
                     _SortButton(
                       value: ref.watch(customerSortProvider),
                       onChanged: (value) =>

@@ -1290,6 +1290,7 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
     );
     if (phone) return _phoneBrowser(folders, crm);
     final tree = Material(
+      key: const ValueKey('desktop-files-sidebar'),
       color: context.flyColors.secondarySidebar,
       child: ListTileTheme(
         data: ListTileThemeData(
@@ -1328,7 +1329,7 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
                 icon: const Icon(Icons.add),
               ),
             ),
-            const Spacer(),
+            Expanded(child: _desktopFolderShortcuts(folders)),
             ListTile(
               dense: true,
               leading: const Icon(Icons.delete_outline),
@@ -2187,6 +2188,70 @@ class _FilesWorkspaceState extends ConsumerState<FilesWorkspace> {
       context,
     ).showSnackBar(SnackBar(content: Text(context.l10n.t('filesFolderMoved'))));
   }
+
+  Widget _desktopFolderShortcuts(AsyncValue<List<WorkspaceFolder>> folders) =>
+      folders.when(
+        data: (items) {
+          final roots = items
+              .where(
+                (folder) =>
+                    folder.parentId == null &&
+                    folder.id != WorkspaceFolderRepository.customerFilesRootId,
+              )
+              .toList();
+          return ListView.builder(
+            key: const ValueKey('file-folder-shortcuts'),
+            padding: EdgeInsets.zero,
+            itemCount: roots.length,
+            itemBuilder: (context, index) {
+              final folder = roots[index];
+              return GestureDetector(
+                onSecondaryTapUp: (details) =>
+                    _desktopFolderMenu(folder, details.globalPosition),
+                child: ListTile(
+                  key: ValueKey('file-folder-shortcut-${folder.id}'),
+                  dense: true,
+                  contentPadding: const EdgeInsets.only(left: 24, right: 12),
+                  minLeadingWidth: 20,
+                  horizontalTitleGap: 10,
+                  leading: SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: FileFolderVisual(seed: folder.id, compact: true),
+                  ),
+                  title: Tooltip(
+                    message: folder.name,
+                    triggerMode: TooltipTriggerMode.manual,
+                    child: Text(
+                      folder.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  selected:
+                      collection == FileCollection.folder &&
+                      folderId == folder.id,
+                  onTap: () => select(FileCollection.folder, folder.id),
+                ),
+              );
+            },
+          );
+        },
+        loading: () => const Center(
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+        error: (_, _) => Center(
+          child: IconButton(
+            tooltip: context.l10n.t('licenseRetryShort'),
+            onPressed: () => ref.invalidate(fileFoldersProvider),
+            icon: const Icon(Icons.refresh),
+          ),
+        ),
+      );
 
   List<WorkspaceFolder> _desktopDirectories(List<WorkspaceFolder> items) =>
       collection != FileCollection.folder || locateId != null
