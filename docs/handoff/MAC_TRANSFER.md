@@ -1,3 +1,5 @@
+> 2026-11-12最新：源码与Windows/Android均为2.0.22+58，原签名、书籍配置、SQLite20及后台0005保持；原网站/书稿改动继续保留。完整复制工作区与.git，并单独备份私有配置、密钥、安装包和真实资料。[最新交付](../release/fly_2_0_22_build58.md)。
+
 > 2026-11-09最新：源码/Windows2.0.21+57，后台0005。新增仅1/2匿名统计、客户Excel导入和更新检测；Android仍build50且不含本轮新客户端功能。迁移带走原私有配置与密钥，生产服务未部署。[交付](../release/anonymous_import_updates_20261109.md) / [Ubuntu步骤](../../server/deploy/analytics-updates.md)。
 
 > 2026-11-07最新：源码/Windows2.0.20+56，修复文件单击误触拖放、自身回落导入及扁平文件夹内部拖入。60项相关回归、静态检查和Windows构建/包核验通过；实际OLE接收应用仍待验收。Android仍2.0.14+50，iOS转换仍待Mac/Xcode编译及iPhone实测。[本轮交付](../release/file_click_drag_20261107.md)。
