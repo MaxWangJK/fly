@@ -1,5 +1,6 @@
 import 'package:drift/native.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,29 +9,59 @@ import 'package:fly/features/customers/data/drift_customer_repository.dart';
 import 'package:fly/features/customers/domain/customer.dart';
 import 'package:fly/features/customers/presentation/customer_create_dialog.dart';
 import 'package:fly/features/customers/presentation/customer_detail_panel.dart';
+import 'package:fly/features/customers/presentation/customer_providers.dart';
 import 'package:fly/features/tasks/presentation/task_providers.dart';
 
 import 'input_continuity_widget_test.dart' as ui;
 
 void main() {
   for (final scenario in [
-    (const Size(1264, 681), false),
-    (const Size(390, 844), true),
-    (const Size(844, 390), true),
+    (const Size(1264, 681), false, false, TargetPlatform.windows),
+    (const Size(900, 700), false, true, TargetPlatform.windows),
+    (const Size(390, 844), true, true, TargetPlatform.android),
+    (const Size(844, 390), true, true, TargetPlatform.android),
+    (const Size(430, 932), true, false, TargetPlatform.iOS),
   ]) {
     testWidgets(
-      'customer status add edit delete retains draft and history at $scenario',
+      'customer status platform actions retain selection draft and history at $scenario',
       (tester) async {
-        final (size, phone) = scenario;
+        final (size, phone, dark, platform) = scenario;
         ui.viewport(tester, phone);
         tester.view.physicalSize = size;
+        debugDefaultTargetPlatformOverride = platform;
+        if (!phone && dark) {
+          tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+        }
         final db = AppDatabase(NativeDatabase.memory());
         final container = ProviderContainer(
-          overrides: [databaseProvider.overrideWithValue(db)],
+          overrides: [
+            databaseProvider.overrideWithValue(db),
+            // Keep exported UI evidence on neutral synthetic source labels.
+            customerSourcesProvider.overrideWith(
+              (ref) => Stream.value([
+                for (final (index, label) in [
+                  'Website',
+                  'Exhibition',
+                  'Referral',
+                  'Trade directory',
+                  'Newsletter',
+                  'Other',
+                ].indexed)
+                  CustomerSource(
+                    id: 'source-$index',
+                    name: label,
+                    colorValue: 0xff7e9f64,
+                    isActive: true,
+                    sortOrder: index,
+                  ),
+              ]),
+            ),
+          ],
         );
         final repo = DriftCustomerRepository(db);
         final capture = GlobalKey();
         Customer? created;
+        String? mobileStatus;
         Finder key(String value) => find.byKey(ValueKey(value));
         Future<void> tap(String value) async {
           await ui.reveal(tester, key(value));
@@ -57,6 +88,9 @@ void main() {
           final historical = (await tester.runAsync(() async {
             await db.ensureBuiltInData();
             await ui.fonts();
+            if (phone) {
+              mobileStatus = (await repo.createStatus('Partner review')).id;
+            }
             return repo.createCustomer(
               name: 'Historical buyer',
               statusId: 'customer-repeat',
@@ -79,7 +113,7 @@ void main() {
                       },
                     ),
                   ),
-                  phone: phone,
+                  phone: dark,
                 ),
               ),
             ),
@@ -93,7 +127,98 @@ void main() {
           await tester.enterText(key('customer-create-country'), 'Canada');
           await tap('customer-create-category-category-a');
           await tap('customer-create-status-customer-repeat');
+          if (phone) {
+            expect(key('customer-create-status-add'), findsNothing);
+            for (final item in (await tester.runAsync(
+              () => repo.watchStatuses().first,
+            ))!) {
+              expect(key('customer-status-delete-${item.id}'), findsNothing);
+            }
+            final repeat = key('customer-create-status-customer-repeat');
+            await tester.longPress(repeat);
+            await ui.settle(tester);
+            await tester.tap(repeat);
+            await tester.pump(const Duration(milliseconds: 70));
+            await tester.tap(repeat);
+            await ui.settle(tester);
+            expect(key('customer-status-name'), findsNothing);
+            expect(key('customer-status-confirm-delete'), findsNothing);
+            await tap('customer-create-status-$mobileStatus');
+            expect(
+              tester
+                  .widget<ChoiceChip>(
+                    key('customer-create-status-$mobileStatus'),
+                  )
+                  .selected,
+              isTrue,
+            );
+            if (const bool.fromEnvironment('FLY_STATUS_CAPTURE')) {
+              await ui.capture(
+                tester,
+                capture,
+                'customer-status-refined-${size.width.toInt()}',
+              );
+            }
+            // A desktop/sync update remains visible without exposing management.
+            await tester.runAsync(
+              () => repo.renameStatus(mobileStatus!, 'Partner approved'),
+            );
+            await ui.settle(tester);
+            expect(find.text('Partner approved'), findsOneWidget);
+            expect(
+              tester
+                  .widget<ChoiceChip>(
+                    key('customer-create-status-$mobileStatus'),
+                  )
+                  .selected,
+              isTrue,
+            );
+            expect(
+              tester
+                  .widget<TextFormField>(key('customer-quick-add-input'))
+                  .controller!
+                  .text,
+              'New partner',
+            );
+            await tap('phone-create-customer');
+            expect(created?.name, 'New partner');
+            expect(created?.statusId, mobileStatus);
+            expect(created?.country, 'Canada');
+            expect(tester.takeException(), isNull);
+            return;
+          }
           final repeat = key('customer-create-status-customer-repeat');
+          final badge = key('customer-status-delete-customer-repeat');
+          final badgeRect = tester.getRect(badge);
+          final chipRect = tester.getRect(repeat);
+          expect(badgeRect.size, const Size.square(20));
+          expect(badgeRect.center.dx, closeTo(chipRect.right - 2, .1));
+          expect(badgeRect.center.dy, closeTo(chipRect.top + 2, .1));
+          final labelRect = tester.getRect(
+            find.descendant(of: repeat, matching: find.text('复购客户')),
+          );
+          expect(badgeRect.overlaps(labelRect), isFalse);
+          final mouse = await tester.createGesture(
+            kind: PointerDeviceKind.mouse,
+          );
+          await mouse.addPointer(location: labelRect.center);
+          await tester.pump(const Duration(milliseconds: 120));
+          expect(key('customer-status-confirm-delete'), findsNothing);
+          if (const bool.fromEnvironment('FLY_STATUS_CAPTURE')) {
+            await ui.capture(
+              tester,
+              capture,
+              'customer-status-refined-${size.width.toInt()}',
+            );
+            await mouse.moveTo(badgeRect.center);
+            await tester.pump(const Duration(milliseconds: 120));
+            await ui.capture(
+              tester,
+              capture,
+              'customer-status-refined-hover-${size.width.toInt()}',
+            );
+          }
+          await mouse.removePointer();
           await tester.tap(repeat);
           await tester.pump(const Duration(milliseconds: 70));
           await tester.tap(repeat);
@@ -127,7 +252,7 @@ void main() {
             await ui.capture(
               tester,
               capture,
-              'customer-status-${size.width.toInt()}',
+              'customer-status-refined-custom-${size.width.toInt()}',
             );
           }
           await tap('customer-create-status-add');

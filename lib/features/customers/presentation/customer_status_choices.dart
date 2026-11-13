@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../l10n/fly_localizations.dart';
 import '../../../l10n/service_error_copy.dart';
+import '../../../shared/design_system/responsive_layout.dart';
 import '../data/drift_customer_repository.dart';
 import '../domain/customer.dart';
 import '../domain/customer_lifecycle.dart';
@@ -29,7 +30,7 @@ class _CustomerStatusChoicesState extends ConsumerState<CustomerStatusChoices> {
   String t(String zh, String en) => context.l10n.isZh ? zh : en;
 
   Future<void> edit([CustomerStatus? item]) async {
-    if (working || !widget.enabled) return;
+    if (isMobilePlatform || working || !widget.enabled) return;
     FocusScope.of(context).unfocus();
     setState(() {
       working = true;
@@ -47,7 +48,7 @@ class _CustomerStatusChoicesState extends ConsumerState<CustomerStatusChoices> {
   }
 
   Future<void> remove(CustomerStatus item) async {
-    if (working || !widget.enabled) return;
+    if (isMobilePlatform || working || !widget.enabled) return;
     FocusScope.of(context).unfocus();
     setState(() {
       working = true;
@@ -101,74 +102,31 @@ class _CustomerStatusChoicesState extends ConsumerState<CustomerStatusChoices> {
           loading: () => const LinearProgressIndicator(),
           error: (e, _) => Text(context.flyError(e)),
           data: (items) => Wrap(
-            spacing: 6,
-            runSpacing: 4,
+            spacing: isMobilePlatform ? 8 : 0,
+            runSpacing: isMobilePlatform ? 8 : 0,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               for (final item in items)
-                Stack(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8, right: 18),
-                      child: Tooltip(
-                        message: t(
-                          '双击或长按编辑状态',
-                          'Double-click or long-press to edit',
-                        ),
-                        child: GestureDetector(
-                          onDoubleTap: enabled ? () => edit(item) : null,
-                          onLongPress: enabled ? () => edit(item) : null,
-                          child: ChoiceChip(
-                            key: ValueKey('customer-create-status-${item.id}'),
-                            label: Text(
-                              CustomerLifecycle.label(
-                                item.id,
-                                zh: context.l10n.isZh,
-                                customName: item.name,
-                              ),
-                            ),
-                            labelPadding: const EdgeInsets.only(
-                              left: 8,
-                              right: 18,
-                            ),
-                            materialTapTargetSize: MaterialTapTargetSize.padded,
-                            selected: widget.value == item.id,
-                            onSelected: enabled
-                                ? (_) => widget.onChanged(item.id)
-                                : null,
-                          ),
-                        ),
-                      ),
+                if (isMobilePlatform)
+                  choice(item, enabled: enabled)
+                else
+                  desktopChoice(item, enabled: enabled),
+              if (!isMobilePlatform)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8, right: 8),
+                  child: IconButton.outlined(
+                    key: const ValueKey('customer-create-status-add'),
+                    tooltip: t('新增客户状态', 'Add customer status'),
+                    onPressed: enabled ? () => edit() : null,
+                    style: IconButton.styleFrom(
+                      fixedSize: const Size.square(32),
+                      padding: EdgeInsets.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      visualDensity: VisualDensity.standard,
                     ),
-                    Positioned(
-                      top: 0,
-                      right: 0,
-                      child: SizedBox(
-                        width: 44,
-                        height: 48,
-                        child: IconButton(
-                          key: ValueKey('customer-status-delete-${item.id}'),
-                          tooltip: t(
-                            '删除状态：${item.name}',
-                            'Delete status: ${item.name}',
-                          ),
-                          onPressed: enabled ? () => remove(item) : null,
-                          icon: Icon(
-                            Icons.close,
-                            size: 14,
-                            color: Theme.of(context).colorScheme.error,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                    icon: const Icon(Icons.add, size: 18),
+                  ),
                 ),
-              IconButton.outlined(
-                key: const ValueKey('customer-create-status-add'),
-                tooltip: t('新增客户状态', 'Add customer status'),
-                onPressed: enabled ? () => edit() : null,
-                icon: const Icon(Icons.add, size: 20),
-              ),
             ],
           ),
         ),
@@ -177,6 +135,69 @@ class _CustomerStatusChoicesState extends ConsumerState<CustomerStatusChoices> {
             error!,
             style: TextStyle(color: Theme.of(context).colorScheme.error),
           ),
+      ],
+    );
+  }
+
+  Widget choice(CustomerStatus item, {required bool enabled}) => ChoiceChip(
+    key: ValueKey('customer-create-status-${item.id}'),
+    label: Text(
+      CustomerLifecycle.label(
+        item.id,
+        zh: context.l10n.isZh,
+        customName: item.name,
+      ),
+    ),
+    materialTapTargetSize: isMobilePlatform
+        ? MaterialTapTargetSize.padded
+        : MaterialTapTargetSize.shrinkWrap,
+    selected: widget.value == item.id,
+    onSelected: enabled ? (_) => widget.onChanged(item.id) : null,
+  );
+
+  Widget desktopChoice(CustomerStatus item, {required bool enabled}) {
+    final colors = Theme.of(context).colorScheme;
+    // The corner badge uses its own small hit box; chip padding supplies the
+    // original eight-pixel visual gap without widening every status label.
+    return Stack(
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 8, right: 8),
+          child: Tooltip(
+            message: t('双击编辑状态', 'Double-click to edit'),
+            child: GestureDetector(
+              onDoubleTap: enabled ? () => edit(item) : null,
+              child: choice(item, enabled: enabled),
+            ),
+          ),
+        ),
+        Positioned(
+          top: 0,
+          right: 0,
+          child: SizedBox.square(
+            dimension: 20,
+            child: IconButton(
+              key: ValueKey('customer-status-delete-${item.id}'),
+              tooltip: t('删除状态：${item.name}', 'Delete status: ${item.name}'),
+              onPressed: enabled ? () => remove(item) : null,
+              style: IconButton.styleFrom(
+                minimumSize: const Size.square(20),
+                fixedSize: const Size.square(20),
+                maximumSize: const Size.square(20),
+                padding: EdgeInsets.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: VisualDensity.standard,
+                foregroundColor: colors.error,
+                backgroundColor: colors.surface,
+                hoverColor: colors.error.withValues(alpha: .08),
+                highlightColor: colors.error.withValues(alpha: .12),
+                side: BorderSide(color: colors.error.withValues(alpha: .22)),
+                shape: const CircleBorder(),
+              ),
+              icon: const Icon(Icons.close, size: 11),
+            ),
+          ),
+        ),
       ],
     );
   }
