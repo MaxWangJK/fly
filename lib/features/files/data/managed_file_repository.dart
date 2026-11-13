@@ -3,7 +3,6 @@ import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
 import '../../../core/database/app_database.dart';
-import '../../../shared/data/workspace_folder_repository.dart';
 import 'managed_file_storage.dart';
 
 enum DuplicateFileAction { skip, keepCopy, replace }
@@ -14,8 +13,9 @@ class DuplicateManagedFile implements Exception {
 }
 
 class ManagedFileRepository {
-  ManagedFileRepository(this.db);
+  ManagedFileRepository(this.db, {this.storage});
   final AppDatabase db;
+  final ManagedFileStorage? storage;
   Stream<List<AttachmentRecord>> watchAll() => (db.select(
     db.attachments,
   )..orderBy([(r) => OrderingTerm.desc(r.updatedAt)])).watch();
@@ -130,15 +130,46 @@ class ManagedFileRepository {
     _ => 'application/octet-stream',
   };
   Future<void> rename(String id, String name) async {
-    final checked = WorkspaceFolderRepository.checkedName(name);
-    await (db.update(
-      db.attachments,
-    )..where((r) => r.id.equals(id) & r.deletedAt.isNull())).write(
-      AttachmentsCompanion(
-        displayName: Value(checked),
-        updatedAt: Value(DateTime.now()),
-      ),
-    );
+    final files = storage;
+    if (files == null) throw StateError('文件存储尚未初始化');
+    String? oldPath, newPath;
+    var moved = false;
+    try {
+      await db.transaction(() async {
+        final row = await find(id);
+        if (row == null || row.deletedAt != null) throw StateError('文件不存在');
+        var checked = ManagedFileStorage.checkedFileName(name);
+        if (p.extension(checked).isEmpty) {
+          checked = ManagedFileStorage.checkedFileName(
+            '$checked${p.extension(row.fileName)}',
+          );
+        }
+        oldPath = row.relativePath;
+        newPath = p.posix.join(
+          p.posix.dirname(row.relativePath.replaceAll('\\', '/')),
+          checked,
+        );
+        moved = await files.renameOwned(oldPath!, newPath!);
+        await (db.update(db.attachments)..where((r) => r.id.equals(id))).write(
+          AttachmentsCompanion(
+            fileName: Value(checked),
+            originalName: Value(checked),
+            displayName: Value(checked),
+            relativePath: Value(newPath!),
+            mimeType: Value(
+              p.extension(checked).toLowerCase() ==
+                      p.extension(row.fileName).toLowerCase()
+                  ? row.mimeType
+                  : mime(checked),
+            ),
+            updatedAt: Value(DateTime.now()),
+          ),
+        );
+      });
+    } catch (_) {
+      if (moved) await files.renameOwned(newPath!, oldPath!);
+      rethrow;
+    }
   }
 
   Future<void> move(String id, String? folderId) => db.transaction(() async {

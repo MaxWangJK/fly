@@ -183,6 +183,27 @@ void main() {
         ).readAsString(),
         'Desktop synthetic quote',
       );
+      await ManagedFileRepository(
+        a,
+        storage: ManagedFileStorage(rootA.path),
+      ).rename(importedA.id, 'Updated quote.txt');
+      await sync(ea);
+      await sync(eb);
+      final renamed = (await ManagedFileRepository(b).find(importedA.id))!;
+      expect(renamed.fileName, 'Updated quote.txt');
+      expect(p.basename(renamed.relativePath), 'Updated quote.txt');
+      expect(renamed.sha256, copied.sha256);
+      expect(
+        await File(ManagedFileStorage(rootB.path).absolute(copied.relativePath))
+            .exists(),
+        isFalse,
+      );
+      expect(
+        await File(
+          ManagedFileStorage(rootB.path).absolute(renamed.relativePath),
+        ).readAsString(),
+        'Desktop synthetic quote',
+      );
       final cameraBytes = Uint8List(20 * 1024 * 1024);
       for (var i = 0; i < cameraBytes.length; i += 4096) {
         cameraBytes[i] = i ~/ 4096 % 251;

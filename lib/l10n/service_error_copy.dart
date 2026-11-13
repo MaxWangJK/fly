@@ -39,6 +39,12 @@ const _messages = <String, String>{
   "当前平台请使用复制文件路径": "Use Copy file path on this platform.",
   "当前平台暂不支持原生拖出": "Native drag-out is not supported on this platform.",
   "文件路径不在 FlyData 中": "The file path is outside FlyData.",
+  "文件名无效，请勿使用路径、特殊字符或系统保留名称": "Enter a valid file name without path separators, special characters or reserved system names.",
+  "重命名不能改变文件所在目录": "Renaming must keep the file in its current directory.",
+  "拒绝重命名数据目录外的文件": "Cannot rename a file outside the data directory.",
+  "目标位置已有同名文件，请使用其他名称":
+      "A file with this name already exists. Choose another name.",
+  "文件存储尚未初始化": "File storage is not initialized.",
   "无效文件夹 ID": "Invalid folder ID.",
   "仅支持普通文件": "Only regular files are supported.",
   "复制期间源文件大小发生变化，请重试":

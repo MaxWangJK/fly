@@ -71,6 +71,47 @@ class ManagedFileStorage {
     return path;
   }
 
+  static String checkedFileName(String input) {
+    final name = input.trim();
+    if (name.isEmpty ||
+        name.length > 200 ||
+        name.endsWith('.') ||
+        RegExp(r'[\x00-\x1f<>:"/\\|?*]').hasMatch(name) ||
+        RegExp(
+          r'^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(?:\.|$)',
+          caseSensitive: false,
+        ).hasMatch(name)) {
+      throw ArgumentError('文件名无效，请勿使用路径、特殊字符或系统保留名称');
+    }
+    return name;
+  }
+
+  /// Rename only the owned file, in place. Missing content may be downloaded
+  /// later; an existing unrelated destination must never be replaced.
+  Future<bool> renameOwned(String relative, String renamedRelative) async {
+    final source = File(absolute(relative));
+    final target = File(absolute(renamedRelative));
+    if (!p.equals(source.parent.path, target.parent.path)) {
+      throw ArgumentError('重命名不能改变文件所在目录');
+    }
+    final type = await FileSystemEntity.type(source.path, followLinks: false);
+    if (await FileSystemEntity.type(target.path, followLinks: false) !=
+            FileSystemEntityType.notFound &&
+        !p.equals(source.path, target.path)) {
+      throw StateError('目标位置已有同名文件，请使用其他名称');
+    }
+    if (type == FileSystemEntityType.notFound) return false;
+    if (type != FileSystemEntityType.file) throw StateError('仅支持普通文件');
+    final resolvedRoot = await Directory(root).resolveSymbolicLinks();
+    final resolved = await source.resolveSymbolicLinks();
+    if (!p.isWithin(resolvedRoot, resolved)) {
+      throw StateError('拒绝重命名数据目录外的文件');
+    }
+    if (source.path == target.path) return false;
+    await source.rename(target.path);
+    return true;
+  }
+
   Future<void> deleteOwned(String relative) async {
     final file = File(absolute(relative));
     if (await FileSystemEntity.type(file.path, followLinks: false) ==

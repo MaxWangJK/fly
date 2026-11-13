@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:drift/drift.dart';
+import 'package:path/path.dart' as p;
 
 import '../../../core/database/app_database.dart';
 import '../../../core/storage/file_digest_cache.dart';
@@ -43,6 +44,44 @@ class FileSyncService {
   Future<void> _confirmed(String hash) =>
       SyncOutboxRepository(db)
           .saveState(remoteFileStateKey(_scope, hash), 'true');
+
+  Future<AttachmentRecord> _alignLocalName(
+    AttachmentRecord record,
+    ManagedFileStorage storage,
+  ) async {
+    // Device paths are intentionally not synchronized. Apply a peer's explicit
+    // rename to existing local content without downloading its bytes again.
+    final path = record.relativePath.replaceAll('\\', '/');
+    if (p.posix.basename(path) == record.fileName ||
+        record.fileName != record.originalName ||
+        record.fileName != record.displayName) {
+      return record;
+    }
+    final name = ManagedFileStorage.checkedFileName(record.fileName);
+    final renamed = p.posix.join(p.posix.dirname(path), name);
+    var moved = false;
+    try {
+      return await db.transaction(() async {
+        final latest = await (db.select(
+          db.attachments,
+        )..where((r) => r.id.equals(record.id))).getSingleOrNull();
+        if (latest == null ||
+            latest.deletedAt != null ||
+            latest.relativePath != record.relativePath ||
+            latest.fileName != record.fileName) {
+          return latest ?? record;
+        }
+        moved = await storage.renameOwned(record.relativePath, renamed);
+        await (db.update(db.attachments)..where((r) => r.id.equals(record.id)))
+            .write(AttachmentsCompanion(relativePath: Value(renamed)));
+        return latest.copyWith(relativePath: renamed);
+      });
+    } catch (_) {
+      if (moved) await storage.renameOwned(renamed, record.relativePath);
+      rethrow;
+    }
+  }
+
   Future<void> synchronize({
     bool uploadOnly = false,
     bool uploadEnabled = true,
@@ -59,8 +98,10 @@ class FileSyncService {
     waiting = 0;
     final storage = ManagedFileStorage(root);
     final outbox = SyncOutboxRepository(db);
-    for (final record in files) {
+    for (final initial in files) {
       try {
+        final record = await _alignLocalName(initial, storage);
+        if (record.deletedAt != null) continue;
         phase = 'checking';
         currentFile = record.displayName.isEmpty
             ? record.originalName

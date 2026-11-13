@@ -27,7 +27,12 @@ final thumbnailCacheProvider = Provider(
 );
 
 final managedFileRepositoryProvider = Provider(
-  (ref) => ManagedFileRepository(ref.watch(databaseProvider)),
+  (ref) => ManagedFileRepository(
+    ref.watch(databaseProvider),
+    storage: ref.watch(dataRootPathProvider) == null
+        ? null
+        : ref.watch(managedFileStorageProvider),
+  ),
 );
 final managedFileStorageProvider = Provider((ref) {
   final root = ref.watch(dataRootPathProvider);
