@@ -333,32 +333,68 @@ class CustomerImportService {
     if (value(CustomerImportField.name).length > 240) {
       throw const FormatException('客户名称最多240字');
     }
-    if (value(CustomerImportField.status).isNotEmpty) {
-      _statusId(value(CustomerImportField.status));
+    if (value(CustomerImportField.status).length > 120) {
+      throw const FormatException('客户状态名称需要1–120字');
     }
-    if (value(CustomerImportField.category).isNotEmpty) {
-      await _categoryId(value(CustomerImportField.category));
+    if (value(CustomerImportField.category).length > 80) {
+      throw const FormatException('客户级别最多80字');
     }
   }
 
-  String _statusId(String raw) {
-    final key = raw.trim().toLowerCase();
+  Future<String> _statusId(String raw) async {
+    final name = raw.trim();
+    final key = DriftCustomerRepository.statusNameKey(name);
+    final repository = DriftCustomerRepository(_db);
+    final statuses = await repository
+        .watchStatuses(includeInactive: true)
+        .first;
+    var existing = statuses
+        .where(
+          (s) =>
+              !CustomerLifecycle.legacyIds.contains(s.id) &&
+              (s.id.toLowerCase() == key ||
+                  DriftCustomerRepository.statusNameKey(s.name) == key),
+        )
+        .firstOrNull;
     final match = CustomerLifecycle.stages
         .where((s) => [s.$1, s.$2, s.$3.toLowerCase()].contains(key))
         .firstOrNull;
-    if (match == null) {
-      throw const FormatException('客户状态只支持新客户、开发中、意向客户、成交客户、复购客户');
+    if (existing == null && match != null) {
+      existing = statuses
+          .where(
+            (s) =>
+                s.id == match.$1 &&
+                (s.name == match.$2 || s.name == match.$3 || key == s.id),
+          )
+          .firstOrNull;
     }
-    return match.$1;
+    if (existing != null) {
+      if (!existing.isActive) {
+        await repository.setStatusActive(existing.id, active: true);
+      }
+      return existing.id;
+    }
+    return (await repository.createStatus(name)).id;
   }
 
   Future<String?> _categoryId(String raw) async {
     if (raw.trim().isEmpty) return null;
-    String normalize(String value) =>
-        value.toLowerCase().replaceAll(RegExp(r'\s|级|grade|level'), '');
-    final categories = await (_db.select(
-      _db.customerCategories,
-    )..where((r) => r.deletedAt.isNull() & r.isActive.equals(true))).get();
+    String normalize(String value) {
+      final key = value.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
+      final grade = RegExp(
+        r'^(?:(?:grade|level)\s*)?([a-z])(?:\s*级)?(?:\s*客户)?$',
+      ).firstMatch(key);
+      return grade?.group(1) ?? key;
+    }
+
+    final categories =
+        await (_db.select(_db.customerCategories)
+              ..where((r) => r.deletedAt.isNull())
+              ..orderBy([
+                (r) => OrderingTerm.desc(r.isActive),
+                (r) => OrderingTerm.asc(r.sortOrder),
+              ]))
+            .get();
     final category = categories
         .where(
           (r) =>
@@ -366,7 +402,13 @@ class CustomerImportService {
               normalize(r.name) == normalize(raw),
         )
         .firstOrNull;
-    if (category == null) throw const FormatException('客户级别不存在或已停用');
+    final repository = DriftCustomerRepository(_db);
+    if (category == null) {
+      return (await repository.createCategory(raw.trim())).id;
+    }
+    if (!category.isActive) {
+      await repository.setCategoryActive(category.id, active: true);
+    }
     return category.id;
   }
 
@@ -384,12 +426,13 @@ class CustomerImportService {
       optional(CustomerImportField.category) ?? '',
     );
     final status = optional(CustomerImportField.status);
+    final statusId = status == null ? null : await _statusId(status);
     final customer = overwriteId == null
         ? await repository.createCustomer(
             name: values[CustomerImportField.name]!,
             country: optional(CustomerImportField.country) ?? '',
             categoryId: category,
-            statusId: status == null ? null : _statusId(status),
+            statusId: statusId,
           )
         : await repository.watchCustomer(overwriteId).first;
     if (customer == null) throw StateError('需要覆盖的客户不存在');
@@ -399,7 +442,7 @@ class CustomerImportService {
         name: values[CustomerImportField.name]!.trim(),
         country: optional(CustomerImportField.country),
         categoryId: category ?? customer.categoryId,
-        statusId: status == null ? customer.statusId : _statusId(status),
+        statusId: statusId ?? customer.statusId,
         companyName: optional(CustomerImportField.company),
         city: optional(CustomerImportField.city),
         email: optional(CustomerImportField.email),

@@ -28,6 +28,7 @@ import '../domain/customer.dart';
 import '../domain/customer_name.dart';
 import 'customer_duplicate_dialog.dart';
 import 'customer_providers.dart';
+import '../domain/customer_lifecycle.dart';
 import '../../../app/shell/mobile_details.dart';
 import '../../../shared/design_system/responsive_layout.dart';
 
@@ -88,7 +89,15 @@ class _CustomerDetailPanelState extends ConsumerState<CustomerDetailPanel> {
         final categories =
             ref.watch(customerCategoriesProvider).valueOrNull ?? const [];
         final statuses =
-            ref.watch(customerStatusesProvider).valueOrNull ?? const [];
+            (ref.watch(allCustomerStatusesProvider).valueOrNull ??
+                    const <CustomerStatus>[])
+                .where(
+                  (s) =>
+                      s.id == customer.statusId ||
+                      (s.isActive &&
+                          !CustomerLifecycle.legacyIds.contains(s.id)),
+                )
+                .toList();
         final sources =
             ref.watch(allCustomerSourcesProvider).valueOrNull ?? const [];
         final tags =
@@ -178,7 +187,13 @@ class _CustomerDetailPanelState extends ConsumerState<CustomerDetailPanel> {
                             for (final item in statuses)
                               DropdownMenuItem(
                                 value: item.id,
-                                child: Text(item.name),
+                                child: Text(
+                                  CustomerLifecycle.label(
+                                    item.id,
+                                    zh: context.l10n.isZh,
+                                    customName: item.name,
+                                  ),
+                                ),
                               ),
                           ],
                           onChanged: (value) =>

@@ -61,6 +61,11 @@ const _messages = <String, String>{
   "客户不存在": "Customer not found.",
   "工厂和产品不能为空": "Factory and product are required.",
   "客户级别不存在或已停用": "The customer category does not exist or is inactive.",
+  "客户状态名称需要1–120字": "Status names must contain 1–120 characters.",
+  "客户级别最多80字": "Customer levels must contain at most 80 characters.",
+  "客户状态名称已存在": "A customer status with this name already exists.",
+  "客户状态不存在": "Customer status not found.",
+  "请选择有效的客户状态": "Choose an available customer status.",
   "编辑会话已关闭": "The editing session is closed.",
   "表格需要 1–200 行": "Tables must have 1–200 rows.",
   "表格单元格必须是等宽字符串数组":

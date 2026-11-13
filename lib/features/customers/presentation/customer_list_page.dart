@@ -281,7 +281,7 @@ class _CustomerListPageState extends ConsumerState<CustomerListPage> {
     final categories =
         ref.watch(customerCategoriesProvider).valueOrNull ?? const [];
     final statuses =
-        ref.watch(customerStatusesProvider).valueOrNull ?? const [];
+        ref.watch(allCustomerStatusesProvider).valueOrNull ?? const [];
     final allTags = ref.watch(allCrmTagsProvider).valueOrNull ?? const [];
     final categoryTagIds = categories
         .map((item) => item.tagId)
@@ -305,7 +305,7 @@ class _CustomerListPageState extends ConsumerState<CustomerListPage> {
     final canCreate = widget.projection != CustomerProjection.deleted;
 
     if (useCompactLayout(context)) {
-      return _phoneCustomers(customers, categories, allTags);
+      return _phoneCustomers(customers, categories, allTags, statuses);
     }
 
     return MobileWorkspaceActions(
@@ -531,6 +531,7 @@ class _CustomerListPageState extends ConsumerState<CustomerListPage> {
     AsyncValue<List<Customer>> customers,
     List<CustomerCategory> categories,
     List<CrmTag> allTags,
+    List<CustomerStatus> statuses,
   ) {
     final zh = context.l10n.isZh;
     return MobileWorkspaceActions(
@@ -659,6 +660,12 @@ class _CustomerListPageState extends ConsumerState<CustomerListPage> {
                                     CustomerLifecycle.label(
                                       customer.statusId,
                                       zh: zh,
+                                      customName: statuses
+                                          .where(
+                                            (s) => s.id == customer.statusId,
+                                          )
+                                          .firstOrNull
+                                          ?.name,
                                     ),
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
@@ -1059,7 +1066,11 @@ class _CustomerRow extends StatelessWidget {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        status!.name,
+                        CustomerLifecycle.label(
+                          customer.statusId,
+                          zh: context.l10n.isZh,
+                          customName: status!.name,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(fontSize: 11),

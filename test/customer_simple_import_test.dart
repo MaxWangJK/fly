@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fly/core/database/app_database.dart';
 import 'package:fly/features/customers/data/drift_customer_repository.dart';
 import 'package:fly/features/customers/import/customer_import_service.dart';
+import 'package:fly/features/sync/data/sync_outbox_repository.dart';
 
 void main() {
   late AppDatabase db;
@@ -64,46 +65,45 @@ void main() {
     );
   });
 
-  test(
-    'strict template validates four required fields and fixed five statuses',
-    () async {
-      final rows = await prepare([
-        ['Alex', 'Australia', 'A', '新客户', 'Exhibition'],
-        ['Missing country', '', 'A', '新客户'],
-        ['Missing level', 'Australia', '', '新客户'],
-        ['Wrong status', 'Australia', 'B', 'Made-up status'],
-        ['Wrong level', 'Australia', 'Unknown', '新客户'],
-      ]);
-      expect(rows.map((r) => r.status), [
-        CustomerImportRowStatus.ready,
-        CustomerImportRowStatus.invalid,
-        CustomerImportRowStatus.invalid,
-        CustomerImportRowStatus.invalid,
-        CustomerImportRowStatus.invalid,
-      ]);
-      final result = await service.import(rows: rows, requireProfile: true);
-      expect(result.created, 1);
-      expect(result.failedReasons, hasLength(4));
-      final record = await db.select(db.customers).getSingle();
-      expect(record.categoryId, 'category-a');
-      expect(record.statusId, 'customer-new');
-      expect(
-        (await db.select(db.customerStatuses).get()).where(
-          (s) => s.name == 'Made-up status',
-        ),
-        isEmpty,
-      );
-      final category = await (db.select(
-        db.customerCategories,
-      )..where((r) => r.id.equals('category-a'))).getSingle();
-      expect(
-        (await db.select(db.customerTagLinks).get()).any(
-          (l) => l.customerId == record.id && l.tagId == category.tagId,
-        ),
-        isTrue,
-      );
-    },
-  );
+  test('required profile fields remain strict while new levels and statuses are accepted', () async {
+    final rows = await prepare([
+      ['Alex', 'Australia', 'A', '新客户', 'Exhibition'],
+      ['Missing country', '', 'A', '新客户'],
+      ['Missing level', 'Australia', '', '新客户'],
+      ['Wrong status', 'Australia', 'B', 'Made-up status'],
+      ['Wrong level', 'Australia', 'Unknown', '新客户'],
+    ]);
+    expect(rows.map((r) => r.status), [
+      CustomerImportRowStatus.ready,
+      CustomerImportRowStatus.invalid,
+      CustomerImportRowStatus.invalid,
+      CustomerImportRowStatus.ready,
+      CustomerImportRowStatus.ready,
+    ]);
+    final result = await service.import(rows: rows, requireProfile: true);
+    expect(result.created, 3);
+    expect(result.failedReasons, hasLength(2));
+    final record = await (db.select(
+      db.customers,
+    )..where((r) => r.name.equals('Alex'))).getSingle();
+    expect(record.categoryId, 'category-a');
+    expect(record.statusId, 'customer-new');
+    expect(
+      (await db.select(db.customerStatuses).get()).where(
+        (s) => s.name == 'Made-up status',
+      ),
+      hasLength(1),
+    );
+    final category = await (db.select(
+      db.customerCategories,
+    )..where((r) => r.id.equals('category-a'))).getSingle();
+    expect(
+      (await db.select(db.customerTagLinks).get()).any(
+        (l) => l.customerId == record.id && l.tagId == category.tagId,
+      ),
+      isTrue,
+    );
+  });
 
   test(
     'optional contact values persist and imported profiles enter sync outbox',
@@ -197,4 +197,147 @@ void main() {
     expect(after.version, greaterThan(before.version));
     expect(after.categoryId, 'category-b');
   }, timeout: const Timeout(Duration(seconds: 15)));
+
+  test(
+    'preview creates nothing and confirmed rows reuse new definitions',
+    () async {
+      final categories = await db.select(db.customerCategories).get();
+      final statuses = await db.select(db.customerStatuses).get();
+      final pending = await SyncOutboxRepository(db).pendingCount();
+      final rows = await prepare([
+        ['First custom', 'Canada', 'Gold partner', 'Waiting approval'],
+        ['Second custom', 'Canada', ' GOLD PARTNER ', 'waiting approval'],
+      ]);
+      expect(
+        rows.every((r) => r.status == CustomerImportRowStatus.ready),
+        isTrue,
+      );
+      expect(await db.select(db.customerCategories).get(), categories);
+      expect(await db.select(db.customerStatuses).get(), statuses);
+      expect(await SyncOutboxRepository(db).pendingCount(), pending);
+      final result = await service.import(rows: rows, requireProfile: true);
+      expect(result.created, 2);
+      final customers = await db.select(db.customers).get();
+      expect(customers.map((c) => c.categoryId).toSet(), hasLength(1));
+      expect(customers.map((c) => c.statusId).toSet(), hasLength(1));
+      final repo = DriftCustomerRepository(db);
+      final visible = await repo.watchStatuses().first;
+      expect(
+        visible.singleWhere((s) => s.id == customers.first.statusId).name,
+        'Waiting approval',
+      );
+      expect(
+        (await repo.watchCustomer(customers.first.id).first)!.statusId,
+        customers.first.statusId,
+      );
+      final changes = await SyncOutboxRepository(db).prepare();
+      expect(
+        changes.any(
+          (c) =>
+              c['entityType'] == 'customer_statuses' &&
+              c['payload']['name'] == 'Waiting approval',
+        ),
+        isTrue,
+      );
+    },
+  );
+
+  test(
+    'matching inactive definitions are reactivated, grade aliases are reused',
+    () async {
+      final repo = DriftCustomerRepository(db);
+      final level = await repo.createCategory('VIP');
+      final status = await repo.createStatus('Dormant');
+      await repo.setCategoryActive(level.id, active: false);
+      await repo.setStatusActive(status.id, active: false);
+      final rows = await prepare([
+        ['Reactivate', 'Canada', 'vip', 'DORMANT'],
+        ['Alias', 'Canada', 'Grade A', 'Interested'],
+      ]);
+      final result = await service.import(rows: rows, requireProfile: true);
+      expect(result.created, 2);
+      final records = await db.select(db.customers).get();
+      expect(
+        records.singleWhere((c) => c.name == 'Reactivate').categoryId,
+        level.id,
+      );
+      expect(
+        records.singleWhere((c) => c.name == 'Reactivate').statusId,
+        status.id,
+      );
+      expect(
+        records.singleWhere((c) => c.name == 'Alias').categoryId,
+        'category-a',
+      );
+      expect(
+        records.singleWhere((c) => c.name == 'Alias').statusId,
+        'customer-intent',
+      );
+      expect(
+        (await repo.watchStatuses().first).any((s) => s.id == status.id),
+        isTrue,
+      );
+    },
+  );
+
+  test(
+    'skipped duplicates and failed rows leave no extra definitions',
+    () async {
+      final repo = DriftCustomerRepository(db);
+      await repo.createCustomer(name: 'Existing', country: 'Canada');
+      final beforeCategories = await db.select(db.customerCategories).get();
+      final beforeStatuses = await db.select(db.customerStatuses).get();
+      final rows = await prepare([
+        ['Existing', 'Canada', 'Unused level', 'Unused status'],
+      ]);
+      final skipped = await service.import(rows: rows, requireProfile: true);
+      expect(skipped.skipped, 1);
+      expect(await db.select(db.customerCategories).get(), beforeCategories);
+      expect(await db.select(db.customerStatuses).get(), beforeStatuses);
+      final failed = await service.import(
+        rows: rows,
+        requireProfile: true,
+        duplicateAction: DuplicateImportAction.create,
+      );
+      expect(failed.failedReasons, hasLength(1));
+      expect(await db.select(db.customerCategories).get(), beforeCategories);
+      expect(await db.select(db.customerStatuses).get(), beforeStatuses);
+    },
+  );
+
+  test('builtin rename and deletion survive restart without losing customer history', () async {
+    final path = '${directory.path}/status-history.db';
+    var saved = AppDatabase(NativeDatabase(File(path)));
+    String? customerId;
+    try {
+      await saved.ensureBuiltInData();
+      final repo = DriftCustomerRepository(saved);
+      customerId = (await repo.createCustomer(
+        name: 'Historical customer',
+        statusId: 'customer-repeat',
+      )).id;
+      await repo.renameStatus('customer-repeat', 'Returning buyer');
+      await repo.setStatusActive('customer-repeat', active: false);
+      await saved.close();
+      saved = AppDatabase(NativeDatabase(File(path)));
+      await saved.ensureBuiltInData();
+      final reopened = DriftCustomerRepository(saved);
+      expect(
+        (await reopened.watchStatuses().first).any(
+          (s) => s.id == 'customer-repeat',
+        ),
+        isFalse,
+      );
+      final history =
+          (await reopened.watchStatuses(includeInactive: true).first)
+              .singleWhere((s) => s.id == 'customer-repeat');
+      expect(history.name, 'Returning buyer');
+      expect(
+        (await reopened.watchCustomer(customerId).first)!.statusId,
+        history.id,
+      );
+    } finally {
+      await saved.close();
+    }
+  });
 }

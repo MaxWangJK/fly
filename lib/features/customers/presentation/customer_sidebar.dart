@@ -326,6 +326,9 @@ class _CrmConfigDialog extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final statuses =
+        ref.watch(customerStatusesProvider).valueOrNull ??
+        const <CustomerStatus>[];
     final sources =
         ref.watch(allCustomerSourcesProvider).valueOrNull ?? const [];
     return DefaultTabController(
@@ -348,15 +351,19 @@ class _CrmConfigDialog extends ConsumerWidget {
                   children: [
                     ListView(
                       children: [
-                        for (final stage in CustomerLifecycle.stages)
+                        for (final stage in statuses)
                           ListTile(
                             leading: Icon(
                               Icons.circle,
                               size: 12,
-                              color: Color(stage.$4),
+                              color: Color(stage.colorValue),
                             ),
                             title: Text(
-                              context.l10n.isZh ? stage.$2 : stage.$3,
+                              CustomerLifecycle.label(
+                                stage.id,
+                                zh: context.l10n.isZh,
+                                customName: stage.name,
+                              ),
                             ),
                           ),
                       ],

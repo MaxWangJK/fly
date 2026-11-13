@@ -58,7 +58,7 @@ void main() {
     }
   });
 
-  test('only five visible stages while legacy customer status remains recoverable in storage', () async {
+  test('custom statuses remain visible and disabled defaults stay hidden without losing history', () async {
     final db = AppDatabase(NativeDatabase.memory());
     try {
       await db.ensureBuiltInData();
@@ -74,14 +74,13 @@ void main() {
       await db.customStatement(
         "UPDATE customer_statuses SET is_active=0, sort_order=99, deleted_at=1 WHERE id='customer-won'",
       );
-      expect(
-        (await repo.watchStatuses().first).map((s) => s.id).toList(),
-        CustomerLifecycle.stages.map((s) => s.$1).toList(),
-      );
-      expect(
-        (await repo.watchCustomer(customer.id).first)!.statusId,
-        'customer-developing',
-      );
+      expect((await repo.watchStatuses().first).map((s) => s.id).toList(), [
+        ...CustomerLifecycle.stages
+            .where((s) => s.$1 != 'customer-won')
+            .map((s) => s.$1),
+        old.id,
+      ]);
+      expect((await repo.watchCustomer(customer.id).first)!.statusId, old.id);
       final stored = await (db.select(
         db.customers,
       )..where((r) => r.id.equals(customer.id))).getSingle();

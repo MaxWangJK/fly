@@ -369,34 +369,17 @@ class DriftCustomerRepository implements CustomerRepository {
         final active = row.deletedAt.isNull();
         return includeInactive
             ? active
-            : active & row.id.isIn(CustomerLifecycle.stages.map((s) => s.$1));
+            : active &
+                  row.isActive.equals(true) &
+                  row.id.isNotIn(CustomerLifecycle.legacyIds);
       })
       ..orderBy([(row) => OrderingTerm.asc(row.sortOrder)]);
     return query.watch().map((rows) {
-      if (!includeInactive) {
-        final byId = {for (final row in rows) row.id: row};
-        // The simplified lifecycle has a fixed order even when older devices
-        // previously reordered, hid or deleted a status definition.
-        return [
-          for (var i = 0; i < CustomerLifecycle.stages.length; i++)
-            CustomerStatus(
-              id: CustomerLifecycle.stages[i].$1,
-              name: CustomerLifecycle.stages[i].$2,
-              colorValue:
-                  byId[CustomerLifecycle.stages[i].$1]?.colorValue ??
-                  CustomerLifecycle.stages[i].$4,
-              isActive: true,
-              sortOrder: i,
-            ),
-        ];
-      }
       return rows
           .map(
             (row) => CustomerStatus(
               id: row.id,
-              name: CustomerLifecycle.stages.any((s) => s.$1 == row.id)
-                  ? CustomerLifecycle.label(row.id, zh: true)
-                  : row.name,
+              name: row.name,
               colorValue: row.colorValue,
               isActive: row.isActive,
               sortOrder: row.sortOrder,
@@ -603,6 +586,21 @@ class DriftCustomerRepository implements CustomerRepository {
               .getSingleOrNull();
       if (category == null) throw StateError('客户级别不存在或已停用');
     }
+    final availableStatuses =
+        await (_db.select(_db.customerStatuses)
+              ..where(
+                (r) =>
+                    r.deletedAt.isNull() &
+                    r.isActive.equals(true) &
+                    r.id.isNotIn(CustomerLifecycle.legacyIds),
+              )
+              ..orderBy([(r) => OrderingTerm.asc(r.sortOrder)]))
+            .get();
+    final requestedStatus = CustomerLifecycle.normalize(statusId);
+    final selectedStatus =
+        availableStatuses.where((s) => s.id == requestedStatus).firstOrNull ??
+        (statusId == null ? availableStatuses.firstOrNull : null);
+    if (selectedStatus == null) throw StateError('请选择有效的客户状态');
     final now = DateTime.now();
     final customer = Customer(
       id: _uuid.v7(),
@@ -621,7 +619,7 @@ class DriftCustomerRepository implements CustomerRepository {
       instagram: '',
       wechat: '',
       customsInfo: '',
-      statusId: CustomerLifecycle.normalize(statusId),
+      statusId: selectedStatus.id,
       categoryId: categoryId,
       priority: PriorityLevel.low,
       notes: '',
@@ -832,51 +830,113 @@ class DriftCustomerRepository implements CustomerRepository {
       });
 
   @override
-  Future<CustomerStatus> createStatus(String name, {int? colorValue}) async {
-    final now = DateTime.now();
-    final status = CustomerStatus(
-      id: _uuid.v7(),
-      name: name.trim(),
-      colorValue: colorValue ?? 0xFF667085,
-      isActive: true,
-      sortOrder: now.microsecondsSinceEpoch,
-    );
-    await _db
-        .into(_db.customerStatuses)
-        .insert(
-          CustomerStatusesCompanion.insert(
-            id: status.id,
-            name: status.name,
-            colorValue: Value(status.colorValue),
-            sortOrder: status.sortOrder,
-            createdAt: now,
-            updatedAt: now,
-          ),
+  Future<CustomerStatus> createStatus(String name, {int? colorValue}) =>
+      _db.transaction(() async {
+        final checked = checkedStatusName(name);
+        final existing = await _statusWithName(checked);
+        if (existing != null) {
+          if (existing.isActive) throw StateError('客户状态名称已存在');
+          await setStatusActive(existing.id, active: true);
+          return CustomerStatus(
+            id: existing.id,
+            name: existing.name,
+            colorValue: existing.colorValue,
+            isActive: true,
+            sortOrder: existing.sortOrder,
+          );
+        }
+        final now = DateTime.now();
+        final status = CustomerStatus(
+          id: _uuid.v7(),
+          name: checked,
+          colorValue: colorValue ?? 0xFF667085,
+          isActive: true,
+          sortOrder: now.microsecondsSinceEpoch,
         );
-    return status;
+        await _db
+            .into(_db.customerStatuses)
+            .insert(
+              CustomerStatusesCompanion.insert(
+                id: status.id,
+                name: status.name,
+                colorValue: Value(status.colorValue),
+                sortOrder: status.sortOrder,
+                createdAt: now,
+                updatedAt: now,
+              ),
+            );
+        return status;
+      });
+
+  static String statusNameKey(String name) =>
+      name.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
+  static String checkedStatusName(String name) {
+    final checked = name.trim();
+    if (checked.isEmpty || checked.length > 120) {
+      throw ArgumentError('客户状态名称需要1–120字');
+    }
+    return checked;
+  }
+
+  Future<CustomerStatusRecord?> _statusWithName(
+    String name, {
+    String? exceptId,
+  }) async {
+    final rows = await (_db.select(
+      _db.customerStatuses,
+    )..where((r) => r.deletedAt.isNull())).get();
+    return rows
+        .where(
+          (r) =>
+              r.id != exceptId &&
+              !CustomerLifecycle.legacyIds.contains(r.id) &&
+              statusNameKey(r.name) == statusNameKey(name),
+        )
+        .firstOrNull;
   }
 
   @override
   Future<void> renameStatus(String statusId, String name) =>
-      (_db.update(
-        _db.customerStatuses,
-      )..where((row) => row.id.equals(statusId))).write(
-        CustomerStatusesCompanion(
-          name: Value(name.trim()),
-          updatedAt: Value(DateTime.now()),
-        ),
-      );
+      _db.transaction(() async {
+        final checked = checkedStatusName(name);
+        final current =
+            await (_db.select(_db.customerStatuses)
+                  ..where((r) => r.id.equals(statusId) & r.deletedAt.isNull()))
+                .getSingleOrNull();
+        if (current == null) throw StateError('客户状态不存在');
+        if (await _statusWithName(checked, exceptId: statusId) != null) {
+          throw StateError('客户状态名称已存在');
+        }
+        await (_db.update(
+          _db.customerStatuses,
+        )..where((row) => row.id.equals(statusId))).write(
+          CustomerStatusesCompanion(
+            name: Value(checked),
+            updatedAt: Value(DateTime.now()),
+            version: Value(current.version + 1),
+          ),
+        );
+      });
 
   @override
   Future<void> setStatusActive(String statusId, {required bool active}) =>
-      (_db.update(
-        _db.customerStatuses,
-      )..where((row) => row.id.equals(statusId))).write(
-        CustomerStatusesCompanion(
-          isActive: Value(active),
-          updatedAt: Value(DateTime.now()),
-        ),
-      );
+      _db.transaction(() async {
+        final current =
+            await (_db.select(_db.customerStatuses)
+                  ..where((r) => r.id.equals(statusId) & r.deletedAt.isNull()))
+                .getSingleOrNull();
+        if (current == null) throw StateError('客户状态不存在');
+        if (current.isActive == active) return;
+        await (_db.update(
+          _db.customerStatuses,
+        )..where((row) => row.id.equals(statusId))).write(
+          CustomerStatusesCompanion(
+            isActive: Value(active),
+            updatedAt: Value(DateTime.now()),
+            version: Value(current.version + 1),
+          ),
+        );
+      });
 
   @override
   Future<void> setStatusColor(String statusId, int colorValue) =>

@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../l10n/fly_localizations.dart';
 import '../../../l10n/service_error_copy.dart';
 import '../domain/customer.dart';
-import '../domain/customer_lifecycle.dart';
+import 'customer_status_choices.dart';
 import 'customer_providers.dart';
 import '../import/customer_import_dialog.dart';
 import '../import/customer_import_providers.dart';
@@ -49,6 +49,13 @@ class _CustomerCreateDialogState extends ConsumerState<CustomerCreateDialog> {
     setState(() {
       attempted = true;
       error = null;
+      if (!(ref
+              .read(customerStatusesProvider)
+              .valueOrNull
+              ?.any((s) => s.id == status) ??
+          false)) {
+        status = null;
+      }
     });
     if (!form.currentState!.validate() ||
         category == null ||
@@ -225,20 +232,10 @@ class _CustomerCreateDialogState extends ConsumerState<CustomerCreateDialog> {
                         style: TextStyle(color: colors.error),
                       ),
                     heading(t('客户状态', 'Customer status'), required: true),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (final item in CustomerLifecycle.stages)
-                          ChoiceChip(
-                            key: ValueKey('customer-create-status-${item.$1}'),
-                            label: Text(context.l10n.isZh ? item.$2 : item.$3),
-                            selected: status == item.$1,
-                            onSelected: busy
-                                ? null
-                                : (_) => setState(() => status = item.$1),
-                          ),
-                      ],
+                    CustomerStatusChoices(
+                      value: status,
+                      enabled: !busy,
+                      onChanged: (value) => setState(() => status = value),
                     ),
                     if (attempted && status == null)
                       Text(
