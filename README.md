@@ -1,6 +1,8 @@
 # Fly
 
-2026-11-12最新：Windows/Android2.0.24+60已打包，减少视频反复同步校验、播放界面重建和退出/错误时的后台工作。43项相关用例、静态检查、原生Windows与AOT合成验证、两端构建和包核验通过。[修复与边界](docs/release/video_performance_20261112.md) / [交付](docs/release/fly_2_0_24_build60.md) / [接续入口](FLY_PROJECT_HANDOFF.md)。以下保留历史记录。
+2026-11-13最新：Windows/Android2.0.25+61已打包，包含实体文件改名、局域网实体名称更新和客户创建弹框修复；50项相关用例与静态检查、12项提交后复验、两端构建及包核验通过。[交付](docs/release/fly_2_0_25_build61.md) / [接续入口](FLY_PROJECT_HANDOFF.md)。
+
+2026-11-12上一交付：Windows/Android2.0.24+60已打包，减少视频反复同步校验、播放界面重建和退出/错误时的后台工作。43项相关用例、静态检查、原生Windows与AOT合成验证、两端构建和包核验通过。[修复与边界](docs/release/video_performance_20261112.md) / [交付](docs/release/fly_2_0_24_build60.md) / [接续入口](FLY_PROJECT_HANDOFF.md)。以下保留历史记录。
 
 2026-11-09当前：源码/Windows **2.0.21+57**、SQLite20、后台迁移0005。新增[极简匿名安装/日活统计](docs/analytics.md)、[客户创建框Excel导入及模板](docs/customer_import.md)、[Windows/Android更新检测](docs/app_updates.md)，没有其他统计事件或业务关联。客户端全量539通过/3跳过、后台86通过，应用静态检查与Windows构建/包核验通过。[交付与安装包](docs/release/anonymous_import_updates_20261109.md) / [Ubuntu原生升级命令](server/deploy/analytics-updates.md)。Android现有build50不含本轮新增，Apple平台及真实服务器未验证。接续开发以[项目交接](FLY_PROJECT_HANDOFF.md)为准，以下保留历史交付记录。
 

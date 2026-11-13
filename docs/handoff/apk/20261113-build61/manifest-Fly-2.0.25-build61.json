@@ -1,0 +1,69 @@
+{
+  "version": "2.0.25+61",
+  "sourceCommit": "ef10d479a0ab2bfb22d077025fa3cb4d3ff821bf",
+  "sourceIncludesUncommittedChanges": false,
+  "releaseDate": "2026-11-13",
+  "builtAtUtc": "2026-11-13T01:46:41.955664+00:00",
+  "branch": "codex/fly-2-sync",
+  "databaseSchemaVersion": 20,
+  "backendMigration": "0005",
+  "artifacts": [
+    {
+      "name": "Fly-Setup-2.0.25-build61-testing.exe",
+      "bytes": 19117434,
+      "sha256": "22C8DF9AF8CA7DBC047418041B445DE18E4AA01D7084E5520BE80274D41A7433"
+    },
+    {
+      "name": "Fly-2.0.25-build61-windows-test-20261113.zip",
+      "bytes": 24088663,
+      "sha256": "68A8943F5221FC9DF5DCC3336293A3EA29A97719C392F372DABCA4C61F2F493D"
+    },
+    {
+      "name": "Fly-2.0.25-build61-android-release-signed-20261113.apk",
+      "bytes": 134529303,
+      "sha256": "B935921C03F185E8722AD0EF3F37B17F74AE0EBA3F61C482C5F8FA4A8892B9A8"
+    },
+    {
+      "name": "Fly-2.0.25-build61-android-test-20261113.apk",
+      "bytes": 134522159,
+      "sha256": "63FFE9300A483CB05D71810E81A7AD136A9591260C20D99B8110DECCC4C1A6FA"
+    }
+  ],
+  "clientRegression": {
+    "distinctPassingCases": 50,
+    "releaseSmokeCases": 12,
+    "localTwoDevicePhysicalRenameVerified": true,
+    "threeDeviceHttpRerun": false,
+    "fullSuiteRerun": false
+  },
+  "analyze": "No issues found in project; final modified test also checked",
+  "backendChanged": false,
+  "backendTestsRerun": false,
+  "originalBookReaderConfigurationVerified": true,
+  "ENABLE_LOCAL_LICENSE": false,
+  "windowsMinimumVersion": "Windows 10",
+  "windowsArchitecture": "x64",
+  "windowsDistributionCodeSigned": false,
+  "windowsActualExecutableVersion": "2.0.25+61",
+  "androidFormalSigningIdentityUnchanged": true,
+  "androidTestingSigningIdentityUnchanged": true,
+  "androidCertificateSHA256": {
+    "release-signed": "5240E834C4F5800EC22E9B882526A9CCBFE3366E334857CAE0154A0B66079EB2",
+    "test": "DD58AE9BB138DB459387515B5DA0FBAC6A623140DBBCCE5DBA7685268D7A3C7E"
+  },
+  "android16KBZipAligned": true,
+  "androidApplicationContentsMatch": true,
+  "androidMinSdk": 24,
+  "androidTargetSdk": 36,
+  "androidDebuggable": false,
+  "androidAbis": [
+    "arm64-v8a",
+    "armeabi-v7a",
+    "x86_64"
+  ],
+  "androidVideoPluginBundled": true,
+  "privateConfigurationFilesIncluded": false,
+  "physicalDeviceAcceptancePerformed": false,
+  "appleBuildPerformed": false,
+  "productionDeploymentPerformed": false
+}
