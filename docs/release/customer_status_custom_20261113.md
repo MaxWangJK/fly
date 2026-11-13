@@ -25,3 +25,5 @@
 实际渲染检查：[桌面1264×681](../handoff/verification/20261113-customer-status/customer-status-1264.png)、[手机390×844深色](../handoff/verification/20261113-customer-status/customer-status-390.png)、[手机844×390横屏](../handoff/verification/20261113-customer-status/customer-status-844.png)。测试覆盖新增、重复提示、双击改名、删除取消/确认、草稿保留、已删除状态的客户详情，以及手机编辑弹框300像素键盘和删除触控区不覆盖文字。
 
 SQLite20、后台0005、依赖和SDK保持；提交源码后重复复验12项关键用例通过，并完成Windows/Android构建、原签名/版本/包核验。没有后台部署、真机或整套客户端/后台验收。跨端使用前，两端都需要包含本轮实现；旧build61仍按固定五状态处理。原网站、独立书稿、真实业务库和文件未修改。
+
+后续规则（build63）：手机仅保留状态选择，不再允许新增/编辑/删除；桌面继续新增/双击改名/确认停用，角标与间距精简。上述build62历史实现中的手机管理规则已被覆盖。[最新交付](fly_2_0_27_build63.md)。
