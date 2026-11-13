@@ -1,6 +1,8 @@
 # Fly
 
-2026-11-13最新：Windows/Android2.0.25+61已打包，包含实体文件改名、局域网实体名称更新和客户创建弹框修复；50项相关用例与静态检查、12项提交后复验、两端构建及包核验通过。[交付](docs/release/fly_2_0_25_build61.md) / [接续入口](FLY_PROJECT_HANDOFF.md)。
+2026-11-13最新：Windows/Android2.0.26+62已打包，包含导入自动创建级别/状态、新建客户状态新增/改名/停用及历史名称保留；48项相关用例和静态检查、提交后12项重复复验及两端构建/包核验通过。电脑和手机均需更新。[交付](docs/release/fly_2_0_26_build62.md) / [接续入口](FLY_PROJECT_HANDOFF.md)。
+
+2026-11-13上一交付：Windows/Android2.0.25+61已打包，包含实体文件改名、局域网实体名称更新和客户创建弹框修复；50项相关用例与静态检查、12项提交后复验、两端构建及包核验通过。[交付](docs/release/fly_2_0_25_build61.md) / [接续入口](FLY_PROJECT_HANDOFF.md)。
 
 2026-11-12上一交付：Windows/Android2.0.24+60已打包，减少视频反复同步校验、播放界面重建和退出/错误时的后台工作。43项相关用例、静态检查、原生Windows与AOT合成验证、两端构建和包核验通过。[修复与边界](docs/release/video_performance_20261112.md) / [交付](docs/release/fly_2_0_24_build60.md) / [接续入口](FLY_PROJECT_HANDOFF.md)。以下保留历史记录。
 
