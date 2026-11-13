@@ -22,3 +22,5 @@ Windows10/11 x64安装器和完整便携ZIP、Android原正式及原测试签名
 | [Fly-2.0.27-build63-android-test-20261113.apk](../../dist/Fly-2.0.27-build63-android-test-20261113.apk) | 134538543 | `F3C7E6D874349622CFD88E13D00C211E6BAA871A50ECFBB020E8BDFAD9B0A9C8` |
 
 [公开核验与备案](../handoff/apk/20261113-build63/README.md)。私有配置、安装包和真实资料须安全单独迁移。
+
+后续build64修复本版桌面状态单击被双击识别延迟的问题，保留角标/间距和手机仅选择规则。[最新交付](fly_2_0_28_build64.md)。
