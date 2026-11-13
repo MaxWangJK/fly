@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -27,10 +30,91 @@ class CustomerStatusChoices extends ConsumerStatefulWidget {
 class _CustomerStatusChoicesState extends ConsumerState<CustomerStatusChoices> {
   bool working = false;
   String? error;
+  Timer? _doubleClickWindow;
+  ({int pointer, String id, Offset origin, bool doubleClick})? _press;
+  ({String id, Offset position, PointerDeviceKind kind})? _previousClick;
+
+  void _clearClicks() {
+    _doubleClickWindow?.cancel();
+    _doubleClickWindow = null;
+    _press = null;
+    _previousClick = null;
+  }
+
+  @override
+  void dispose() {
+    _clearClicks();
+    super.dispose();
+  }
+
+  void _pointerDown(String id, PointerDownEvent event) {
+    if (!mounted ||
+        !widget.enabled ||
+        working ||
+        event.buttons != kPrimaryButton ||
+        _press != null) {
+      _clearClicks();
+      return;
+    }
+    final previous = _previousClick;
+    final doubleClick =
+        _doubleClickWindow?.isActive == true &&
+        previous?.id == id &&
+        previous?.kind == event.kind &&
+        (event.position - previous!.position).distance <= kDoubleTapSlop;
+    _clearClicks();
+    _press = (
+      pointer: event.pointer,
+      id: id,
+      origin: event.position,
+      doubleClick: doubleClick,
+    );
+  }
+
+  void _pointerMove(PointerMoveEvent event) {
+    final press = _press;
+    if (press != null &&
+        press.pointer == event.pointer &&
+        (event.position - press.origin).distance >
+            computeHitSlop(event.kind, null)) {
+      _clearClicks();
+    }
+  }
+
+  void _pointerUp(CustomerStatus item, PointerUpEvent event) {
+    final press = _press;
+    _clearClicks();
+    if (!mounted ||
+        !widget.enabled ||
+        working ||
+        press == null ||
+        press.pointer != event.pointer ||
+        press.id != item.id) {
+      return;
+    }
+    if (event.buttons != 0 ||
+        (event.position - press.origin).distance >
+            computeHitSlop(event.kind, null)) {
+      return;
+    }
+    if (press.doubleClick) {
+      edit(item);
+    } else {
+      _previousClick = (
+        id: item.id,
+        position: event.position,
+        kind: event.kind,
+      );
+      // Expire click history only; never hold up ChoiceChip's single tap.
+      _doubleClickWindow = Timer(kDoubleTapTimeout, _clearClicks);
+    }
+  }
+
   String t(String zh, String en) => context.l10n.isZh ? zh : en;
 
   Future<void> edit([CustomerStatus? item]) async {
     if (isMobilePlatform || working || !widget.enabled) return;
+    _clearClicks();
     FocusScope.of(context).unfocus();
     setState(() {
       working = true;
@@ -49,6 +133,7 @@ class _CustomerStatusChoicesState extends ConsumerState<CustomerStatusChoices> {
 
   Future<void> remove(CustomerStatus item) async {
     if (isMobilePlatform || working || !widget.enabled) return;
+    _clearClicks();
     FocusScope.of(context).unfocus();
     setState(() {
       working = true;
@@ -165,8 +250,15 @@ class _CustomerStatusChoicesState extends ConsumerState<CustomerStatusChoices> {
           padding: const EdgeInsets.only(top: 8, right: 8),
           child: Tooltip(
             message: t('双击编辑状态', 'Double-click to edit'),
-            child: GestureDetector(
-              onDoubleTap: enabled ? () => edit(item) : null,
+            // Observe double clicks without entering the gesture arena, so
+            // the chip selects immediately just like category/source chips.
+            child: Listener(
+              onPointerDown: enabled
+                  ? (event) => _pointerDown(item.id, event)
+                  : null,
+              onPointerMove: enabled ? _pointerMove : null,
+              onPointerCancel: (_) => _clearClicks(),
+              onPointerUp: enabled ? (event) => _pointerUp(item, event) : null,
               child: choice(item, enabled: enabled),
             ),
           ),

@@ -69,6 +69,21 @@ void main() {
           await ui.settle(tester);
         }
 
+        Future<void> chooseWithoutDelay(Finder chip) async {
+          await ui.reveal(tester, chip);
+          await tester.tap(
+            chip,
+            kind: phone ? PointerDeviceKind.touch : PointerDeviceKind.mouse,
+          );
+          await tester.pump();
+          expect(
+            tester.widget<ChoiceChip>(chip).selected,
+            isTrue,
+            reason: 'Selection must update on the first frame after release, without waiting for a double-click timeout',
+          );
+          await ui.settle(tester);
+        }
+
         Future<String> add(String name) async {
           await tap('customer-create-status-add');
           if (phone && size.height > 600) {
@@ -125,8 +140,11 @@ void main() {
             'New partner',
           );
           await tester.enterText(key('customer-create-country'), 'Canada');
-          await tap('customer-create-category-category-a');
-          await tap('customer-create-status-customer-repeat');
+          await chooseWithoutDelay(key('customer-create-category-category-a'));
+          await chooseWithoutDelay(find.widgetWithText(ChoiceChip, '网站'));
+          await chooseWithoutDelay(
+            key('customer-create-status-customer-repeat'),
+          );
           if (phone) {
             expect(key('customer-create-status-add'), findsNothing);
             for (final item in (await tester.runAsync(
@@ -188,6 +206,37 @@ void main() {
             return;
           }
           final repeat = key('customer-create-status-customer-repeat');
+          Future<void> mouseClick() async {
+            await tester.tap(repeat, kind: PointerDeviceKind.mouse);
+            await tester.pump();
+          }
+
+          await mouseClick();
+          await tester.tap(
+            repeat,
+            buttons: kSecondaryButton,
+            kind: PointerDeviceKind.mouse,
+          );
+          await tester.pump();
+          await mouseClick();
+          expect(key('customer-status-name'), findsNothing);
+          await ui.settle(tester);
+          for (final cancel in [false, true]) {
+            await mouseClick();
+            final gesture = await tester.startGesture(
+              tester.getCenter(repeat),
+              kind: PointerDeviceKind.mouse,
+            );
+            if (cancel) {
+              await gesture.cancel();
+            } else {
+              await gesture.moveBy(const Offset(30, 0));
+              await gesture.up();
+            }
+            await mouseClick();
+            expect(key('customer-status-name'), findsNothing);
+            await ui.settle(tester);
+          }
           final badge = key('customer-status-delete-customer-repeat');
           final badgeRect = tester.getRect(badge);
           final chipRect = tester.getRect(repeat);
@@ -201,7 +250,7 @@ void main() {
           final mouse = await tester.createGesture(
             kind: PointerDeviceKind.mouse,
           );
-          await mouse.addPointer(location: labelRect.center);
+          await mouse.moveTo(labelRect.center);
           await tester.pump(const Duration(milliseconds: 120));
           expect(key('customer-status-confirm-delete'), findsNothing);
           if (const bool.fromEnvironment('FLY_STATUS_CAPTURE')) {
@@ -218,10 +267,9 @@ void main() {
               'customer-status-refined-hover-${size.width.toInt()}',
             );
           }
-          await mouse.removePointer();
-          await tester.tap(repeat);
+          await tester.tap(repeat, kind: PointerDeviceKind.mouse);
           await tester.pump(const Duration(milliseconds: 70));
-          await tester.tap(repeat);
+          await tester.tap(repeat, kind: PointerDeviceKind.mouse);
           await ui.settle(tester);
           expect(key('customer-status-name'), findsOneWidget);
           await tester.enterText(
