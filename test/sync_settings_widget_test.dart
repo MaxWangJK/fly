@@ -14,7 +14,7 @@ import 'package:fly/l10n/fly_localizations.dart';
 void main() {
   for (final width in [1000.0, 390.0]) {
     testWidgets(
-      'Me uses email accounts without device enrollment at width $width',
+      'Me shows local profile and hides cloud accounts at width $width',
       (tester) async {
         tester.view.physicalSize = Size(width, 900);
         tester.view.devicePixelRatio = 1;
@@ -63,7 +63,10 @@ void main() {
             ),
           );
           await settle();
-          expect(find.byKey(const ValueKey('cloud-email')), findsOneWidget);
+          expect(find.byKey(const ValueKey('my-display-name')), findsOneWidget);
+          expect(find.byKey(const ValueKey('cloud-email')), findsNothing);
+          expect(find.byKey(const ValueKey('cloud-login')), findsNothing);
+          expect(find.byKey(const ValueKey('my-sync-server')), findsNothing);
           expect(find.textContaining('world-workshop.cn'), findsNothing);
           expect(
             find.byKey(const ValueKey('cloud-device-code-option')),

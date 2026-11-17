@@ -33,7 +33,67 @@ class _UnusedTransport implements SyncTransport {
   void close() {}
 }
 
+class _ObservedOutbox extends SyncOutboxRepository {
+  _ObservedOutbox(super.db);
+  int reads = 0;
+  @override
+  Future<int> pendingRecordCount() {
+    reads++;
+    return super.pendingRecordCount();
+  }
+}
+
 void main() {
+  testWidgets(
+    'disconnected status page does not keep polling its file inventory',
+    (tester) async {
+      final db = AppDatabase(NativeDatabase.memory());
+      await tester.runAsync(db.ensureBuiltInData);
+      final outbox = _ObservedOutbox(db);
+      final controller = SyncController(outbox, '')..ready = true;
+      try {
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              syncControllerProvider.overrideWith((ref) => controller),
+            ],
+            child: MaterialApp(
+              locale: const Locale('zh'),
+              supportedLocales: FlyLocalizations.supportedLocales,
+              localizationsDelegates: const [
+                FlyLocalizationsDelegate(),
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              home: const Scaffold(
+                body: SingleChildScrollView(child: SyncStatusDetails()),
+              ),
+            ),
+          ),
+        );
+        for (var i = 0; i < 10; i++) {
+          await tester.runAsync(
+            () => Future<void>.delayed(const Duration(milliseconds: 10)),
+          );
+          await tester.pump();
+        }
+        expect(outbox.reads, 1);
+        await tester.pump(const Duration(minutes: 10));
+        expect(
+          outbox.reads,
+          1,
+          reason: 'No automatic disconnected inventory scans',
+        );
+        expect(find.text('未连接'), findsOneWidget);
+        expect(find.text('已同步'), findsNothing);
+        expect(find.text('正在同步'), findsNothing);
+      } finally {
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.runAsync(db.close);
+      }
+    },
+  );
   testWidgets(
     'connected status still reports missing files and displays transfer progress',
     (tester) async {

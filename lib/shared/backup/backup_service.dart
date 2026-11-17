@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:archive/archive_io.dart';
 import 'package:drift/native.dart';
@@ -91,6 +92,23 @@ class FlyBackupService {
   static const _settingRetention = 'backup.retentionDays';
   static const _settingDirectory = 'backup.directory';
   static const _settingLastDate = 'backup.lastDate';
+
+  /// A separate connection keeps VACUUM off the UI connection's request queue;
+  /// file hashing and ZIP compression also remain entirely in this worker.
+  static Future<void> runAutomaticBackupInBackground(String root) =>
+      Isolate.run(() async {
+        final database = AppDatabase(
+          NativeDatabase(File(p.join(root, 'fly.db'))),
+        );
+        try {
+          await FlyBackupService(
+            database: database,
+            dataRootPath: root,
+          ).runDailyBackupIfDue();
+        } finally {
+          await database.close();
+        }
+      });
 
   void _checkBackupDirectory(String directory) {
     final root = p.normalize(p.absolute(dataRootPath));

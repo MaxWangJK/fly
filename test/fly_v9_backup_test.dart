@@ -10,6 +10,51 @@ import 'package:fly/shared/backup/library_backup_store.dart';
 
 void main() {
   test(
+    'automatic backup worker preserves files and daily due marker',
+    () async {
+      final root = await Directory.systemTemp.createTemp('fly-idle-worker-');
+      final db = AppDatabase(NativeDatabase(File(p.join(root.path, 'fly.db'))));
+      try {
+        await db.ensureBuiltInData();
+        final file = File(p.join(root.path, 'files', 'photo.jpg'));
+        await file.parent.create(recursive: true);
+        await file.writeAsBytes(List.generate(1024, (i) => i % 255));
+        await FlyBackupService.runAutomaticBackupInBackground(root.path);
+        final backups = Directory(p.join(root.path, 'backups'));
+        final zips = (await backups.list().toList())
+            .whereType<File>()
+            .where((f) => f.path.endsWith('.zip'))
+            .toList();
+        expect(zips, hasLength(1));
+        final service = FlyBackupService(database: db, dataRootPath: root.path);
+        final prepared = await service.prepareRestore(zips.single.path);
+        try {
+          expect(
+            await File(p.join(prepared.directory.path, 'files', 'photo.jpg'))
+                .readAsBytes(),
+            await file.readAsBytes(),
+          );
+        } finally {
+          await prepared.dispose();
+        }
+        final marker = await (db.select(
+          db.appSettings,
+        )..where((r) => r.key.equals('backup.lastDate'))).getSingleOrNull();
+        expect(marker, isNotNull);
+        await FlyBackupService.runAutomaticBackupInBackground(root.path);
+        expect(
+          (await backups.list().toList()).whereType<File>().where(
+            (f) => f.path.endsWith('.zip'),
+          ),
+          hasLength(1),
+        );
+      } finally {
+        await db.close();
+        await root.delete(recursive: true);
+      }
+    },
+  );
+  test(
     'backup rejects custom directories nested inside business data',
     () async {
       final root = await Directory.systemTemp.createTemp('fly-backup-path-');

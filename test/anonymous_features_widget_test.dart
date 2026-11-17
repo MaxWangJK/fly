@@ -29,8 +29,12 @@ import 'input_continuity_widget_test.dart' as ui;
 class _Source extends UpdateService {
   _Source(this.result);
   final UpdateCheck result;
+  int checks = 0;
   @override
-  Future<UpdateCheck> check() async => result;
+  Future<UpdateCheck> check() async {
+    checks++;
+    return result;
+  }
 }
 
 class _MemoryAnalytics implements AnalyticsStorage {
@@ -85,12 +89,14 @@ void main() {
     (tester) async {
       ui.viewport(tester, false);
       final transport = _HangingTransport();
+      var backups = 0;
       final analytics = AnalyticsService(
         storage: _MemoryAnalytics(),
         transport: transport,
       );
+      final updates = _Source(const UpdateCheck());
       final controller = UpdateController(
-        service: _Source(const UpdateCheck()),
+        service: updates,
         launchDownload: (_) async => true,
       );
       final container = ProviderContainer(
@@ -102,6 +108,9 @@ void main() {
             container: container,
             child: ui.app(
               StartupServicesRuntime(
+                backup: () async {
+                  backups++;
+                },
                 analyticsFactory: () async => analytics,
                 child: const Center(child: Text('Workspace ready')),
               ),
@@ -110,12 +119,18 @@ void main() {
         );
         await tester.pump();
         expect(find.text('Workspace ready'), findsOneWidget);
+        expect(transport.actions, isEmpty);
+        expect(backups, 0);
+        expect(updates.checks, 0);
+        await tester.pump(const Duration(minutes: 5));
+        expect(backups, 1);
         expect(transport.actions, [1]);
         expect(transport.install.isCompleted, isFalse);
         expect(find.byType(AlertDialog), findsNothing);
         transport.install.complete(false);
         await ui.settle(tester);
         expect(transport.actions, [1, 2]);
+        expect(updates.checks, 1);
         expect(find.byType(SnackBar), findsNothing);
         expect(find.byType(MaterialBanner), findsNothing);
         expect(tester.takeException(), isNull);
@@ -127,6 +142,52 @@ void main() {
       }
     },
   );
+
+  for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
+    testWidgets('phone runtime skips backup on $platform', (tester) async {
+      debugDefaultTargetPlatformOverride = platform;
+      final transport = _HangingTransport()..install.complete(false);
+      var backups = 0;
+      final updates = _Source(const UpdateCheck());
+      final container = ProviderContainer(
+        overrides: [
+          updateControllerProvider.overrideWith(
+            (ref) => UpdateController(
+              service: updates,
+              launchDownload: (_) async => true,
+            ),
+          ),
+        ],
+      );
+      try {
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: ui.app(
+              StartupServicesRuntime(
+                backup: () async {
+                  backups++;
+                },
+                analyticsFactory: () async => AnalyticsService(
+                  storage: _MemoryAnalytics(),
+                  transport: transport,
+                ),
+                child: const Text('Ready'),
+              ),
+            ),
+          ),
+        );
+        await tester.pump(const Duration(minutes: 5));
+        expect(backups, 0);
+        expect(updates.checks, 1);
+        expect(find.text('Ready'), findsOneWidget);
+      } finally {
+        await tester.pumpWidget(const SizedBox.shrink());
+        container.dispose();
+        debugDefaultTargetPlatformOverride = null;
+      }
+    });
+  }
 
   for (final size in [
     const Size(1200, 850),

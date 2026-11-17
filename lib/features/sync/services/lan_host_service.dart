@@ -34,6 +34,15 @@ class LanHostService {
   String? workspace;
   bool cloudActive = false, syncFiles = false;
   void Function()? onPairingChanged;
+  void Function()? onPeersChanged;
+  void Function()? onSyncAvailable;
+  final _sessions = <WebSocket, String>{};
+  final _eventDevices = <String>{};
+  final _legacyPeers = <String, DateTime>{};
+  Timer? _presenceExpiry;
+  static const legacyPresenceLifetime = Duration(seconds: 90);
+  int get connectedDevices =>
+      {..._sessions.values, ..._legacyPeers.keys}.length;
   LanSyncMode mode = LanSyncMode.bidirectional;
   final Map<String, List<DateTime>> _attempts = {};
   int get port => _server?.port ?? 8765;
@@ -117,6 +126,15 @@ class LanHostService {
   Future<void> stop() async {
     final server = _server;
     _server = null;
+    _presenceExpiry?.cancel();
+    final sessions = _sessions.keys.toList();
+    _sessions.clear();
+    _eventDevices.clear();
+    _legacyPeers.clear();
+    for (final socket in sessions) {
+      unawaited(socket.close());
+    }
+    onPeersChanged?.call();
     _discovery.close();
     await server?.close(force: true);
     await _queue;
@@ -124,10 +142,77 @@ class LanHostService {
     pairingCode = '';
   }
 
-  Future<void> revoke(String id) => outbox.db.customStatement(
-    'UPDATE lan_devices SET revoked=1 WHERE id=?',
-    [id],
-  );
+  Future<void> revoke(String id) async {
+    await outbox.db.customStatement(
+      'UPDATE lan_devices SET revoked=1 WHERE id=?',
+      [id],
+    );
+    _legacyPeers.remove(id);
+    for (final entry in _sessions.entries.toList()) {
+      if (entry.value == id) {
+        _sessions.remove(entry.key);
+        unawaited(entry.key.close());
+      }
+    }
+    onPeersChanged?.call();
+  }
+
+  void _touchLegacyPeer(String id) {
+    if (_eventDevices.contains(id)) return;
+    final wasConnected = connectedDevices;
+    _legacyPeers[id] = DateTime.now();
+    if (wasConnected != connectedDevices) onPeersChanged?.call();
+    _expireLegacyPeers();
+  }
+
+  void _expireLegacyPeers() {
+    _presenceExpiry?.cancel();
+    final before = connectedDevices;
+    final now = DateTime.now();
+    _legacyPeers.removeWhere(
+      (_, seen) => now.difference(seen) >= legacyPresenceLifetime,
+    );
+    if (before != connectedDevices) onPeersChanged?.call();
+    if (_legacyPeers.isEmpty) return;
+    final first = _legacyPeers.values.reduce((a, b) => a.isBefore(b) ? a : b);
+    _presenceExpiry = Timer(
+      first.add(legacyPresenceLifetime).difference(now),
+      _expireLegacyPeers,
+    );
+  }
+
+  Future<void> _events(HttpRequest request, String device) async {
+    final socket = await WebSocketTransformer.upgrade(request);
+    if (!running) {
+      await socket.close();
+      return;
+    }
+    _legacyPeers.remove(device);
+    _eventDevices.add(device);
+    _sessions[socket] = device;
+    socket.pingInterval = const Duration(seconds: 45);
+    onPeersChanged?.call();
+    void disconnected() {
+      if (_sessions.remove(socket) == null) return;
+      // Do not resurrect a lease left by requests racing with socket closure.
+      _legacyPeers.remove(device);
+      onPeersChanged?.call();
+    }
+
+    socket.listen(
+      (_) {},
+      onDone: disconnected,
+      onError: (Object _) => disconnected(),
+      cancelOnError: true,
+    );
+  }
+
+  void _syncAvailable() {
+    onSyncAvailable?.call();
+    for (final socket in _sessions.keys.toList()) {
+      socket.add('{"type":"sync_available"}');
+    }
+  }
 
   Future<Map<String, dynamic>> _body(HttpRequest request) async {
     final bytes = await _bytes(request, 8 * 1024 * 1024);
@@ -205,6 +290,10 @@ class LanHostService {
                 .getSingleOrNull();
       if (!internal && device == null) throw const _LanError(401, '设备未受信任');
       final deviceId = internal ? 'desktop' : device!.read<String>('id');
+      if (!internal && path == '/api/lan/events' && request.method == 'GET') {
+        return await _events(request, deviceId);
+      }
+      if (!internal) _touchLegacyPeer(deviceId);
       if (path == '/api/lan/info' && request.method == 'GET') {
         return await _respond(request, {
           'mode': mode.name,
@@ -212,6 +301,7 @@ class LanHostService {
           'cloudActive': cloudActive,
           'workspaceId': workspace,
           'deviceId': deviceId,
+          'events': true,
         });
       }
       if (path.startsWith('/api/sync/') && cloudActive) {
@@ -232,6 +322,7 @@ class LanHostService {
               await _accept((raw as Map).cast<String, dynamic>(), deviceId),
           ],
         );
+        _syncAvailable();
         return await _respond(request, {'results': results});
       }
       if ((path == '/api/sync/pull' || path == '/api/sync/bootstrap') &&
@@ -607,6 +698,7 @@ class LanHostService {
           throw const _LanError(422, '文件校验失败');
         }
         await partial.rename(blob.path);
+        _syncAvailable();
         return await _respond(request, {'sha256': hash, 'size': size});
       }
     }

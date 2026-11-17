@@ -287,15 +287,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 });
 
 class FlyApp extends ConsumerWidget {
-  const FlyApp({this.startupBackupFailed = false, super.key});
+  const FlyApp({this.scaffoldMessengerKey, super.key});
 
-  final bool startupBackupFailed;
+  final GlobalKey<ScaffoldMessengerState>? scaffoldMessengerKey;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = ref.watch(flyPaletteProvider);
     return MaterialApp.router(
       title: 'Fly',
+      scaffoldMessengerKey: scaffoldMessengerKey,
       debugShowCheckedModeBanner: false,
       theme: FlyTheme.light(palette),
       darkTheme: FlyTheme.dark(palette),
@@ -328,64 +329,9 @@ class FlyApp extends ConsumerWidget {
                 ? Brightness.light
                 : Brightness.dark,
           ),
-          child: SyncRuntime(
-            child: startupBackupFailed
-                ? _StartupBackupWarning(child: content)
-                : content,
-          ),
+          child: SyncRuntime(child: content),
         );
       },
     );
   }
-}
-
-class _StartupBackupWarning extends StatefulWidget {
-  const _StartupBackupWarning({required this.child});
-
-  final Widget child;
-
-  @override
-  State<_StartupBackupWarning> createState() => _StartupBackupWarningState();
-}
-
-class _StartupBackupWarningState extends State<_StartupBackupWarning> {
-  bool _visible = true;
-
-  @override
-  Widget build(BuildContext context) => Stack(
-    children: [
-      widget.child,
-      if (_visible)
-        Positioned(
-          top: 12,
-          right: 12,
-          child: Material(
-            elevation: 4,
-            borderRadius: BorderRadius.circular(8),
-            color: Theme.of(context).colorScheme.errorContainer,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 440),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.warning_amber_rounded, size: 18),
-                    const SizedBox(width: 8),
-                    const Flexible(
-                      child: Text('今日自动备份失败；数据仍可使用。请到设置检查备份目录并手动备份。'),
-                    ),
-                    IconButton(
-                      tooltip: '关闭提醒',
-                      onPressed: () => setState(() => _visible = false),
-                      icon: const Icon(Icons.close, size: 18),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-    ],
-  );
 }

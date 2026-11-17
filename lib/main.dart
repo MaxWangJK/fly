@@ -52,12 +52,14 @@ class FlyBootstrap extends StatefulWidget {
 }
 
 class _FlyBootstrapState extends State<FlyBootstrap> {
+  final _scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
   AppDatabase? _database;
   Widget? _runtime;
   String? _currentRoot;
   String? _recommendedRoot;
   String? _error;
   bool _loading = true;
+  Future<void>? _backupFlight;
 
   @override
   void initState() {
@@ -128,17 +130,6 @@ class _FlyBootstrapState extends State<FlyBootstrap> {
           orders: orderRepository,
         ).seedIfEligible();
       }
-      var backupFailed = false;
-      try {
-        await FlyBackupService(
-          database: database,
-          dataRootPath: rootPath,
-        ).runDailyBackupIfDue();
-      } on Object catch (error) {
-        // A failed automatic backup must not lock users out of their data.
-        backupFailed = true;
-        debugPrint('Fly automatic backup failed: $error');
-      }
       final captured = await _captureSelection(
         taskRepository,
         customerRepository,
@@ -146,10 +137,10 @@ class _FlyBootstrapState extends State<FlyBootstrap> {
       );
       const capturePath = String.fromEnvironment('FLY_CAPTURE_PATH');
       final app = capturePath.isEmpty
-          ? FlyApp(startupBackupFailed: backupFailed)
+          ? FlyApp(scaffoldMessengerKey: _scaffoldMessengerKey)
           : ReleaseCapture(
               outputPath: capturePath,
-              child: FlyApp(startupBackupFailed: backupFailed),
+              child: FlyApp(scaffoldMessengerKey: _scaffoldMessengerKey),
             );
       final runtime = ProviderScope(
         key: ValueKey(rootPath),
@@ -200,6 +191,11 @@ class _FlyBootstrapState extends State<FlyBootstrap> {
             ),
         ],
         child: StartupServicesRuntime(
+          backup: widget.dataRootService.isMobile
+              ? null
+              : () =>
+                    _backupFlight ??= _runStartupBackup(rootPath)
+                        .whenComplete(() => _backupFlight = null),
           analyticsFactory: () async {
             final directory =
                 await widget.dataRootService.localConfigurationDirectory;
@@ -229,7 +225,20 @@ class _FlyBootstrapState extends State<FlyBootstrap> {
     }
   }
 
+  Future<void> _runStartupBackup(String rootPath) async {
+    try {
+      await FlyBackupService.runAutomaticBackupInBackground(rootPath);
+    } on Object catch (error) {
+      debugPrint('Fly automatic backup failed: $error');
+      if (!mounted) return;
+      _scaffoldMessengerKey.currentState?.showSnackBar(
+        const SnackBar(content: Text('今日自动备份失败；数据仍可使用，请到设置检查备份目录。')),
+      );
+    }
+  }
+
   Future<String?> _changeDataRoot(String targetPath) async {
+    await _backupFlight;
     final oldRoot = _currentRoot;
     final oldDatabase = _database;
     if (oldRoot == null || oldDatabase == null) return '当前数据目录不可用';
@@ -253,6 +262,7 @@ class _FlyBootstrapState extends State<FlyBootstrap> {
   }
 
   Future<String?> _restoreBackup(String packagePath) async {
+    await _backupFlight;
     final root = _currentRoot;
     final currentDatabase = _database;
     if (root == null || currentDatabase == null) return '当前数据目录不可用';
@@ -308,6 +318,7 @@ class _FlyBootstrapState extends State<FlyBootstrap> {
     if (_runtime != null) return _runtime!;
     return MaterialApp(
       title: 'Fly',
+      scaffoldMessengerKey: _scaffoldMessengerKey,
       debugShowCheckedModeBanner: false,
       theme: FlyTheme.light(),
       darkTheme: FlyTheme.dark(),

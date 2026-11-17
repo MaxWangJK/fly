@@ -47,6 +47,8 @@ class SyncEngine extends ChangeNotifier {
   bool _resyncRequested = false;
   void start() {
     enabled = true;
+    files.resume();
+    lanFiles?.resume();
     _timer?.cancel();
     _timer = Timer.periodic(pollInterval, (_) => _schedule());
     _writes ??= outbox.db.tableUpdates().listen((updates) {
@@ -60,10 +62,22 @@ class SyncEngine extends ChangeNotifier {
 
   void stop() {
     enabled = false;
+    files.cancel();
+    lanFiles?.cancel();
     _timer?.cancel();
     _debounce?.cancel();
+    final writes = _writes;
+    _writes = null;
+    unawaited(writes?.cancel());
     status = '未开启同步';
     _notify();
+  }
+
+  void requestSync() {
+    if (!enabled || _disposed) return;
+    if (_inFlight != null) _resyncRequested = true;
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 250), _schedule);
   }
 
   Future<void> synchronize() {
@@ -116,6 +130,7 @@ class SyncEngine extends ChangeNotifier {
       // Publish business changes before slow file I/O. Missing bytes are a
       // durable waiting state; content checks still gate final file availability.
       await _exchange(pushEnabled, pullEnabled);
+      if (!enabled || _disposed) return;
       // Upload bounded blobs first so accepted metadata/conflict copies have content.
       if (syncFiles && pushEnabled) {
         await files.synchronize(uploadOnly: true);
@@ -170,9 +185,11 @@ class SyncEngine extends ChangeNotifier {
           ? '正在同步'
           : '已同步';
     } on SocketException {
+      if (!enabled || _disposed) return;
       status = '离线';
       error = '本地数据已保存，网络恢复后自动重试';
     } on Object catch (e) {
+      if (!enabled || _disposed) return;
       status = '同步失败';
       error = '$e';
     } finally {
@@ -254,12 +271,19 @@ class SyncEngine extends ChangeNotifier {
     transport.close();
     lanFiles?.transport.close();
     await _inFlight;
+    try {
+      await _exchangeFlight;
+    } on Object {
+      // Closing the transport intentionally aborts an overlapping exchange.
+    }
   }
 
   @override
   void dispose() {
     _disposed = true;
     enabled = false;
+    files.cancel();
+    lanFiles?.cancel();
     _timer?.cancel();
     _debounce?.cancel();
     unawaited(_writes?.cancel());

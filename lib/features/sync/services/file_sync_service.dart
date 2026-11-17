@@ -29,6 +29,10 @@ class FileSyncService {
   String phase = 'idle';
   String? currentFile;
   void Function()? onProgress;
+  bool _cancelled = false;
+
+  void cancel() => _cancelled = true;
+  void resume() => _cancelled = false;
   DateTime? _lastProgress;
   String _scope = 'local';
   void _notify({bool force = false}) {
@@ -87,6 +91,7 @@ class FileSyncService {
     bool uploadEnabled = true,
     bool downloadEnabled = true,
   }) async {
+    if (_cancelled) return;
     final files = await (db.select(
       db.attachments,
     )..where((r) => r.deletedAt.isNull())).get();
@@ -99,8 +104,10 @@ class FileSyncService {
     final storage = ManagedFileStorage(root);
     final outbox = SyncOutboxRepository(db);
     for (final initial in files) {
+      if (_cancelled) break;
       try {
         final record = await _alignLocalName(initial, storage);
+        if (_cancelled) break;
         if (record.deletedAt != null) continue;
         phase = 'checking';
         currentFile = record.displayName.isEmpty
@@ -118,6 +125,7 @@ class FileSyncService {
         var size = record.fileSize;
         if (await local.exists()) {
           final actual = await _digests.digest(local);
+          if (_cancelled) break;
           final known = await outbox.state('localBlob:${record.id}');
           if (uploadOnly &&
               uploadEnabled &&
@@ -174,6 +182,7 @@ class FileSyncService {
             await transport.download('/files/$id/download', partial.path);
           }
           final hash = await _digests.digest(partial, refresh: true);
+          if (_cancelled) break;
           if (hash != expected || await partial.length() != size) {
             await partial.delete();
             throw StateError('下载文件校验失败');
@@ -207,6 +216,7 @@ class FileSyncService {
   }
 
   Future<void> _upload(File file, String hash) async {
+    if (_cancelled) return;
     final size = await file.length();
     bytesTotal = size;
     final upload = await transport.request(
@@ -233,6 +243,7 @@ class FileSyncService {
       _notify(force: true);
       await input.setPosition(offset);
       while (offset < size) {
+        if (_cancelled) return;
         final chunk = await input.read(chunkBytes);
         if (chunk.isEmpty) throw StateError('文件读取中断');
         final ack = await transport.uploadChunk(
@@ -247,6 +258,7 @@ class FileSyncService {
     } finally {
       await input.close();
     }
+    if (_cancelled) return;
     await transport.request(
       'POST',
       '/files/upload/${upload['uploadId']}/complete',

@@ -36,6 +36,7 @@ class SyncStatusDetails extends ConsumerStatefulWidget {
 class _SyncStatusDetailsState extends ConsumerState<SyncStatusDetails>
     with WidgetsBindingObserver {
   Timer? _timer;
+  bool _foreground = true;
   bool _refreshing = false, _loaded = false;
   int _pending = 0;
   FileTransferInventory _files = const FileTransferInventory();
@@ -49,27 +50,32 @@ class _SyncStatusDetailsState extends ConsumerState<SyncStatusDetails>
   }
 
   void _start() {
-    unawaited(_refresh());
     _timer?.cancel();
-    _timer = Timer.periodic(
-      const Duration(seconds: 2),
-      (_) => unawaited(_refresh()),
-    );
+    if (!_foreground) return;
+    unawaited(_refresh());
+    if (ref.read(syncControllerProvider).connected) {
+      _timer = Timer.periodic(
+        const Duration(seconds: 30),
+        (_) => unawaited(_refresh()),
+      );
+    }
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      _foreground = true;
       _start();
     } else if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden ||
         state == AppLifecycleState.detached) {
+      _foreground = false;
       _timer?.cancel();
     }
   }
 
   Future<void> _refresh() async {
-    if (_refreshing) return;
+    if (_refreshing || !_foreground) return;
     _refreshing = true;
     final sync = ref.read(syncControllerProvider);
     try {
@@ -111,6 +117,16 @@ class _SyncStatusDetailsState extends ConsumerState<SyncStatusDetails>
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(
+      syncControllerProvider.select(
+        (sync) => (
+          sync.connected,
+          sync.engine?.enabled == true,
+          sync.engine?.lastSuccess,
+        ),
+      ),
+      (_, _) => _start(),
+    );
     final sync = ref.watch(syncControllerProvider), engine = sync.engine;
     final zh = context.l10n.isZh;
     String text(String a, String b) => zh ? a : b;
@@ -138,15 +154,21 @@ class _SyncStatusDetailsState extends ConsumerState<SyncStatusDetails>
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: Text(engine?.status ?? text('未连接', 'Disconnected')),
+              child: Text(
+                sync.status == '等待设备连接'
+                    ? text('等待设备连接', 'Waiting for a device')
+                    : sync.status == '未连接'
+                    ? text('未连接', 'Disconnected')
+                    : sync.status,
+              ),
             ),
           ],
         ),
         const SizedBox(height: 8),
         Text(
           text(
-            '绿色表示连接或同步周期成功；文件是否已到本机，请查看下面的队列。',
-            'Green indicates a connected or successful sync cycle. File availability is shown below.',
+            '绿色表示设备已连接且最近同步成功；文件是否已到本机，请查看下面的队列。',
+            'Green indicates a connected device and a successful sync cycle. File availability is shown below.',
           ),
         ),
         if (!_loaded)

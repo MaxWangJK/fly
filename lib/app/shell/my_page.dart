@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../shared/design_system/responsive_layout.dart';
 import '../../config/feature_flags.dart';
-import '../../features/sync/presentation/sync_controller.dart';
 import '../../l10n/fly_localizations.dart';
 import '../settings/navigation_settings.dart';
 import '../settings/settings_center.dart';
@@ -16,7 +15,6 @@ class MyPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final zh = context.l10n.isZh;
-    final sync = ref.watch(syncControllerProvider);
     final profile = ref.watch(localProfileProvider).valueOrNull;
     final navigation = ref.watch(navigationSettingsProvider).value;
     return ListView(
@@ -41,7 +39,7 @@ class MyPage extends ConsumerWidget {
             title: Text(
               profile?.name.isNotEmpty == true
                   ? profile!.name
-                  : sync.auth.email ?? (zh ? '本地账户' : 'Local account'),
+                  : (zh ? '本地账户' : 'Local account'),
             ),
             onTap: () => showDialog<void>(
               context: context,

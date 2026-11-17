@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/storage/data_root_providers.dart';
 import '../../core/storage/data_root_service.dart';
 import '../design_system/design_tokens.dart';
+import '../design_system/responsive_layout.dart';
 import 'backup_providers.dart';
 import 'backup_service.dart';
 import '../../l10n/fly_localizations.dart';
@@ -140,16 +141,23 @@ class _BackupSettingsDialogState extends ConsumerState<BackupSettingsDialog> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SwitchListTile.adaptive(
-                    key: const ValueKey('automatic-backup-toggle'),
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(tr('每日自动备份')),
-                    subtitle: Text(tr('每天第一次启动 Fly 后执行一次')),
-                    value: settings.enabled,
-                    onChanged: _busy
-                        ? null
-                        : (value) => _save(settings.copyWith(enabled: value)),
-                  ),
+                  if (!isMobilePlatform)
+                    SwitchListTile.adaptive(
+                      key: const ValueKey('automatic-backup-toggle'),
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(tr('每日自动备份')),
+                      subtitle: Text(
+                        context.l10n.isZh ? '启动至少 5 分钟且连续空闲 90 秒后，后台备份一次' : 'Back up after at least 5 minutes and 90 seconds of inactivity',
+                      ),
+                      value: settings.enabled,
+                      onChanged: _busy
+                          ? null
+                          : (value) => _save(settings.copyWith(enabled: value)),
+                    ),
+                  if (isMobilePlatform)
+                    Text(
+                      context.l10n.isZh ? '手机不执行自动备份，可通过本地同步将数据保存到电脑。' : 'Automatic backup is disabled on phones. Use local sync to keep a copy on your computer.',
+                    ),
                   const SizedBox(height: FlySpacing.xs),
                   Row(
                     children: [

@@ -282,14 +282,7 @@ class _SettingsCenterState extends ConsumerState<SettingsCenter> {
   List<Widget> _content() {
     if (categories[selected] == '我的') return [const MySettingsPanel()];
     if (categories[selected] == '同步') {
-      return [
-        SyncSettingsPanel(
-          onOpenMy: () => setState(() {
-            selected = categories.indexOf('我的');
-            mobileCategoryOpen = true;
-          }),
-        ),
-      ];
+      return [const SyncSettingsPanel()];
     }
     final nav = ref.watch(navigationSettingsProvider);
     final root = ref.watch(dataRootPathProvider);
@@ -423,7 +416,11 @@ class _SettingsCenterState extends ConsumerState<SettingsCenter> {
       case 4:
         return [
           const SizedBox(height: 12),
-          if (root != null)
+          if (isMobilePlatform)
+            Text(
+              context.l10n.isZh ? '手机不执行备份。可通过本地同步将数据和文件传到电脑，由电脑进行备份。' : 'Backups run on your computer. Use local sync to transfer phone data and files to it.',
+            )
+          else if (root != null)
             const BackupSettingsDialog(embedded: true)
           else
             Text(tr('数据目录尚未初始化，请在正式桌面环境中配置后使用备份。')),

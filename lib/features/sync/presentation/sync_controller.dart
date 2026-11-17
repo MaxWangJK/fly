@@ -20,6 +20,7 @@ import '../services/lan_host_service.dart';
 import '../services/lan_discovery_service.dart';
 import '../services/sync_engine.dart';
 import '../services/sync_notification_service.dart';
+import '../services/lan_sync_notifications.dart';
 import '../services/sync_workspace_binding.dart';
 
 final syncControllerProvider = ChangeNotifierProvider<SyncController>((ref) {
@@ -35,6 +36,10 @@ class SyncController extends ChangeNotifier {
   SyncController(this.outbox, this.root) : host = LanHostService(outbox, root) {
     auth = AuthService(server, root);
     host.onPairingChanged = _notify;
+    host.onPeersChanged = _hostPeersChanged;
+    host.onSyncAvailable = () {
+      if (_hostEngine) engine?.requestSync();
+    };
   }
   final SyncOutboxRepository outbox;
   final String root;
@@ -42,6 +47,9 @@ class SyncController extends ChangeNotifier {
   late AuthService auth;
   SyncEngine? engine;
   SyncNotificationService? notifications;
+  LanSyncNotifications? _lanNotifications;
+  Future<void> _hostLifecycle = Future.value();
+  bool _hostEngine = false;
   String server = SyncServerConfig.defaultBaseUrl;
   bool ready = false, busy = false, cloudEnabled = false;
   bool get cloudFiles => SyncServerConfig.allowsCloudFiles(server, auth.email);
@@ -69,16 +77,36 @@ class SyncController extends ChangeNotifier {
   bool _foreground = true;
   Future<void> _lifecycle = Future.value();
   bool get connected =>
+      (!host.running || host.connectedDevices > 0) &&
       engine?.enabled == true &&
       engine?.lastSuccess != null &&
       engine?.error == null;
   bool get connecting => engine?.running == true && !connected;
+  String get status => host.running && host.connectedDevices == 0
+      ? '等待设备连接'
+      : engine?.status ?? '未连接';
+
+  void _hostPeersChanged() {
+    _notify();
+    _hostLifecycle = _hostLifecycle
+        .then((_) async {
+          if (_disposed) return;
+          if (!host.running || host.connectedDevices == 0 || cloudEnabled) {
+            if (_hostEngine) await _stopEngine();
+          } else if (engine == null) {
+            await _startHostEngine();
+          }
+          _notify();
+        })
+        .catchError((Object failure) {
+          if (_disposed) return;
+          error = _errorText(failure);
+          _notify();
+        });
+  }
+
   Future<void> initialize() async {
     try {
-      server = await outbox.state('server') ?? server;
-      SyncServerConfig.validate(server);
-      auth = AuthService(server, root);
-      if (root.isNotEmpty) await auth.restore();
       lanPort = int.tryParse(await outbox.state('lanPort') ?? '') ?? 8765;
       lanEndpoint = await outbox.state('lanEndpoint');
       lanWorkspace = await outbox.state('lanRemoteWorkspace');
@@ -94,16 +122,18 @@ class SyncController extends ChangeNotifier {
       }
       counts = await outbox.initialCounts();
       ready = true;
-      final savedHost = await outbox.state('lanHostEnabled') != 'false';
-      connectionMode = await outbox.state('syncConnectionMode') == 'cloud'
-          ? SyncConnectionMode.cloud
-          : SyncConnectionMode.lan;
+      final wasCloudMode = await outbox.state('syncConnectionMode') == 'cloud';
+      connectionMode = SyncConnectionMode.lan;
       cloudEnabled = false;
-      if (connectionMode == SyncConnectionMode.cloud &&
-          auth.userId != null &&
-          await outbox.state('cloudEnabled') == 'true') {
-        await _enableCloud();
+      if (wasCloudMode) {
+        await outbox.saveState(
+          'syncConnectionMode',
+          SyncConnectionMode.lan.name,
+        );
+        await outbox.saveState('cloudEnabled', 'false');
+        if (!isMobile) await outbox.saveState('lanHostEnabled', 'true');
       }
+      final savedHost = await outbox.state('lanHostEnabled') != 'false';
       if (connectionMode == SyncConnectionMode.lan) {
         if (savedHost && !isMobile) await _startHost();
         if (!host.running &&
@@ -376,30 +406,32 @@ class SyncController extends ChangeNotifier {
     lanPort = host.port;
     try {
       addresses = await host.addresses();
-      if (!cloudEnabled) {
-        await _stopEngine();
-        await SyncWorkspaceBinding(outbox).activate('lan:${host.workspace}');
-        final transport = LanSyncTransport(
-          'http://127.0.0.1:$lanPort/api',
-          token: () async => host.hostToken,
-        );
-        engine = SyncEngine(
-          outbox: outbox,
-          transport: transport,
-          cursorKey: 'lanCursor',
-          files: FileSyncService(outbox.db, root, transport),
-          syncFiles: lanFiles,
-          failureLimit: isMobile ? 3 : null,
-          pollInterval: const Duration(seconds: 2),
-        );
-        engine!.addListener(_changed);
-        engine!.start();
-      }
+      _hostPeersChanged();
       await refreshDetails();
     } on Object {
       await host.stop();
       rethrow;
     }
+  }
+
+  Future<void> _startHostEngine() async {
+    await SyncWorkspaceBinding(outbox).activate('lan:${host.workspace}');
+    if (_disposed || !host.running || host.connectedDevices == 0) return;
+    final transport = LanSyncTransport(
+      'http://127.0.0.1:$lanPort/api',
+      token: () async => host.hostToken,
+    );
+    _hostEngine = true;
+    engine = SyncEngine(
+      outbox: outbox,
+      transport: transport,
+      cursorKey: 'lanCursor',
+      files: FileSyncService(outbox.db, root, transport),
+      syncFiles: lanFiles,
+      failureLimit: 3,
+    );
+    engine!.addListener(_changed);
+    engine!.start();
   }
 
   Future<void> setMode(LanSyncMode value) => run(() async {
@@ -493,16 +525,46 @@ class SyncController extends ChangeNotifier {
       reconnect: _rediscoverCurrentLanPeer,
       resumeScope: 'lan:$lanWorkspace',
     );
+    final Map<String, dynamic> info;
+    try {
+      info = await transport.request('GET', '/lan/info');
+    } on Object {
+      transport.close();
+      rethrow;
+    }
+    if (_disposed || (isMobile && !_foreground)) {
+      transport.close();
+      return;
+    }
     engine = SyncEngine(
       outbox: outbox,
       transport: transport,
       cursorKey: 'lanCursor',
       files: FileSyncService(outbox.db, root, transport),
       syncFiles: lanFiles,
-      failureLimit: isMobile ? 3 : null,
-      pollInterval: const Duration(seconds: 2),
+      failureLimit: 3,
+      // Older desktops have no event channel: use a modest compatibility poll.
+      pollInterval: info['events'] == true
+          ? const Duration(minutes: 5)
+          : const Duration(seconds: 30),
     );
     engine!.addListener(_changed);
+    if (info['events'] == true) {
+      final events = LanSyncNotifications(
+        onChange: () => engine?.requestSync(),
+        onDisconnect: () {
+          unawaited(_stopEngine().then((_) => _notify()));
+        },
+      );
+      _lanNotifications = events;
+      try {
+        await events.connect(lanEndpoint!, lanToken!);
+      } on Object {
+        await _stopEngine();
+        rethrow;
+      }
+    }
+    if (_disposed || (isMobile && !_foreground) || engine == null) return;
     engine!.start();
   }
 
@@ -627,6 +689,7 @@ class SyncController extends ChangeNotifier {
     if (!isMobile) return Future.value();
     _foreground = false;
     notifications?.dispose();
+    _lanNotifications?.dispose();
     engine?.stop();
     engine?.transport.close();
     return _lifecycle = _lifecycle.then((_) => _stopEngine());
@@ -646,6 +709,16 @@ class SyncController extends ChangeNotifier {
 
   Future<void> connectNow({bool automatic = false}) => run(() async {
     if (!_foreground || _disposed) return;
+    if (host.running) {
+      if (host.connectedDevices == 0) {
+        if (!automatic) throw StateError('请先使用手机 Fly 扫描电脑二维码连接设备');
+        return;
+      }
+      if (engine == null) {
+        _hostPeersChanged();
+        await _hostLifecycle;
+      }
+    }
     if (engine?.enabled == true) {
       await engine!.synchronize();
       return;
@@ -794,6 +867,9 @@ class SyncController extends ChangeNotifier {
         await refreshDetails();
       });
   Future<void> _stopEngine() async {
+    _hostEngine = false;
+    _lanNotifications?.dispose();
+    _lanNotifications = null;
     notifications?.dispose();
     notifications = null;
     final old = engine;
@@ -830,6 +906,9 @@ class SyncController extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     notifications?.dispose();
+    _lanNotifications?.dispose();
+    host.onPeersChanged = null;
+    host.onSyncAvailable = null;
     engine?.dispose();
     unawaited(host.stop());
     super.dispose();
