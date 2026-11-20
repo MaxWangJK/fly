@@ -1,12 +1,12 @@
 {
-  "capturedAtUtc": "2026-11-17T11:54:45.421351+00:00",
+  "capturedAtUtc": "2026-11-20T08:40:02.587956+00:00",
   "documentationOnly": false,
   "branch": "codex/fly-2-sync",
-  "releaseCommitSource": "3255fe1b01e76dcf4dbea23bec578a50edf8ac54",
-  "developmentBaseCommit": "f72ba6da92f508d0e99ca345a478636cea7bc642",
+  "releaseCommitSource": "dd1aa05d5aaa6c893e8c5db9a885440e629d15a4",
+  "developmentBaseCommit": "f7ec92c1ae309e21c3873ea01f50df576657daf2",
   "master": "94efdc2d9ac34feb2f3d1b635302278b4671a414",
   "gitDirectoryIsLocalFolder": true,
-  "appVersion": "2.0.30+66",
+  "appVersion": "2.0.31+67",
   "databaseSchemaVersion": 20,
   "originalSdk": {
     "frameworkVersion": "3.47.7",
@@ -23,11 +23,11 @@
     "flutterVersion": "3.47.7"
   },
   "buildStatus": "Windows10+ installer/ZIP and both original-signature Android APKs verified",
-  "releaseReport": "../release/idle_lan_scheduling_20261117.md",
+  "releaseReport": "../release/fly_2_0_31_build67.md",
   "currentFeaturesIncludeUncommittedFiles": false,
-  "latestPublishedTestBundle": "Windows/Android 2.0.30+66 (2026-11-17)",
-  "verifiedClientTests": 39,
-  "clientTestsEvidence": "39 distinct maintenance/backup/LAN presence/file/hidden-account tests; 2 final shutdown cases repeated; no full client/backend or physical rerun",
+  "latestPublishedTestBundle": "Windows/Android 2.0.31+67 (2026-11-20)",
+  "verifiedClientTests": 36,
+  "clientTestsEvidence": "36 scoped cases passed in 6 files; full analyzer passed; no full suite, backend or physical rerun",
   "verifiedServerTests": 86,
   "websiteCoreAndHttpTests": "Not rerun this release; original website work excluded",
   "analyze": "No issues found!",
@@ -35,7 +35,7 @@
   "latestSourceNotRepackaged": false,
   "noDeploymentPerformed": true,
   "remotePushPerformed": true,
-  "historicalUserMessagesArchived": 185,
+  "historicalUserMessagesArchived": 188,
   "textAttachmentsCopied": 20,
   "inlinePromptCopies": 2,
   "historicalTextNormalization": "Brand-neutral portable copies; SHA-256 entries refer to current bytes, with original digest retained separately.",
@@ -46,29 +46,29 @@
   "localReleaseCommitCompleted": true,
   "artifacts": [
     {
-      "name": "Fly-Setup-2.0.30-build66-testing.exe",
-      "bytes": 19101637,
-      "sha256": "8794E32F21F7B89D6D50C35B8DACAA38D44B50897E13D3CF4AA560931762A7EF"
+      "name": "Fly-Setup-2.0.31-build67-testing.exe",
+      "bytes": 19090655,
+      "sha256": "004BB4AC9ABBB37781D2A614A3923713DFECC311DA6D5BF4A8E669FFD1EE8DC2"
     },
     {
-      "name": "Fly-2.0.30-build66-windows-test-20261117.zip",
-      "bytes": 24069392,
-      "sha256": "B062B08937398CA86A0247D07EB0DB37B9E7953E229639EB8E7EB516FE86F53B"
+      "name": "Fly-2.0.31-build67-windows-test-20261120.zip",
+      "bytes": 24054696,
+      "sha256": "F684211891B0CCFED5C20E14473F7B0A62F6A77B9A9A8E38B7A4B12106174520"
     },
     {
-      "name": "Fly-2.0.30-build66-android-release-signed-20261117.apk",
-      "bytes": 134315579,
-      "sha256": "58661CF1AC9CAE613E6DA2D71CF600496B82B5D293A4B937E0BE6ACA076C0BD8"
+      "name": "Fly-2.0.31-build67-android-release-signed-20261120.apk",
+      "bytes": 134200991,
+      "sha256": "3A98C76E009A5464C9784BC8CFF38D07E5EB5EC0890663658BB364057FFD81CE"
     },
     {
-      "name": "Fly-2.0.30-build66-android-test-20261117.apk",
-      "bytes": 134309167,
-      "sha256": "533C794CF87B6354D04F5648B7FA8757F88F51DAA5341065A6893B1085761E91"
+      "name": "Fly-2.0.31-build67-android-test-20261120.apk",
+      "bytes": 134194479,
+      "sha256": "F71ADC700AE078B4D317B1ECF9CE4E1F2B04ADFA91E27B31DC0C0C9B182F23B1"
     }
   ],
   "android": {
     "minSdk": 24,
-    "versionCode": 66,
+    "versionCode": 67,
     "abis": [
       "arm64-v8a",
       "armeabi-v7a",
@@ -80,7 +80,7 @@
     "signatureMatchesBuild39": true,
     "packageName": "com.flyproduct.fly",
     "targetSdk": 36,
-    "signatureMatchFieldsApplyTo": "Original testing identity through build66; formal identity pinned separately",
+    "signatureMatchFieldsApplyTo": "Original testing identity through build67; formal identity pinned separately",
     "signatureMatchesBuild40": true,
     "debuggable": false,
     "aligned16KB": true,
@@ -89,7 +89,7 @@
     "signatureMatchesBuild43": true,
     "signatureMatchesBuild44": true,
     "signatureMatchesBuild45": true,
-    "appVersion": "2.0.30+66",
+    "appVersion": "2.0.31+67",
     "signatureMatchesBuild50": true,
     "signatureMatchesBuild58": true,
     "signatureMatchesBuild59": true,
@@ -98,7 +98,8 @@
     "signatureMatchesBuild62": true,
     "signatureMatchesBuild63": true,
     "signatureMatchesBuild64": true,
-    "signatureMatchesBuild66": true
+    "signatureMatchesBuild66": true,
+    "signatureMatchesBuild67": true
   },
   "buildFlags": {
     "ENABLE_LOCAL_LICENSE": false,
@@ -110,12 +111,12 @@
   "bookChapters": 16,
   "bookReaderDesktopOnly": true,
   "bookReadingStateCloudSync": false,
-  "additionalCurrentUserRequests": 58,
+  "additionalCurrentUserRequests": 61,
   "formalAndroidSigning": {
     "date": "2026-10-16",
-    "appVersion": "2.0.30+66",
-    "apk": "Fly-2.0.30-build66-android-release-signed-20261117.apk",
-    "apkSHA256": "58661CF1AC9CAE613E6DA2D71CF600496B82B5D293A4B937E0BE6ACA076C0BD8",
+    "appVersion": "2.0.31+67",
+    "apk": "Fly-2.0.31-build67-android-release-signed-20261120.apk",
+    "apkSHA256": "3A98C76E009A5464C9784BC8CFF38D07E5EB5EC0890663658BB364057FFD81CE",
     "certificateMD5": "5E96E7B982BF8DB94FEF71F148BC0859",
     "certificateSHA1": "9E8BC6EFA12D280843F92FD7E1DCAE22AD70008F",
     "certificateSHA256": "5240E834C4F5800EC22E9B882526A9CCBFE3366E334857CAE0154A0B66079EB2",
@@ -127,11 +128,11 @@
     "filingApplicationSubmitted": false,
     "privateIdentityDirectory": "license_tools/private/android",
     "report": "../release/android_release_signing_20261016.md",
-    "publicMetadataPath": "apk/20261113-build64/",
+    "publicMetadataPath": "apk/20261120-build67/",
     "privateKeyIndependentOfflineBackupVerified": false,
     "privateKeyLocalBackupScope": "same-disk initial backup only; owner must retain independent secure backup",
     "identityEstablishedDate": "2026-10-16",
-    "latestArtifactDate": "2026-11-13",
+    "latestArtifactDate": "2026-11-20",
     "actualApkCertificateVerifiedForBuild43": true,
     "actualApkCertificateVerifiedForBuild44": true,
     "actualApkCertificateVerifiedForBuild45": true,
@@ -144,12 +145,13 @@
     "actualApkCertificateVerifiedForBuild62": true,
     "actualApkCertificateVerifiedForBuild63": true,
     "actualApkCertificateVerifiedForBuild64": true,
-    "signatureMatchesBuild66": true
+    "signatureMatchesBuild66": true,
+    "signatureMatchesBuild67": true
   },
-  "clientTestsLastRunDate": "2026-11-17",
-  "analyzeLastRunDate": "2026-11-13",
-  "latestPreferredAndroidPackage": "Fly-2.0.30-build66-android-release-signed-20261117.apk",
-  "publicApkMetadataPath": "apk/20261117-build66/",
+  "clientTestsLastRunDate": "2026-11-20",
+  "analyzeLastRunDate": "2026-11-20",
+  "latestPreferredAndroidPackage": "Fly-2.0.31-build67-android-release-signed-20261120.apk",
+  "publicApkMetadataPath": "apk/20261120-build67/",
   "releaseArtifactFilesTracked": false,
   "privateSigningFilesTracked": false,
   "handoffPackageLedger": "APK_RELEASES.md",
@@ -159,8 +161,8 @@
     "filingPublicKeyAndSHA1Available": false,
     "appleBuildAndDeviceAcceptance": "not performed"
   },
-  "latestSourceNotRepackagedExplanation": "Build66 contains local-only UI plus delayed idle maintenance and event-driven LAN sync; Apple not built",
-  "localReleaseCommitHash": "3255fe1b01e76dcf4dbea23bec578a50edf8ac54",
+  "latestSourceNotRepackagedExplanation": "Both 2026-11-20 client source changes included in build67; Apple not built",
+  "localReleaseCommitHash": "dd1aa05d5aaa6c893e8c5db9a885440e629d15a4",
   "workingTreeStatusAtCapture": "Only original unrelated website/book edits excluded from release",
   "portableInternalIssuer": {
     "version": "1.0.0",
@@ -196,9 +198,9 @@
     "androidBuild41LicenseGateEnabled": false,
     "sourceCommit": "311c7b3799d4d3a8fc3a0dcef867781f275a135b"
   },
-  "latestAndroidTestingUpgradePackage": "Fly-2.0.30-build66-android-test-20261117.apk",
+  "latestAndroidTestingUpgradePackage": "Fly-2.0.31-build67-android-test-20261120.apk",
   "temporaryBackendStopped": true,
-  "latestWindowsPackageVersion": "2.0.30+66",
+  "latestWindowsPackageVersion": "2.0.31+67",
   "windowsRebuiltThisTurn": true,
   "mobileUiLatestVerification": {
     "date": "2026-10-17",
@@ -318,7 +320,7 @@
   "githubDevelopmentBranch": "codex/fly-2-sync",
   "githubMasterBaseline": "94efdc2d9ac34feb2f3d1b635302278b4671a414",
   "githubLatestDocumentationRef": "main / codex/fly-2-sync HEAD; verify git ls-remote",
-  "latestPackagedReleaseReport": "../release/idle_lan_scheduling_20261117.md",
+  "latestPackagedReleaseReport": "../release/fly_2_0_31_build67.md",
   "serverTestsEvidence": "86 passed for build57; backend unchanged and not rerun for build60",
   "latestSyncChangesPushed": true,
   "currentSourceRequiresWorkingTree": false,
@@ -329,7 +331,7 @@
   "temporaryCloudIdentity": "Operator-issued one-use device codes remain a test entry; verified-email registration/login implemented, with in-place binding of temporary user ID and data",
   "serverMigrationRevision": "0005",
   "lanTlsImplemented": false,
-  "sourceRegressionStatus": "39 distinct scoped tests and full-project analyzer passed; Windows/Android builds and original identities verified",
+  "sourceRegressionStatus": "36 scoped tests and full-project analyzer passed; both platform builds and original identities verified",
   "localSendIntegrated": false,
   "androidRebuiltThisTurn": true,
   "remotePushPerformedThisTurn": false,
@@ -462,7 +464,7 @@
     "scope": "Earlier multi-device sync checks; before dual review programs and email auth"
   },
   "historicalFunctionalCheckpointCommitHash": "96261dbb90a9725bfab91058a1c2fe50ea5862ef",
-  "sourceBuildCommitHash": "3255fe1b01e76dcf4dbea23bec578a50edf8ac54",
+  "sourceBuildCommitHash": "dd1aa05d5aaa6c893e8c5db9a885440e629d15a4",
   "cloudSyncRuntimeReport": "../architecture/cloud_sync_runtime_20261101.md",
   "cloudForegroundFallbackMinutes": 5,
   "cloudWriteCoalescingMilliseconds": 250,
@@ -487,7 +489,7 @@
     "fly-foreign-trade-book/"
   ],
   "websiteHasIndependentUncommittedChanges": true,
-  "sourceCommitScope": "Build65 local-only UI and build66 idle background maintenance, worker backup, LAN presence/events and cancellation",
+  "sourceCommitScope": "Customer category preservation, financial multiple attachments, compact task notes, empty selection and tag UI simplification",
   "reviewProgramIncludedInBuild43": true,
   "emailAuthIncludedInBuild43": true,
   "packagedBuild43Verification": {
@@ -570,14 +572,13 @@
     ]
   },
   "clientRegression": {
-    "distinctPassingCases": 39,
-    "idleSchedulerVerified": true,
-    "phoneSkipsBackup": true,
-    "automaticBackupWorkerVerified": true,
-    "lanPresenceAndFileHintsVerified": true,
-    "disconnectStopsEnginesAndInventoryPolling": true,
+    "distinctPassingCases": 36,
+    "customerCategoryCreationAndEmptySelection": true,
+    "customerOrderTagSelectorsRemoved": true,
+    "compactTaskNotesAndAutoSave": true,
+    "financialMultipleAttachmentsAndRestart": true,
     "fullSuiteRerun": false,
-    "releaseSmokeRerun": false
+    "physicalDeviceAcceptance": false
   },
   "previouslyIndependentWebsiteChangesCommitted": true,
   "passwordResetIncludedInBuild44": true,
@@ -642,7 +643,7 @@
   ],
   "deviceEnrollmentUserInterfaceAvailable": false,
   "legacyEnrollmentProtocolPreserved": true,
-  "latestAndroidPackageVersion": "2.0.30+66",
+  "latestAndroidPackageVersion": "2.0.31+67",
   "build47Features": [
     "Actual remaining spaces for manual and ordinary cargo",
     "Consistent section diagram and space cards",
@@ -655,7 +656,7 @@
     "Counts and snapshots follow quantity edits and removal",
     "Manual intent retained in compatible layoutV3 metadata"
   ],
-  "publicWindowsMetadataPath": "windows/20261117-build66/",
+  "publicWindowsMetadataPath": "windows/20261120-build67/",
   "build49Features": [
     "First cargo may enter an empty section; later cargo must target a remaining area",
     "A/B area names shared by cross section and cards; area selection and drag/drop use actual coordinates",
@@ -760,16 +761,16 @@
   "dockerBuildVerified": false,
   "productionPostgresqlExecutionVerified": false,
   "nginxSyntaxCommandExecuted": false,
-  "sourceChangeReport": "../release/idle_lan_scheduling_20261117.md",
+  "sourceChangeReport": "../release/workspace_simplification_20261120.md",
   "fullClientSuiteLastRunFor": "Windows build57 source 2cb533947d9318065c7a79fb897e229177c32586; see releaseReport for 539 passed / 3 skipped",
   "latestSourceChanges": [
-    "Local-only sync and profile UI",
-    "Idle maintenance after 5 minutes and 90 seconds inactivity",
-    "Desktop backup worker and no phone automatic backup",
-    "LAN event presence with five-minute fallback and stopped disconnected engines"
+    "Preserve customer category after creation",
+    "Financial optional notes and multiple attachments",
+    "Compact task notes",
+    "Clear empty customer/order details and remove tag UI"
   ],
-  "lastVerifiedLocalDate": "2026-11-17",
-  "latestScopedClientTests": 39,
+  "lastVerifiedLocalDate": "2026-11-20",
+  "latestScopedClientTests": 36,
   "navigationUpdateVerification": {
     "date": "2026-11-12",
     "distinctPassingCases": 48,
@@ -799,7 +800,7 @@
   ],
   "bookReaderDefaultVisible": false,
   "bookReaderCanEnableFromNavigationSettings": true,
-  "workingTreeNote": "Build66 source and delivery docs committed; original unrelated website/book changes retained",
+  "workingTreeNote": "Build67 source and delivery docs committed; original unrelated website/book edits retained",
   "fileActionsVerification": {
     "date": "2026-11-12",
     "distinctPassingCases": 40,
@@ -858,7 +859,7 @@
     "repackaged": true,
     "report": "../release/video_performance_20261112.md"
   },
-  "localReleaseCommitHashScope": "Build66 source commit; final delivery documentation commit is git log -1",
+  "localReleaseCommitHashScope": "Build67 source commit; final delivery docs commit is git log -1",
   "fileRenameCustomerLayoutVerification": {
     "date": "2026-11-12",
     "distinctPassingCases": 50,
@@ -975,5 +976,28 @@
     "distinctCases": 39,
     "finalShutdownRepeatedCases": 2,
     "report": "../release/idle_lan_scheduling_20261117.md"
-  }
+  },
+  "workingTreeUpdate": {
+    "date": "2026-11-20",
+    "report": "../release/workspace_simplification_20261120.md",
+    "changes": [
+      "Preserve customer category route after creation",
+      "Financial type label becomes optional free-text notes",
+      "Recall, select multiple, detach and replace financial attachments",
+      "Compact task notes editor",
+      "Clear stale customer/order details for empty results",
+      "Remove customer/order tag selectors and detail tag editors, preserving stored tags",
+      "Keep category name controllers alive through dialog dismissal"
+    ],
+    "distinctRelatedTestsPassed": 36,
+    "packaged": true,
+    "committed": true,
+    "physicalDeviceTested": false,
+    "previousReport": "../release/customer_financial_edit_20261120.md",
+    "analyze": "No issues found!",
+    "testEvidence": "workspace-simplification-tests.log: 36 tests passed, including prior financial attachments and the five new simplification scenarios",
+    "sourceCommit": "dd1aa05d5aaa6c893e8c5db9a885440e629d15a4",
+    "version": "2.0.31+67"
+  },
+  "remoteSourceCommitVerified": "dd1aa05d5aaa6c893e8c5db9a885440e629d15a4"
 }
