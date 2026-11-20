@@ -2,6 +2,9 @@ import '../../../l10n/service_error_copy.dart';
 import '../../../l10n/fly_localizations.dart';
 
 import 'dart:async';
+import 'dart:io';
+
+import '../data/financial_attachment_service.dart';
 
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:file_selector/file_selector.dart';
@@ -20,7 +23,6 @@ import '../../../shared/design_system/design_tokens.dart';
 import '../../../shared/design_system/model_text_field.dart';
 import '../../../shared/design_system/detail_section_entry.dart';
 import '../../../shared/design_system/extension_panel.dart';
-import '../../../shared/design_system/tag_container.dart';
 import '../../../shared/domain/priority.dart';
 import '../../../shared/formatters/relative_date_formatter.dart';
 import '../../../shared/search/fuzzy_match.dart';
@@ -52,9 +54,6 @@ class OrderDetailPanel extends ConsumerWidget {
             ref.watch(orderStatusesProvider).valueOrNull ?? const [];
         final customers =
             ref.watch(allCustomersProvider).valueOrNull ?? const [];
-        final tags =
-            ref.watch(orderTagsProvider(order.id)).valueOrNull ?? const [];
-        final allTags = ref.watch(allOrderTagsProvider).valueOrNull ?? const [];
         final items =
             ref.watch(orderItemsProvider(order.id)).valueOrNull ?? const [];
         final factories = ref.watch(factoriesProvider).valueOrNull ?? const [];
@@ -158,40 +157,6 @@ class OrderDetailPanel extends ConsumerWidget {
                 _PriorityFlagsRow(
                   order: order,
                   onSave: (value) => _save(ref, value),
-                ),
-                const SizedBox(height: FlySpacing.sm),
-                FlyTagContainer(
-                  selected: tags
-                      .map(
-                        (tag) => FlyTagItem(
-                          id: tag.id,
-                          name: tag.name,
-                          colorValue: tag.colorValue,
-                        ),
-                      )
-                      .toList(),
-                  allTags: allTags
-                      .map(
-                        (tag) => FlyTagItem(
-                          id: tag.id,
-                          name: tag.name,
-                          colorValue: tag.colorValue,
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (ids) => ref
-                      .read(orderRepositoryProvider)
-                      .setOrderTags(order.id, ids),
-                  onCreate: (name) async {
-                    final tag = await ref
-                        .read(orderRepositoryProvider)
-                        .findOrCreateTag(name);
-                    return FlyTagItem(
-                      id: tag.id,
-                      name: tag.name,
-                      colorValue: tag.colorValue,
-                    );
-                  },
                 ),
                 const SizedBox(height: FlySpacing.sm),
                 Row(
@@ -712,13 +677,14 @@ class _FinancialExtension extends ConsumerWidget {
       if (payments.isNotEmpty)
         for (final payment in payments)
           _FinancialEntryRow(
+            key: ValueKey('financial-payment-${payment.id}'),
             type: payment.paymentType,
             amount: payment.amount,
             currency: payment.currency,
             date: payment.paidAt,
-            attachment: files
-                .where((file) => file.id == payment.attachmentId)
-                .firstOrNull,
+            attachments: files
+                .where((file) => payment.attachmentIds.contains(file.id))
+                .toList(),
             onEdit: () => _editPayment(
               context,
               ref,
@@ -791,13 +757,14 @@ class _FinancialExtension extends ConsumerWidget {
       if (costEntries.isNotEmpty)
         for (final entry in costEntries)
           _FinancialEntryRow(
+            key: ValueKey('financial-cost-${entry.id}'),
             type: entry.costType,
             amount: entry.amountMinor,
             currency: entry.currency,
             date: entry.occurredAt,
-            attachment: files
-                .where((file) => file.id == entry.attachmentId)
-                .firstOrNull,
+            attachments: files
+                .where((file) => entry.attachmentIds.contains(file.id))
+                .toList(),
             onEdit: () => _editCost(
               context,
               ref,
@@ -868,20 +835,21 @@ class _FinancialExtension extends ConsumerWidget {
 
 class _FinancialEntryRow extends ConsumerWidget {
   const _FinancialEntryRow({
+    super.key,
     required this.type,
     required this.amount,
     required this.currency,
     required this.date,
     required this.onEdit,
     required this.onDelete,
-    this.attachment,
+    this.attachments = const [],
   });
 
   final String type;
   final int amount;
   final String currency;
   final DateTime date;
-  final OrderFile? attachment;
+  final List<OrderFile> attachments;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
@@ -891,29 +859,37 @@ class _FinancialEntryRow extends ConsumerWidget {
     minTileHeight: 40,
     contentPadding: EdgeInsets.zero,
     title: Text(
-      '${type.isEmpty ? context.crmCopy('未分类') : type}  ${_money(amount, _currencyLabel(currency))}',
+      '${type.isEmpty ? (context.l10n.isZh ? '无备注' : 'No note') : type}  ${_money(amount, _currencyLabel(currency))}',
       style: const TextStyle(fontSize: 12),
     ),
-    subtitle: Row(
+    subtitle: Wrap(
+      spacing: 8,
+      runSpacing: 4,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         Text(_date(date), style: const TextStyle(fontSize: 11)),
-        if (attachment != null) ...[
-          const SizedBox(width: 8),
+        for (final attachment in attachments)
           InkWell(
             onTap: () async {
-              final path = await ref
-                  .read(orderFileStorageProvider)
-                  .absolutePath(attachment!.localRelativePath);
-              await ref.read(orderFileOpenerProvider).open(path);
+              try {
+                final path = await ref
+                    .read(orderFileStorageProvider)
+                    .absolutePath(attachment.localRelativePath);
+                await ref.read(orderFileOpenerProvider).open(path);
+              } catch (error) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(context.flyError(error))),
+                  );
+                }
+              }
             },
             child: Text(
-              (context.l10n.isZh
-                  ? '附件：${attachment!.originalName}'
-                  : 'Attachment: ${attachment!.originalName}'),
+              '${context.l10n.isZh ? '附件' : 'Attachment'}：${attachment.originalName}',
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 11, color: FlyColors.accent),
             ),
           ),
-        ],
       ],
     ),
     trailing: PopupMenuButton<String>(
@@ -2476,7 +2452,14 @@ Future<void> _editPayment(
   OrderPayment? payment,
   String? suggestedType,
 }) async {
-  final draft = await showDialog<_FinancialEntryDraft>(
+  final repository = ref.read(orderRepositoryProvider);
+  final service = FinancialAttachmentService(
+    repository,
+    ref.read(orderFileStorageProvider),
+  );
+  final files =
+      ref.read(orderFilesProvider(order.id)).valueOrNull ?? const <OrderFile>[];
+  await showDialog<void>(
     context: context,
     builder: (_) => _FinancialEntryDialog(
       title: payment == null
@@ -2487,36 +2470,38 @@ Future<void> _editPayment(
       initialType: payment?.paymentType ?? suggestedType ?? '',
       typeHint: context.crmCopy('定金 / 尾款 / 补款 / 样品费…'),
       initialDate: payment?.paidAt,
+      initialAttachmentIds: payment?.attachmentIds ?? const [],
+      files: files,
+      onSave: (draft) => service.save(
+        orderId: order.id,
+        documentType: OrderDocumentType.payment,
+        retainedIds: draft.retainedIds,
+        sourcePaths: draft.sourcePaths,
+        persist: (attachmentId) async {
+          if (payment == null) {
+            await repository.addPayment(
+              order.id,
+              amount: draft.amountMinor,
+              currency: draft.currency,
+              paymentType: draft.type,
+              paidAt: draft.date,
+              attachmentId: attachmentId,
+            );
+          } else {
+            await repository.savePayment(
+              payment.copyWith(
+                amount: draft.amountMinor,
+                currency: draft.currency,
+                paymentType: draft.type,
+                paidAt: draft.date,
+                attachmentId: attachmentId,
+              ),
+            );
+          }
+        },
+      ),
     ),
   );
-  if (draft == null) return;
-  final repository = ref.read(orderRepositoryProvider);
-  var saved = payment == null
-      ? await repository.addPayment(
-          order.id,
-          amount: draft.amountMinor,
-          currency: draft.currency,
-          paymentType: draft.type,
-          paidAt: draft.date,
-        )
-      : payment.copyWith(
-          amount: draft.amountMinor,
-          currency: draft.currency,
-          paymentType: draft.type,
-          paidAt: draft.date,
-        );
-  if (payment != null) await repository.savePayment(saved);
-  if (draft.sourcePath != null) {
-    final attachment = await _storeFinancialAttachment(
-      ref,
-      order,
-      draft.sourcePath!,
-      OrderDocumentType.payment,
-      paymentId: saved.id,
-    );
-    saved = saved.copyWith(attachmentId: attachment.id);
-    await repository.savePayment(saved);
-  }
 }
 
 Future<void> _editCost(
@@ -2527,7 +2512,14 @@ Future<void> _editCost(
   OrderCostEntry? entry,
   String? suggestedType,
 }) async {
-  final draft = await showDialog<_FinancialEntryDraft>(
+  final repository = ref.read(orderRepositoryProvider);
+  final service = FinancialAttachmentService(
+    repository,
+    ref.read(orderFileStorageProvider),
+  );
+  final files =
+      ref.read(orderFilesProvider(order.id)).valueOrNull ?? const <OrderFile>[];
+  await showDialog<void>(
     context: context,
     builder: (_) => _FinancialEntryDialog(
       title: entry == null ? context.crmCopy('新增成本') : context.crmCopy('编辑成本'),
@@ -2536,63 +2528,38 @@ Future<void> _editCost(
       initialType: entry?.costType ?? suggestedType ?? '',
       typeHint: context.crmCopy('工厂成本 / 内陆费 / 港杂费 / 拖车费 / 报关费…'),
       initialDate: entry?.occurredAt,
+      initialAttachmentIds: entry?.attachmentIds ?? const [],
+      files: files,
+      onSave: (draft) => service.save(
+        orderId: order.id,
+        documentType: OrderDocumentType.other,
+        retainedIds: draft.retainedIds,
+        sourcePaths: draft.sourcePaths,
+        persist: (attachmentId) async {
+          if (entry == null) {
+            await repository.addCostEntry(
+              order.id,
+              amountMinor: draft.amountMinor,
+              currency: draft.currency,
+              costType: draft.type,
+              occurredAt: draft.date,
+              attachmentId: attachmentId,
+            );
+          } else {
+            await repository.saveCostEntry(
+              entry.copyWith(
+                amountMinor: draft.amountMinor,
+                currency: draft.currency,
+                costType: draft.type,
+                occurredAt: draft.date,
+                attachmentId: attachmentId,
+              ),
+            );
+          }
+        },
+      ),
     ),
   );
-  if (draft == null) return;
-  final repository = ref.read(orderRepositoryProvider);
-  var saved = entry == null
-      ? await repository.addCostEntry(
-          order.id,
-          amountMinor: draft.amountMinor,
-          currency: draft.currency,
-          costType: draft.type,
-          occurredAt: draft.date,
-        )
-      : entry.copyWith(
-          amountMinor: draft.amountMinor,
-          currency: draft.currency,
-          costType: draft.type,
-          occurredAt: draft.date,
-        );
-  if (entry != null) await repository.saveCostEntry(saved);
-  if (draft.sourcePath != null) {
-    final attachment = await _storeFinancialAttachment(
-      ref,
-      order,
-      draft.sourcePath!,
-      OrderDocumentType.other,
-    );
-    saved = saved.copyWith(attachmentId: attachment.id);
-    await repository.saveCostEntry(saved);
-  }
-}
-
-Future<OrderFile> _storeFinancialAttachment(
-  WidgetRef ref,
-  SalesOrder order,
-  String sourcePath,
-  OrderDocumentType type, {
-  String? paymentId,
-}) async {
-  final stored = await ref
-      .read(orderFileStorageProvider)
-      .importFile(
-        sourcePath: sourcePath,
-        orderId: order.id,
-        documentType: type,
-      );
-  return ref
-      .read(orderRepositoryProvider)
-      .addFileMetadata(
-        orderId: order.id,
-        paymentId: paymentId,
-        fileName: stored.fileName,
-        originalName: stored.originalName,
-        documentType: type,
-        localRelativePath: stored.relativePath,
-        fileSize: stored.fileSize,
-        mimeType: stored.mimeType,
-      );
 }
 
 Future<bool> _confirmFinancialDelete(BuildContext context, String title) async {
@@ -2623,13 +2590,15 @@ class _FinancialEntryDraft {
     required this.type,
     required this.date,
     required this.currency,
-    this.sourcePath,
+    required this.retainedIds,
+    required this.sourcePaths,
   });
   final int amountMinor;
   final String type;
   final DateTime date;
   final String currency;
-  final String? sourcePath;
+  final List<String> retainedIds;
+  final List<String> sourcePaths;
 }
 
 class _FinancialEntryDialog extends StatefulWidget {
@@ -2640,8 +2609,14 @@ class _FinancialEntryDialog extends StatefulWidget {
     required this.typeHint,
     this.initialAmount,
     this.initialDate,
+    required this.initialAttachmentIds,
+    required this.files,
+    required this.onSave,
   });
 
+  final List<String> initialAttachmentIds;
+  final List<OrderFile> files;
+  final Future<void> Function(_FinancialEntryDraft) onSave;
   final String title;
   final String currency;
   final int? initialAmount;
@@ -2658,8 +2633,11 @@ class _FinancialEntryDialogState extends State<_FinancialEntryDialog> {
   late final TextEditingController _type;
   late DateTime _occurredAt;
   late String _currency;
-  String? _sourcePath;
+  late final List<String> _retainedIds;
+  final _sourcePaths = <String>[];
   bool _dragging = false;
+  bool _saving = false;
+  String? _error;
 
   @override
   void initState() {
@@ -2670,6 +2648,7 @@ class _FinancialEntryDialogState extends State<_FinancialEntryDialog> {
           : (widget.initialAmount! / 100).toStringAsFixed(2),
     );
     _type = TextEditingController(text: widget.initialType);
+    _retainedIds = [...widget.initialAttachmentIds];
     _occurredAt = widget.initialDate ?? DateTime.now();
     _currency = _currencyLabel(widget.currency) == 'RMB' ? 'CNY' : 'USD';
   }
@@ -2682,153 +2661,318 @@ class _FinancialEntryDialogState extends State<_FinancialEntryDialog> {
   }
 
   Future<void> _pickAttachment() async {
-    final file = await openFile();
-    if (file != null) setState(() => _sourcePath = file.path);
+    try {
+      final files = await openFiles();
+      if (mounted && !_saving) _addPaths(files.map((file) => file.path));
+    } catch (error) {
+      if (mounted) setState(() => _error = context.flyError(error));
+    }
   }
 
-  void _save() {
+  void _addPaths(Iterable<String> paths) {
+    setState(() {
+      _sourcePaths.addAll(
+        paths.where((path) => !_sourcePaths.contains(path)).toSet(),
+      );
+    });
+  }
+
+  Future<void> _save() async {
+    if (_saving) return;
     final parsed = double.tryParse(_amount.text.replaceAll(',', ''));
-    final type = _type.text.trim();
-    if (parsed == null || parsed <= 0 || type.isEmpty) return;
-    Navigator.pop(
-      context,
-      _FinancialEntryDraft(
-        amountMinor: (parsed * 100).round(),
-        type: type,
-        date: _occurredAt,
-        currency: _currency,
-        sourcePath: _sourcePath,
-      ),
-    );
+    if (parsed == null ||
+        !parsed.isFinite ||
+        parsed <= 0 ||
+        (parsed * 100).round() <= 0) {
+      setState(
+        () => _error = context.l10n.isZh ? '请输入有效金额' : 'Enter a valid amount',
+      );
+      return;
+    }
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      await widget.onSave(
+        _FinancialEntryDraft(
+          amountMinor: (parsed * 100).round(),
+          type: _type.text.trim(),
+          date: _occurredAt,
+          currency: _currency,
+          retainedIds: List.of(_retainedIds),
+          sourcePaths: List.of(_sourcePaths),
+        ),
+      );
+      if (mounted) {
+        setState(() => _saving = false);
+        Navigator.pop(context);
+      }
+    } catch (error) {
+      if (mounted) setState(() => _error = context.flyError(error));
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
-    titlePadding: const EdgeInsets.fromLTRB(24, 22, 24, 0),
-    contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
-    actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
-    title: Text(
-      widget.title,
-      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-    ),
-    content: SizedBox(
-      width: 460,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _EntryFieldLabel(context.crmCopy('金额')),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  key: const ValueKey('financial-entry-amount'),
-                  controller: _amount,
-                  autofocus: true,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(hintText: '0.00'),
+  Widget build(BuildContext context) => PopScope(
+    canPop: !_saving,
+    child: AlertDialog(
+      titlePadding: const EdgeInsets.fromLTRB(24, 22, 24, 0),
+      contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+      actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
+      title: Text(
+        widget.title,
+        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+      ),
+      content: SizedBox(
+        width: 460,
+        child: SingleChildScrollView(
+          child: AbsorbPointer(
+            absorbing: _saving,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _EntryFieldLabel(context.crmCopy('金额')),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        key: const ValueKey('financial-entry-amount'),
+                        controller: _amount,
+                        autofocus: true,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(hintText: '0.00'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    SegmentedButton<String>(
+                      key: const ValueKey('financial-entry-currency'),
+                      segments: [
+                        ButtonSegment(value: 'USD', label: Text('USD')),
+                        ButtonSegment(value: 'CNY', label: Text('RMB')),
+                      ],
+                      selected: {_currency},
+                      showSelectedIcon: false,
+                      onSelectionChanged: (value) =>
+                          setState(() => _currency = value.first),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(width: 8),
-              SegmentedButton<String>(
-                key: const ValueKey('financial-entry-currency'),
-                segments: [
-                  ButtonSegment(value: 'USD', label: Text('USD')),
-                  ButtonSegment(value: 'CNY', label: Text('RMB')),
-                ],
-                selected: {_currency},
-                showSelectedIcon: false,
-                onSelectionChanged: (value) =>
-                    setState(() => _currency = value.first),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _EntryFieldLabel(context.crmCopy('类型')),
-          const SizedBox(height: 6),
-          TextField(
-            key: const ValueKey('financial-entry-type'),
-            controller: _type,
-            style: const TextStyle(fontSize: 14),
-            decoration: InputDecoration(hintText: widget.typeHint),
-          ),
-          const SizedBox(height: 16),
-          _EntryFieldLabel(context.crmCopy('时间')),
-          const SizedBox(height: 6),
-          ListTile(
-            shape: RoundedRectangleBorder(
-              side: BorderSide(color: Theme.of(context).dividerColor),
-              borderRadius: BorderRadius.circular(FlyRadius.sm),
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-            minTileHeight: 44,
-            title: Text(_dateText, style: const TextStyle(fontSize: 14)),
-            trailing: const Icon(Icons.event_outlined, size: 18),
-            onTap: () async {
-              final picked = await showDatePicker(
-                context: context,
-                firstDate: DateTime(2020),
-                lastDate: DateTime(2100),
-                initialDate: _occurredAt,
-              );
-              if (picked != null) setState(() => _occurredAt = picked);
-            },
-          ),
-          const SizedBox(height: 16),
-          _EntryFieldLabel(context.crmCopy('文件')),
-          const SizedBox(height: 6),
-          DropTarget(
-            onDragEntered: (_) => setState(() => _dragging = true),
-            onDragExited: (_) => setState(() => _dragging = false),
-            onDragDone: (details) {
-              final file = details.files.whereType<DropItemFile>().firstOrNull;
-              setState(() {
-                _dragging = false;
-                _sourcePath = file?.path;
-              });
-            },
-            child: InkWell(
-              key: const ValueKey('financial-entry-attachment'),
-              onTap: _pickAttachment,
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 12,
+                const SizedBox(height: 16),
+                _EntryFieldLabel(context.crmCopy('备注')),
+                const SizedBox(height: 6),
+                TextField(
+                  key: const ValueKey('financial-entry-type'),
+                  controller: _type,
+                  style: const TextStyle(fontSize: 14),
+                  decoration: InputDecoration(hintText: widget.typeHint),
                 ),
-                decoration: BoxDecoration(
-                  color: _dragging ? FlyColors.accentSoft : Colors.transparent,
-                  border: Border.all(color: Theme.of(context).dividerColor),
-                  borderRadius: BorderRadius.circular(FlyRadius.sm),
+                const SizedBox(height: 16),
+                _EntryFieldLabel(context.crmCopy('时间')),
+                const SizedBox(height: 6),
+                ListTile(
+                  shape: RoundedRectangleBorder(
+                    side: BorderSide(color: Theme.of(context).dividerColor),
+                    borderRadius: BorderRadius.circular(FlyRadius.sm),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                  minTileHeight: 44,
+                  title: Text(_dateText, style: const TextStyle(fontSize: 14)),
+                  trailing: const Icon(Icons.event_outlined, size: 18),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2100),
+                      initialDate: _occurredAt,
+                    );
+                    if (mounted && picked != null) {
+                      setState(() => _occurredAt = picked);
+                    }
+                  },
                 ),
-                child: Text(
-                  _sourcePath == null
-                      ? context.crmCopy('上传文件或截图（也可拖入）')
-                      : '附件：${_sourcePath!.split(RegExp(r'[/\\]')).last}',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: _sourcePath == null
-                        ? Theme.of(context).colorScheme.onSurfaceVariant
-                        : null,
+                const SizedBox(height: 16),
+                _EntryFieldLabel(context.crmCopy('文件')),
+                const SizedBox(height: 6),
+                DropTarget(
+                  onDragEntered: (_) {
+                    if (!_saving) setState(() => _dragging = true);
+                  },
+                  onDragExited: (_) {
+                    if (mounted) setState(() => _dragging = false);
+                  },
+                  onDragDone: (details) {
+                    if (_saving) return;
+                    setState(() => _dragging = false);
+                    _addPaths(
+                      details.files.whereType<DropItemFile>().map(
+                        (file) => file.path,
+                      ),
+                    );
+                  },
+                  child: OutlinedButton.icon(
+                    key: const ValueKey('financial-entry-attachment'),
+                    onPressed: _pickAttachment,
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: _dragging ? FlyColors.accentSoft : null,
+                    ),
+                    icon: const Icon(Icons.attach_file, size: 18),
+                    label: Text(
+                      context.l10n.isZh ? '添加文件 / 图片（支持多选、拖入）' : 'Add files / images (multiple files or drag and drop)',
+                    ),
                   ),
                 ),
-              ),
+                if (_retainedIds.isNotEmpty || _sourcePaths.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    context.l10n.isZh
+                        ? '共 ${_retainedIds.length + _sourcePaths.length} 个附件'
+                        : '${_retainedIds.length + _sourcePaths.length} attachments',
+                  ),
+                  for (final id in _retainedIds)
+                    _FinancialAttachmentTile(
+                      key: ValueKey('financial-retained-$id'),
+                      file: widget.files
+                          .where((file) => file.id == id)
+                          .firstOrNull,
+                      onRemove: () => setState(() => _retainedIds.remove(id)),
+                    ),
+                  for (final path in _sourcePaths)
+                    _FinancialAttachmentTile(
+                      key: ValueKey('financial-new-$path'),
+                      sourcePath: path,
+                      onRemove: () => setState(() => _sourcePaths.remove(path)),
+                    ),
+                  Text(
+                    context.l10n.isZh ? '移除仅取消本记录关联，原文件仍保留在订单文件中。' : 'Removing an attachment keeps the original in order files.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+                if (_error != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      _error!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
+      actions: [
+        TextButton(
+          onPressed: _saving ? null : () => Navigator.pop(context),
+          child: Text(context.crmCopy('取消')),
+        ),
+        FilledButton(
+          onPressed: _saving ? null : _save,
+          child: Text(
+            _saving
+                ? (context.l10n.isZh ? '保存中…' : 'Saving…')
+                : context.crmCopy('保存'),
+          ),
+        ),
+      ],
     ),
-    actions: [
-      TextButton(
-        onPressed: () => Navigator.pop(context),
-        child: Text(context.crmCopy('取消')),
-      ),
-      FilledButton(onPressed: _save, child: Text(context.crmCopy('保存'))),
-    ],
   );
 
   String get _dateText => _date(_occurredAt);
+}
+
+class _FinancialAttachmentTile extends ConsumerStatefulWidget {
+  const _FinancialAttachmentTile({
+    super.key,
+    this.file,
+    this.sourcePath,
+    required this.onRemove,
+  });
+  final OrderFile? file;
+  final String? sourcePath;
+  final VoidCallback onRemove;
+  @override
+  ConsumerState<_FinancialAttachmentTile> createState() =>
+      _FinancialAttachmentTileState();
+}
+
+class _FinancialAttachmentTileState
+    extends ConsumerState<_FinancialAttachmentTile> {
+  late final Future<String?> _path;
+  @override
+  void initState() {
+    super.initState();
+    _path = widget.sourcePath != null
+        ? Future.value(widget.sourcePath)
+        : widget.file == null
+        ? Future.value(null)
+        : ref
+              .read(orderFileStorageProvider)
+              .absolutePath(widget.file!.localRelativePath);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final name =
+        widget.file?.originalName ??
+        widget.sourcePath?.split(RegExp(r'[/\\]')).last ??
+        (context.l10n.isZh ? '附件信息待同步' : 'Attachment information pending sync');
+    return FutureBuilder<String?>(
+      future: _path,
+      builder: (context, snapshot) {
+        final path = snapshot.data;
+        final image = RegExp(
+          r'\.(png|jpe?g|webp|gif|bmp)$',
+          caseSensitive: false,
+        ).hasMatch(name);
+        return ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: SizedBox(
+            width: 40,
+            height: 40,
+            child: image && path != null
+                ? Image.file(
+                    File(path),
+                    fit: BoxFit.cover,
+                    cacheWidth: 120,
+                    cacheHeight: 120,
+                    errorBuilder: (_, error, stack) =>
+                        const Icon(Icons.image_not_supported_outlined),
+                  )
+                : const Icon(Icons.insert_drive_file_outlined),
+          ),
+          title: Text(name, maxLines: 2, overflow: TextOverflow.ellipsis),
+          subtitle: widget.sourcePath != null
+              ? Text(context.l10n.isZh ? '待上传' : 'Pending upload')
+              : null,
+          onTap: path == null
+              ? null
+              : () async {
+                  try {
+                    await ref.read(orderFileOpenerProvider).open(path);
+                  } catch (error) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(context.flyError(error))),
+                      );
+                    }
+                  }
+                },
+          trailing: IconButton(
+            tooltip: context.l10n.isZh ? '移除附件' : 'Remove attachment',
+            icon: const Icon(Icons.close, size: 18),
+            onPressed: widget.onRemove,
+          ),
+        );
+      },
+    );
+  }
 }
 
 class _EntryFieldLabel extends StatelessWidget {

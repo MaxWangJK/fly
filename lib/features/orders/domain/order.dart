@@ -1,4 +1,5 @@
 import '../../../shared/domain/priority.dart';
+import 'financial_attachment_ids.dart';
 
 enum OrderProjection {
   all,
@@ -344,6 +345,8 @@ class OrderPayment {
   final String method;
   final String note;
   final String? attachmentId;
+
+  List<String> get attachmentIds => FinancialAttachmentIds.decode(attachmentId);
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -391,6 +394,8 @@ class OrderCostEntry {
   final String costType;
   final DateTime occurredAt;
   final String? attachmentId;
+
+  List<String> get attachmentIds => FinancialAttachmentIds.decode(attachmentId);
   final DateTime createdAt;
   final DateTime updatedAt;
 

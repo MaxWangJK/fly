@@ -109,12 +109,7 @@ class CustomerSidebar extends ConsumerWidget {
                     return _CategoryItem(
                       category: category,
                       selected: path == categoryPath,
-                      onTap: () => _go(
-                        context,
-                        ref,
-                        categoryPath,
-                        categoryTagId: category.tagId,
-                      ),
+                      onTap: () => _go(context, ref, categoryPath),
                       onRename: () =>
                           _editCategory(context, ref, category: category),
                       onMoveUp: index == 0
@@ -145,16 +140,11 @@ class CustomerSidebar extends ConsumerWidget {
     );
   }
 
-  static void _go(
-    BuildContext context,
-    WidgetRef ref,
-    String path, {
-    String? categoryTagId,
-  }) {
+  static void _go(BuildContext context, WidgetRef ref, String path) {
     ref.read(selectedCustomerIdProvider.notifier).state = null;
-    ref.read(customerTagFilterProvider.notifier).state = categoryTagId == null
-        ? <String>{}
-        : <String>{categoryTagId};
+    ref.read(customerTagFilterProvider.notifier).state = {};
+    ref.read(customerDetailExtensionProvider.notifier).state =
+        DetailExtensionType.none;
     context.go(path);
   }
 
@@ -163,37 +153,18 @@ class CustomerSidebar extends ConsumerWidget {
     WidgetRef ref, {
     CustomerCategory? category,
   }) async {
-    final controller = TextEditingController(text: category?.name ?? '');
     final name = await showDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(
-          category == null
-              ? context.crmCopy('新增客户级别')
-              : context.crmCopy('重命名客户级别'),
-        ),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(hintText: context.crmCopy('例如：重点客户')),
-          onSubmitted: (value) => Navigator.pop(dialogContext, value),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text(context.crmCopy('取消')),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, controller.text),
-            child: Text(context.crmCopy('保存')),
-          ),
-        ],
-      ),
+      builder: (_) => _CategoryNameDialog(category: category),
     );
-    controller.dispose();
     if (name == null || name.trim().isEmpty) return;
     if (category == null) {
-      await ref.read(customerRepositoryProvider).createCategory(name.trim());
+      final created = await ref
+          .read(customerRepositoryProvider)
+          .createCategory(name.trim());
+      if (context.mounted) {
+        _go(context, ref, '/customers/category/${created.id}');
+      }
     } else {
       await ref
           .read(customerRepositoryProvider)
@@ -214,6 +185,49 @@ class CustomerSidebar extends ConsumerWidget {
         .read(customerRepositoryProvider)
         .reorderCategories(reordered.map((item) => item.id).toList());
   }
+}
+
+class _CategoryNameDialog extends StatefulWidget {
+  const _CategoryNameDialog({this.category});
+  final CustomerCategory? category;
+
+  @override
+  State<_CategoryNameDialog> createState() => _CategoryNameDialogState();
+}
+
+class _CategoryNameDialogState extends State<_CategoryNameDialog> {
+  late final _controller = TextEditingController(
+    text: widget.category?.name ?? '',
+  );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: Text(
+      context.crmCopy(widget.category == null ? '新增客户级别' : '重命名客户级别'),
+    ),
+    content: TextField(
+      controller: _controller,
+      autofocus: true,
+      decoration: InputDecoration(hintText: context.crmCopy('例如：重点客户')),
+      onSubmitted: (value) => Navigator.pop(context, value),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: Text(context.crmCopy('取消')),
+      ),
+      FilledButton(
+        onPressed: () => Navigator.pop(context, _controller.text),
+        child: Text(context.crmCopy('保存')),
+      ),
+    ],
+  );
 }
 
 class _SideItem extends StatelessWidget {

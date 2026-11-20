@@ -36,14 +36,24 @@ class _OrderListPageState extends ConsumerState<OrderListPage> {
   );
   final _searchController = TextEditingController();
 
-  void _selectFirstVisible(List<SalesOrder> items) {
-    if (items.isEmpty) return;
+  void _reconcileSelection() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      final current = ref.read(
+        orderListProvider((projection: widget.projection, tagId: widget.tagId)),
+      );
+      if (current.isLoading || current.hasError || !current.hasValue) return;
+      final visible = current.requireValue;
       final selected = ref.read(selectedOrderIdProvider);
-      if (items.any((item) => item.id == selected)) return;
-      ref.read(selectedOrderIdProvider.notifier).state = items.first.id;
-      ref.read(orderExtensionProvider.notifier).state = OrderExtensionType.none;
+      if (visible.any((item) => item.id == selected)) return;
+      final next = visible.firstOrNull?.id;
+      if (selected != next) {
+        ref.read(selectedOrderIdProvider.notifier).state = next;
+      }
+      if (ref.read(orderExtensionProvider) != OrderExtensionType.none) {
+        ref.read(orderExtensionProvider.notifier).state =
+            OrderExtensionType.none;
+      }
     });
   }
 
@@ -141,7 +151,7 @@ class _OrderListPageState extends ConsumerState<OrderListPage> {
     final route = (projection: widget.projection, tagId: widget.tagId);
     final orders = ref.watch(orderListProvider(route));
     final visibleItems = orders.valueOrNull;
-    if (visibleItems != null) _selectFirstVisible(visibleItems);
+    if (visibleItems != null) _reconcileSelection();
     final customers = ref.watch(allCustomersProvider).valueOrNull ?? const [];
     final statuses = ref.watch(orderStatusesProvider).valueOrNull ?? const [];
     final allTags = ref.watch(allOrderTagsProvider).valueOrNull ?? const [];
@@ -181,8 +191,8 @@ class _OrderListPageState extends ConsumerState<OrderListPage> {
                     children: [
                       for (final item in [
                         ('/orders/all', '全部'),
-                        for (final tag in allTags)
-                          ('/orders/tag/${tag.id}', tag.name),
+                        ('/orders/important', context.crmCopy('重要订单')),
+                        ('/orders/normal', context.crmCopy('一般订单')),
                       ])
                         Padding(
                           padding: const EdgeInsets.only(right: 6),

@@ -40,7 +40,8 @@ final customerListProvider =
             .firstOrNull
             ?.tagId,
         search: ref.watch(customerSearchProvider),
-        tagIds: ref.watch(customerTagFilterProvider),
+        // Category is a single navigation choice; legacy tag selections no
+        // longer narrow the list invisibly. Keep historical tags in storage.
         sort: ref.watch(customerSortProvider),
       );
       return ref.watch(customerRepositoryProvider).watchCustomers(query);

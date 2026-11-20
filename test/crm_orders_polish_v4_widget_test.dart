@@ -10,53 +10,54 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('customer category sidebar synchronizes its linked tag filter', (
-    tester,
-  ) async {
-    tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = const Size(1500, 900);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    addTearDown(tester.view.resetPhysicalSize);
-    final database = AppDatabase(NativeDatabase.memory());
-    addTearDown(database.close);
-    final repository = DriftCustomerRepository(database);
-    final setup = await tester.runAsync(() async {
-      await database.ensureBuiltInData();
-      final categories = await repository.watchCategories().first;
-      final a = categories.firstWhere((item) => item.name == 'A级');
-      final b = categories.firstWhere((item) => item.name == 'B级');
-      final philippines = await repository.findOrCreateTag('菲律宾');
-      var mira = await repository.createCustomer(name: 'Mira');
-      mira = mira.copyWith(categoryId: b.id);
-      await repository.saveCustomer(mira);
-      await repository.setCustomerTags(mira.id, [a.tagId!, philippines.id]);
-      return (customerId: mira.id, aTagId: a.tagId!);
-    });
-    final aTagId = setup!.aTagId;
+  testWidgets(
+    'customer category sidebar navigates without adding a second tag filter',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(1500, 900);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+      final database = AppDatabase(NativeDatabase.memory());
+      addTearDown(database.close);
+      final repository = DriftCustomerRepository(database);
+      await tester.runAsync(() async {
+        await database.ensureBuiltInData();
+        final categories = await repository.watchCategories().first;
+        final a = categories.firstWhere((item) => item.name == 'A级');
+        final b = categories.firstWhere((item) => item.name == 'B级');
+        final philippines = await repository.findOrCreateTag('菲律宾');
+        var mira = await repository.createCustomer(name: 'Mira');
+        mira = mira.copyWith(categoryId: b.id);
+        await repository.saveCustomer(mira);
+        await repository.setCustomerTags(mira.id, [a.tagId!, philippines.id]);
+      });
 
-    final container = ProviderContainer(
-      overrides: [databaseProvider.overrideWithValue(database)],
-    );
-    addTearDown(container.dispose);
-    await tester.pumpWidget(
-      UncontrolledProviderScope(container: container, child: const FlyApp()),
-    );
-    await _pumpUi(tester);
+      final container = ProviderContainer(
+        overrides: [databaseProvider.overrideWithValue(database)],
+      );
+      addTearDown(container.dispose);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(container: container, child: const FlyApp()),
+      );
+      await _pumpUi(tester);
 
-    final sidebar = find.byKey(const ValueKey('customer-secondary-sidebar'));
-    await tester.tap(find.byKey(const ValueKey('primary-customers')));
-    await _pumpUi(tester);
-    await tester.tap(find.descendant(of: sidebar, matching: find.text('A级')));
-    await _pumpUi(tester);
-    expect(container.read(customerTagFilterProvider), {aTagId});
-    expect(find.text('Mira'), findsWidgets);
+      final sidebar = find.byKey(const ValueKey('customer-secondary-sidebar'));
+      await tester.tap(find.byKey(const ValueKey('primary-customers')));
+      await _pumpUi(tester);
+      await tester.tap(find.descendant(of: sidebar, matching: find.text('A级')));
+      await _pumpUi(tester);
+      expect(container.read(customerTagFilterProvider), isEmpty);
+      expect(find.text('Mira'), findsWidgets);
 
-    await tester.tap(find.descendant(of: sidebar, matching: find.text('全部客户')));
-    await _pumpUi(tester);
-    expect(container.read(customerTagFilterProvider), isEmpty);
-    await tester.pumpWidget(const SizedBox.shrink());
-    await tester.pump();
-  });
+      await tester.tap(
+        find.descendant(of: sidebar, matching: find.text('全部客户')),
+      );
+      await _pumpUi(tester);
+      expect(container.read(customerTagFilterProvider), isEmpty);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+    },
+  );
 
   testWidgets('follow-up editor saves optional next action and keeps focus', (
     tester,
@@ -70,7 +71,11 @@ void main() {
     final repository = DriftCustomerRepository(database);
     final customerId = await tester.runAsync(() async {
       await database.ensureBuiltInData();
-      return (await repository.createCustomer(name: 'Mira')).id;
+      final customer = await repository.createCustomer(name: 'Mira');
+      await repository.saveCustomer(
+        customer.copyWith(nextFollowUpDate: DateTime.now()),
+      );
+      return customer.id;
     });
 
     final container = ProviderContainer(

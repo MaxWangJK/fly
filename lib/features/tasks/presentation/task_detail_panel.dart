@@ -274,9 +274,10 @@ class _TaskEditorState extends ConsumerState<_TaskEditor> {
               ),
               const SizedBox(height: FlySpacing.sm),
               TextField(
+                key: const ValueKey('task-description-input'),
                 controller: _description,
-                minLines: 7,
-                maxLines: 14,
+                minLines: 3,
+                maxLines: 7,
                 textAlignVertical: TextAlignVertical.top,
                 decoration: InputDecoration(
                   hintText: context.l10n.t('notesHint'),

@@ -16,7 +16,6 @@ import '../../../shared/design_system/design_tokens.dart';
 import '../../../shared/design_system/model_text_field.dart';
 import '../../../shared/design_system/detail_section_entry.dart';
 import '../../../shared/design_system/priority.dart';
-import '../../../shared/design_system/tag_container.dart';
 import '../../../shared/domain/priority.dart';
 import '../../../shared/formatters/relative_date_formatter.dart';
 import '../../../shared/attachments/attachment.dart';
@@ -100,10 +99,6 @@ class _CustomerDetailPanelState extends ConsumerState<CustomerDetailPanel> {
                 .toList();
         final sources =
             ref.watch(allCustomerSourcesProvider).valueOrNull ?? const [];
-        final tags =
-            ref.watch(customerTagsProvider(customer.id)).valueOrNull ??
-            const [];
-        final allTags = ref.watch(allCrmTagsProvider).valueOrNull ?? const [];
         final contacts =
             ref.watch(customerContactsProvider(customer.id)).valueOrNull ??
             const [];
@@ -230,40 +225,6 @@ class _CustomerDetailPanelState extends ConsumerState<CustomerDetailPanel> {
                           },
                         ),
                       ],
-                    ),
-                    const SizedBox(height: FlySpacing.md),
-                    FlyTagContainer(
-                      selected: tags
-                          .map(
-                            (tag) => FlyTagItem(
-                              id: tag.id,
-                              name: tag.name,
-                              colorValue: tag.colorValue,
-                            ),
-                          )
-                          .toList(),
-                      allTags: allTags
-                          .map(
-                            (tag) => FlyTagItem(
-                              id: tag.id,
-                              name: tag.name,
-                              colorValue: tag.colorValue,
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (ids) => ref
-                          .read(customerRepositoryProvider)
-                          .setCustomerTags(customer.id, ids),
-                      onCreate: (name) async {
-                        final tag = await ref
-                            .read(customerRepositoryProvider)
-                            .findOrCreateTag(name);
-                        return FlyTagItem(
-                          id: tag.id,
-                          name: tag.name,
-                          colorValue: tag.colorValue,
-                        );
-                      },
                     ),
                     const SizedBox(height: FlySpacing.md),
                     DetailSectionEntry(

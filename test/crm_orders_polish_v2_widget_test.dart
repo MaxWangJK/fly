@@ -13,7 +13,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   testWidgets(
-    'customer tag filters wrap to at most two lines and preserve selection',
+    'customer list hides tag selectors without deleting historical links',
     (tester) async {
       final database = await _database(tester);
       final crm = DriftCustomerRepository(database);
@@ -37,29 +37,17 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('primary-customers')));
       await _pumpUi(tester);
 
-      final layout = find.byKey(
-        const ValueKey('customer-tag-filter-two-lines'),
+      expect(
+        find.byKey(const ValueKey('customer-tag-filter-two-lines')),
+        findsNothing,
       );
-      expect(layout, findsOneWidget);
-      expect(tester.getSize(layout).height, lessThanOrEqualTo(60));
-      await tester.tap(
-        find
-            .ancestor(of: find.text('Tag 01'), matching: find.byType(InkWell))
-            .first,
+      expect(find.text('Tag 01'), findsNothing);
+      expect(find.text('更多 ›'), findsNothing);
+      expect(
+        (await tester.runAsync(() => crm.watchCustomerTags(customer.id).first))!
+            .map((tag) => tag.id),
+        contains(firstTagId),
       );
-      await _pumpUi(tester);
-      await tester.tap(
-        find
-            .ancestor(of: find.text('更多 ›'), matching: find.byType(InkWell))
-            .first,
-      );
-      await tester.pumpAndSettle();
-      final selectedItem = tester.widget<CheckedPopupMenuItem<String>>(
-        find.widgetWithText(CheckedPopupMenuItem<String>, 'Tag 01'),
-      );
-      expect(selectedItem.checked, isTrue);
-      await tester.tapAt(const Offset(900, 700));
-      await _pumpUi(tester);
       expect(find.text('Jack'), findsWidgets);
       await _disposeUi(tester);
     },
